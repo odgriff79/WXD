@@ -12,10 +12,18 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 - **Trend persistence tracking** - Tracks consecutive runs with same signal, notes strengthening/weakening (e.g., "Cold signal run #4, strengthening")
 - **Timing uncertainty** - Reports spread when models agree on event but disagree on timing (e.g., "Cold arrives ~Jan 2 ±1.5 days")
 - All new analysis passed to Claude CLI as context for richer AI commentary
+- **Chart watermark** - "wxd-london.bsky.social | Free to use with attribution" in bottom-right
+- **Public chart URL** - chart_latest.png now pushed to GitHub for embedding
 
 ### Changed
 - `post_to_bluesky()` now returns post reference (uri/cid) to enable threading
 - Claude CLI prompt enhanced with structured ANALYSIS CONTEXT section
+- **IFS → ECM** - Chart legend now shows "ECM (51)" instead of "IFS (51)" for better UK weather community recognition
+- **Chart title simplified** - Shows "(00z run)" or "(12z run)" without fetch timestamp
+- **cron_fetch.sh** - Now commits and pushes chart_latest.png after Bluesky post
+
+### Investigated
+- **Previous Runs API** - Not suitable for backfill (no 850hPa data, no ensemble members)
 
 ## [2025-12-27] - Initial Bluesky Automation
 

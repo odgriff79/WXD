@@ -950,7 +950,7 @@ def generate_chart(data_path: Path, output_path: Path) -> bool:
         }
         labels = {
             'gfs': 'GFS (31)',
-            'ecmwf_ifs': 'IFS (51)',
+            'ecmwf_ifs': 'ECM (51)',
             'ecmwf_aifs': 'AIFS (51)',
             'gem': 'GEM (21)'
         }
@@ -997,14 +997,25 @@ def generate_chart(data_path: Path, output_path: Path) -> bool:
         ax.set_ylabel('850hPa Temperature (°C)', fontsize=12)
         fetched_at = run.get("fetched_at", "Unknown")
         run_label = get_run_label(fetched_at)
-        title_suffix = f" ({run_label})" if run_label else ""
-        ax.set_title(f'London 850hPa Ensemble Forecast{title_suffix}\nFetched: {fetched_at}',
-                    fontsize=14)
+
+        # Title shows run clearly (e.g., "00z run" or "12z run")
+        if run_label:
+            ax.set_title(f'London 850hPa Ensemble Forecast ({run_label})',
+                        fontsize=14)
+        else:
+            ax.set_title(f'London 850hPa Ensemble Forecast\nFetched: {fetched_at}',
+                        fontsize=14)
+
         ax.legend(loc='upper right', fontsize=10)
         ax.grid(True, alpha=0.3)
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
         ax.xaxis.set_major_locator(mdates.DayLocator(interval=2))
         fig.autofmt_xdate()
+
+        # Watermark
+        fig.text(0.99, 0.01, 'wxd-london.bsky.social | Free to use with attribution',
+                 fontsize=8, color='gray', alpha=0.6,
+                 ha='right', va='bottom', transform=fig.transFigure)
 
         plt.tight_layout()
         plt.savefig(output_path, dpi=150, facecolor='#1a1a2e')
