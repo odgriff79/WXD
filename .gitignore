@@ -18,6 +18,9 @@ cron.log
 # Alert state (hysteresis tracking, local to VM)
 data/alert_state.json
 
+# Local secrets (VM connection, credentials - never commit)
+.vm_config
+
 # Note: data/*.json files ARE tracked (that's the whole point)
 # Timestamped files: gfs_2025-12-27_0730Z.json
 # Latest symlinks: gfs_latest.json

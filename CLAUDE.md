@@ -132,10 +132,13 @@ The raw JSON goes to GitHub. Claude.ai does everything else.
 
 ## Remote Orchestration
 
-This project can be managed via VS Code Claude dispatching to VM Claude:
+This project can be managed via VS Code Claude dispatching to VM.
+
+**IMPORTANT: Check `.vm_config` for connection details (gitignored, never committed).**
 
 ```bash
-ssh -i "path/to/key" ubuntu@<VM_IP> "cd ~/wxd && claude -p 'your task here'"
+# Read .vm_config first for actual IP and key path
+ssh -i "$SSH_KEY" ubuntu@$VM_IP "cd ~/wxd && source venv/bin/activate && source ~/.wxd_env && python post_bluesky.py"
 ```
 
-Same pattern as video-object-removal project.
+The `.vm_config` file contains VM_IP, SSH_KEY path, and example commands.

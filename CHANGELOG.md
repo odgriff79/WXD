@@ -5,6 +5,7 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 ## [Unreleased]
 
 ### Added
+- **Local VM config file** - `.vm_config` (gitignored) stores VM IP and SSH key path for remote orchestration
 - **Reply threading for alerts** - Cold/warm/divergence/swing alerts now post as replies to main post, creating a tidy thread instead of separate posts
 - **Percentile framing** - Counts % of ensemble members below threshold (e.g., "35% of GFS members below -5°C by Jan 2")
 - **Bimodal detection** - Detects when ensemble splits into distinct cold/mild clusters (e.g., "GFS split: 40% cold vs 60% mild")
