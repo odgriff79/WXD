@@ -161,13 +161,13 @@ def calculate_confidence(data: dict) -> str:
     """Calculate confidence indicator based on model agreement and spread."""
     runs = data.get('runs', [])
     if not runs:
-        return '🟡'
+        return '⚠️ Confidence: medium'
 
     current = runs[0]
     models = current.get('models', {})
 
     if len(models) < 2:
-        return '🟡'
+        return '⚠️ Confidence: medium'
 
     # Calculate inter-model disagreement at each timestep
     max_disagreements = []
@@ -195,7 +195,7 @@ def calculate_confidence(data: dict) -> str:
             max_spreads.append(max(spreads))
 
     if not max_disagreements:
-        return '🟡'
+        return '⚠️ Confidence: medium'
 
     # Use 75th percentile of disagreement and spread
     max_disagreements.sort()
@@ -206,12 +206,12 @@ def calculate_confidence(data: dict) -> str:
 
     # High confidence: models agree within 2C, low spread
     if p75_disagree <= 2.0 and p75_spread <= 8.0:
-        return '🟢'
+        return '✅ Confidence: high'
     # Low confidence: major disagreement or very high spread
     elif p75_disagree > MODEL_DIVERGENCE_THRESHOLD or p75_spread > 15.0:
-        return '🔴'
+        return '❓ Confidence: low'
     else:
-        return '🟡'
+        return '⚠️ Confidence: medium'
 
 
 def format_run_diff_text(diffs: list) -> str:
