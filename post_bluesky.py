@@ -157,6 +157,124 @@ def check_cold_threshold(data: dict) -> dict:
     return None
 
 
+def check_model_divergence(data: dict) -> dict:
+    """Check for strong model disagreement (>4°C) at any forecast time."""
+    runs = data.get('runs', [])
+    if not runs:
+        return None
+
+    current = runs[0]
+    models = current.get('models', {})
+    timestamps = current.get('timestamps', [])
+
+    if len(models) < 2:
+        return None
+
+    max_divergence = {'diff': 0, 'date': None, 'models': []}
+
+    for i, ts in enumerate(timestamps):
+        model_means = {}
+        for model_key, model_data in models.items():
+            means = model_data.get('mean', [])
+            if i < len(means) and means[i] is not None:
+                model_means[model_key] = means[i]
+
+        if len(model_means) >= 2:
+            sorted_models = sorted(model_means.items(), key=lambda x: x[1])
+            coldest = sorted_models[0]
+            warmest = sorted_models[-1]
+            diff = warmest[1] - coldest[1]
+
+            if diff > max_divergence['diff']:
+                max_divergence = {
+                    'diff': round(diff, 1),
+                    'date': ts[:10],
+                    'coldest': coldest[0].upper().replace('_', ' '),
+                    'warmest': warmest[0].upper().replace('_', ' '),
+                    'coldest_temp': round(coldest[1], 1),
+                    'warmest_temp': round(warmest[1], 1)
+                }
+
+    if max_divergence['diff'] > MODEL_DIVERGENCE_THRESHOLD:
+        return max_divergence
+
+    return None
+
+
+def check_rapid_swing(data: dict) -> dict:
+    """Check for rapid temperature swing (≥6°C change in 48h window)."""
+    runs = data.get('runs', [])
+    if not runs:
+        return None
+
+    current = runs[0]
+    mmm = current.get('multi_model_mean', [])
+    timestamps = current.get('timestamps', [])
+
+    if len(mmm) < 5 or len(timestamps) < 5:  # Need at least a few data points
+        return None
+
+    # Look for biggest 48h swing (4 x 12h intervals)
+    max_swing = {'swing': 0, 'start_date': None, 'end_date': None, 'direction': None}
+
+    for i in range(len(mmm) - 4):
+        if mmm[i] is not None and mmm[i + 4] is not None:
+            swing = mmm[i + 4] - mmm[i]
+            if abs(swing) > abs(max_swing['swing']):
+                max_swing = {
+                    'swing': round(swing, 1),
+                    'start_date': timestamps[i][:10],
+                    'end_date': timestamps[i + 4][:10],
+                    'direction': 'warming' if swing > 0 else 'cooling'
+                }
+
+    if abs(max_swing['swing']) >= 6.0:
+        return max_swing
+
+    return None
+
+
+def check_warm_threshold(data: dict) -> dict:
+    """Check for warm threshold (+10°C/+15°C) - only active Apr-Sep."""
+    # Check if we're in warm season
+    now = utcnow()
+    if now.month < 4 or now.month > 9:
+        return None  # Only active Apr-Sep
+
+    runs = data.get('runs', [])
+    if not runs:
+        return None
+
+    current = runs[0]
+    models = current.get('models', {})
+    timestamps = current.get('timestamps', [])
+
+    warmest = {'temp': -999, 'model': None, 'date': None}
+    extreme_warm = False
+
+    for model_key, model_data in models.items():
+        means = model_data.get('mean', [])
+        for i, val in enumerate(means):
+            if val is not None and val > warmest['temp']:
+                warmest['temp'] = val
+                warmest['model'] = model_key.upper().replace('_', ' ')
+                if i < len(timestamps):
+                    warmest['date'] = timestamps[i][:10]
+
+    if warmest['temp'] >= 15.0:
+        extreme_warm = True
+
+    if warmest['temp'] >= WARM_THRESHOLD:
+        return {
+            'temp': round(warmest['temp'], 1),
+            'model': warmest['model'],
+            'date': warmest['date'],
+            'extreme': extreme_warm
+        }
+
+    return None
+
+
 def calculate_confidence(data: dict) -> str:
     """Calculate confidence indicator based on model agreement and spread."""
     runs = data.get('runs', [])
@@ -224,8 +342,72 @@ def format_run_diff_text(diffs: list) -> str:
     return f"{d['model']} {d['direction']} {abs(d['diff'])}°C since last run"
 
 
-def get_claude_commentary(data_path: Path, run_diff_text: str, confidence: str) -> str:
-    """Pipe JSON to Claude CLI and get commentary."""
+def is_auth_error(stderr: str) -> bool:
+    """Check if error is authentication related."""
+    auth_keywords = ['unauthorized', 'login', 'authenticate', 'session expired',
+                     'auth', 'token', 'credential', 'sign in', 'not logged in']
+    stderr_lower = stderr.lower()
+    return any(kw in stderr_lower for kw in auth_keywords)
+
+
+def send_ntfy_alert(message: str) -> None:
+    """Send push notification via ntfy.sh."""
+    try:
+        subprocess.run(
+            ['curl', '-s', '-d', message, 'https://ntfy.sh/wxd-alerts'],
+            timeout=10,
+            capture_output=True
+        )
+        print(f"  Sent ntfy alert: {message}")
+    except Exception as e:
+        print(f"  Failed to send ntfy alert: {e}")
+
+
+def generate_fallback_post(data: dict) -> str:
+    """Generate basic auto-post when Claude CLI fails."""
+    runs = data.get('runs', [])
+    if not runs:
+        return "London 850hPa update: Data available. Chart attached."
+
+    current = runs[0]
+    models = current.get('models', {})
+    timestamps = current.get('timestamps', [])
+
+    # Find coldest and warmest model predictions
+    extremes = []
+    for model_key, model_data in models.items():
+        means = model_data.get('mean', [])
+        if means:
+            valid_means = [m for m in means if m is not None]
+            if valid_means:
+                extremes.append({
+                    'model': model_key.upper().replace('_', ' '),
+                    'min': min(valid_means),
+                    'max': max(valid_means)
+                })
+
+    if not extremes:
+        return "London 850hPa update: Data available. Chart attached."
+
+    # Find overall coldest
+    coldest = min(extremes, key=lambda x: x['min'])
+    warmest = max(extremes, key=lambda x: x['max'])
+
+    # Get forecast date range
+    if timestamps:
+        start_date = timestamps[0][:10]
+        end_date = timestamps[-1][:10] if len(timestamps) > 1 else start_date
+        date_range = f"{start_date} to {end_date}"
+    else:
+        date_range = "coming days"
+
+    return f"London 850hPa update: {coldest['model']} coldest at {coldest['min']:.1f}°C, {warmest['model']} warmest at {warmest['max']:.1f}°C for {date_range}. Chart attached."
+
+
+def get_claude_commentary(data_path: Path, run_diff_text: str, confidence: str) -> tuple:
+    """Pipe JSON to Claude CLI and get commentary. Returns (text, is_fallback)."""
+    import time
+
     extra_context = ""
     if run_diff_text:
         extra_context += f"\n\nNOTE: {run_diff_text}"
@@ -245,11 +427,13 @@ Data shows ensemble means from GFS, ECMWF IFS, ECMWF AIFS, and GEM models."""
 
     try:
         with open(data_path, 'r') as f:
-            data = f.read()
+            data_str = f.read()
+            data_json = json.loads(data_str)
 
+        # First attempt
         result = subprocess.run(
             ['claude', '-p', prompt],
-            input=data,
+            input=data_str,
             capture_output=True,
             text=True,
             timeout=120
@@ -257,20 +441,53 @@ Data shows ensemble means from GFS, ECMWF IFS, ECMWF AIFS, and GEM models."""
 
         if result.returncode == 0:
             text = result.stdout.strip()
-            # Truncate to 270 chars to leave room for confidence
             if len(text) > 270:
                 text = text[:267] + "..."
-            return text
-        else:
-            print(f"Claude CLI error: {result.stderr}")
-            return None
+            return text, False
+
+        # Check if auth error
+        if is_auth_error(result.stderr):
+            print("  Claude CLI auth error detected, retrying in 30s...")
+            time.sleep(30)
+
+            # Retry once
+            result = subprocess.run(
+                ['claude', '-p', prompt],
+                input=data_str,
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+
+            if result.returncode == 0:
+                text = result.stdout.strip()
+                if len(text) > 270:
+                    text = text[:267] + "..."
+                return text, False
+
+            # Still failing - use fallback
+            print("  CLAUDE CLI AUTH FAILED - using fallback - reauth required")
+            send_ntfy_alert("WXD: Claude CLI auth failed. SSH to VM and run 'claude' to reauth.")
+            fallback = generate_fallback_post(data_json)
+            return fallback, True
+
+        # Non-auth error
+        print(f"Claude CLI error: {result.stderr}")
+        return None, False
 
     except subprocess.TimeoutExpired:
         print("Claude CLI timed out")
-        return None
+        # Try fallback on timeout too
+        try:
+            with open(data_path, 'r') as f:
+                data_json = json.load(f)
+            fallback = generate_fallback_post(data_json)
+            return fallback, True
+        except:
+            return None, False
     except Exception as e:
         print(f"Error getting commentary: {e}")
-        return None
+        return None, False
 
 
 def generate_chart(data_path: Path, output_path: Path) -> bool:
@@ -493,19 +710,55 @@ def main():
         if alert_state['extreme_cold_count'] > 0:
             alert_state['extreme_cold_count'] -= 1
 
+    # Check model divergence
+    print("Checking model divergence...")
+    divergence_info = check_model_divergence(data)
+    if divergence_info:
+        print(f"  Divergence: {divergence_info['diff']}°C gap on {divergence_info['date']}")
+    else:
+        print("  No significant divergence")
+
+    # Check rapid swing
+    print("Checking rapid swings...")
+    swing_info = check_rapid_swing(data)
+    if swing_info:
+        print(f"  Swing: {abs(swing_info['swing'])}°C {swing_info['direction']} from {swing_info['start_date']} to {swing_info['end_date']}")
+    else:
+        print("  No rapid swings")
+
+    # Check warm thresholds (Apr-Sep only)
+    print("Checking warm thresholds...")
+    warm_info = check_warm_threshold(data)
+    warm_alert = None
+    if warm_info:
+        print(f"  Warm signal: {warm_info['temp']}°C ({warm_info['model']}) on {warm_info['date']}")
+        alert_state['warm_count'] = alert_state.get('warm_count', 0) + 1
+        if alert_state['warm_count'] >= HYSTERESIS_RUNS:
+            warm_alert = warm_info
+            print(f"  WARM ALERT triggered (count: {alert_state['warm_count']})")
+    else:
+        print("  No warm signal (or out of season)")
+        if alert_state.get('warm_count', 0) > 0:
+            alert_state['warm_count'] -= 1
+
     # Save alert state
     save_alert_state(state_path, alert_state)
     print()
 
     # Generate main commentary
     print("Generating AI commentary...")
-    text = get_claude_commentary(data_path, run_diff_text, confidence)
+    text, is_fallback = get_claude_commentary(data_path, run_diff_text, confidence)
     if not text:
         print("ERROR: Failed to generate commentary")
         return 1
 
-    # Append confidence indicator
-    main_text = f"{text} {confidence}"
+    if is_fallback:
+        print("  (Using fallback post - Claude CLI unavailable)")
+        main_text = text  # Fallback doesn't get confidence appended
+    else:
+        # Append confidence indicator
+        main_text = f"{text} {confidence}"
+
     print(f"Main post ({len(main_text)} chars):")
     print(f"  {main_text}")
     print()
@@ -532,6 +785,33 @@ def main():
                 alert_text = f"❄️ Cold signal: {cold_alert['model']} showing {cold_alert['temp']}°C at 850hPa for {cold_alert['date']}. Elevated snow risk for UK uplands."
 
             print(f"Posting cold alert ({len(alert_text)} chars):")
+            print(f"  {alert_text}")
+            post_to_bluesky(alert_text, None, bsky_handle, bsky_password)
+
+        # Post warm alert if triggered (summer only)
+        if warm_alert:
+            if warm_alert.get('extreme'):
+                alert_text = f"🌡️ Extreme warmth signal: {warm_alert['model']} showing {warm_alert['temp']}°C at 850hPa for {warm_alert['date']}. Potential heatwave conditions."
+            else:
+                alert_text = f"☀️ Warm signal: {warm_alert['model']} showing {warm_alert['temp']}°C at 850hPa for {warm_alert['date']}. Above-average temperatures expected."
+
+            print(f"Posting warm alert ({len(alert_text)} chars):")
+            print(f"  {alert_text}")
+            post_to_bluesky(alert_text, None, bsky_handle, bsky_password)
+
+        # Post divergence alert if significant (one-off, no hysteresis needed)
+        if divergence_info and divergence_info['diff'] > 6.0:  # Only post for really big gaps
+            alert_text = f"⚡ Model disagreement: {divergence_info['diff']}°C gap for {divergence_info['date']}. {divergence_info['coldest']} at {divergence_info['coldest_temp']}°C vs {divergence_info['warmest']} at {divergence_info['warmest_temp']}°C. Low confidence."
+
+            print(f"Posting divergence alert ({len(alert_text)} chars):")
+            print(f"  {alert_text}")
+            post_to_bluesky(alert_text, None, bsky_handle, bsky_password)
+
+        # Post swing alert if dramatic pattern change
+        if swing_info and abs(swing_info['swing']) >= 8.0:  # Only post for really big swings
+            alert_text = f"🔄 Pattern flip: {abs(swing_info['swing'])}°C {swing_info['direction']} expected {swing_info['start_date']} to {swing_info['end_date']}. Major temperature change incoming."
+
+            print(f"Posting swing alert ({len(alert_text)} chars):")
             print(f"  {alert_text}")
             post_to_bluesky(alert_text, None, bsky_handle, bsky_password)
     else:
