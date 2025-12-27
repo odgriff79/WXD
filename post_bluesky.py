@@ -824,9 +824,13 @@ def format_analysis_context(run_diff_text: str, confidence: str,
             context_parts.append(f"TREND: {prev.title()} signal has cleared")
         elif signal and run_count >= 2:
             if trend == 'strengthening':
-                context_parts.append(f"TREND: {signal.title()} signal now in run #{run_count}, strengthening")
+                # Plain language: getting colder/warmer
+                direction = "getting colder" if signal == 'cold' else "getting warmer"
+                context_parts.append(f"TREND: {signal.title()} signal for {run_count} consecutive runs and {direction}")
             elif trend == 'weakening':
-                context_parts.append(f"TREND: {signal.title()} signal persists (run #{run_count}) but weakening")
+                # Plain language: easing, less extreme than before
+                direction = "less cold than previous runs" if signal == 'cold' else "less warm than previous runs"
+                context_parts.append(f"TREND: {signal.title()} signal for {run_count} runs but {direction}")
             else:
                 context_parts.append(f"TREND: {signal.title()} signal now in {run_count} consecutive runs")
 
@@ -862,8 +866,10 @@ Write a Bluesky post (max 250 chars to leave room for confidence indicator):
 - Use the ANALYSIS CONTEXT below to add depth - weave in percentile/bimodal/persistence info naturally
 - If run-to-run shifts are noted, mention which model shifted
 - Timing uncertainty is valuable ("cold arrives Dec 30 ±2 days")
-- Trend persistence builds narrative ("cold now in 4th consecutive run")
-- Keep it punchy and informative
+- PLAIN LANGUAGE ONLY - write for casual weather fans, not meteorologists
+- Avoid jargon like "conviction", "regime", "synoptic" - say "all models agree" not "model consensus"
+- Be direct: "cold easing" not "losing conviction", "models show" not "signal persists"
+- Keep it punchy and engaging
 - No hashtags, no emojis (confidence emoji added separately)
 - Use °C for temperatures
 
