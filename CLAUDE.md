@@ -102,7 +102,7 @@ The raw JSON goes to GitHub. Claude.ai does everything else.
 This project can be managed via VS Code Claude dispatching to VM Claude:
 
 ```bash
-ssh -i "path/to/key" ubuntu@132.145.50.77 "cd ~/wxd && claude -p 'your task here'"
+ssh -i "path/to/key" ubuntu@<VM_IP> "cd ~/wxd && claude -p 'your task here'"
 ```
 
 Same pattern as video-object-removal project.
