@@ -8,6 +8,9 @@ set -e
 WXD_DIR="$HOME/wxd"
 cd "$WXD_DIR"
 
+# Load Bluesky credentials if env file exists
+[ -f "$HOME/.wxd_env" ] && source "$HOME/.wxd_env"
+
 # Log start
 echo "=== WXD Fetch $(date -u +%Y-%m-%dT%H:%M:%SZ) ===" >> cron.log
 
