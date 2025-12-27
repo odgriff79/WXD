@@ -35,9 +35,15 @@ MODELS = {
         "runs": ["00z", "06z", "12z", "18z"],
         "delay_hours": 3.5
     },
-    "ecmwf": {
+    "ecmwf_ifs": {
         "api_name": "ecmwf_ifs025",
         "description": "ECMWF IFS Ensemble (51 members)",
+        "runs": ["00z", "12z"],
+        "delay_hours": 7
+    },
+    "ecmwf_aifs": {
+        "api_name": "ecmwf_aifs025",
+        "description": "ECMWF AIFS Ensemble (51 members, AI-based)",
         "runs": ["00z", "12z"],
         "delay_hours": 7
     },

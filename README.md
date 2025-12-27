@@ -35,6 +35,7 @@ data/gem_latest.json    → gem_2025-12-27_1930Z.json
 |-------|---------|------|---------------|-----------------|
 | GFS (GEFS) | 31 | 00z, 06z, 12z, 18z | ~3.5h | 07:30, 19:30 UTC |
 | ECMWF IFS | 51 | 00z, 12z | ~7h | 07:30, 19:30 UTC |
+| ECMWF AIFS | 51 | 00z, 12z | ~7h | 07:30, 19:30 UTC |
 | GEM (GEPS) | 21 | 00z, 12z | ~4h | 07:30, 19:30 UTC |
 
 ## Data Content
@@ -67,7 +68,8 @@ python fetch.py
 
 Latest data always available at:
 - https://raw.githubusercontent.com/odgriff79/WXD/main/data/gfs_latest.json
-- https://raw.githubusercontent.com/odgriff79/WXD/main/data/ecmwf_latest.json
+- https://raw.githubusercontent.com/odgriff79/WXD/main/data/ecmwf_ifs_latest.json
+- https://raw.githubusercontent.com/odgriff79/WXD/main/data/ecmwf_aifs_latest.json
 - https://raw.githubusercontent.com/odgriff79/WXD/main/data/gem_latest.json
 
 For historical comparison, browse timestamped files in `data/` directory.

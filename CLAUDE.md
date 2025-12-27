@@ -26,7 +26,8 @@ VM fetches timestamped JSON from Open-Meteo, pushes to GitHub. Claude.ai does al
 | Model | Members | Runs | Delay | Best Capture |
 |-------|---------|------|-------|--------------|
 | GFS | 31 | 00z, 06z, 12z, 18z | ~3.5h | 07:30, 19:30 UTC |
-| ECMWF | 51 | 00z, 12z | ~7h | 07:30, 19:30 UTC |
+| ECMWF IFS | 51 | 00z, 12z | ~7h | 07:30, 19:30 UTC |
+| ECMWF AIFS | 51 | 00z, 12z | ~7h | 07:30, 19:30 UTC |
 | GEM | 21 | 00z, 12z | ~4h | 07:30, 19:30 UTC |
 
 ## VM Setup
@@ -40,11 +41,13 @@ VM fetches timestamped JSON from Open-Meteo, pushes to GitHub. Claude.ai does al
 
 ```
 data/
-├── gfs_2025-12-27_0730Z.json     # Timestamped fetch
+├── gfs_2025-12-27_0730Z.json         # Timestamped fetch
 ├── gfs_2025-12-27_1930Z.json
-├── gfs_latest.json               # Symlink to most recent
-├── ecmwf_2025-12-27_0730Z.json
-├── ecmwf_latest.json
+├── gfs_latest.json                   # Copy of most recent
+├── ecmwf_ifs_2025-12-27_0730Z.json
+├── ecmwf_ifs_latest.json
+├── ecmwf_aifs_2025-12-27_0730Z.json
+├── ecmwf_aifs_latest.json
 ├── gem_2025-12-27_0730Z.json
 └── gem_latest.json
 ```
