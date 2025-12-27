@@ -485,6 +485,9 @@ def track_trend_persistence(data: dict, alert_state: dict) -> dict:
     """
     Track how many consecutive runs a cold/warm signal has appeared.
     Updates alert_state and returns persistence info for Claude.
+
+    IMPORTANT: Only counts distinct model runs (00z/12z cycles), not
+    repeated script executions on the same data.
     """
     runs = data.get('runs', [])
     if not runs:
@@ -492,9 +495,19 @@ def track_trend_persistence(data: dict, alert_state: dict) -> dict:
 
     current = runs[0]
     mmm = current.get('multi_model_mean', [])
+    fetched_at = current.get('fetched_at', '')
 
     if not mmm:
         return None
+
+    # Determine run ID (date + 00z/12z) to avoid counting same data twice
+    run_label = get_run_label(fetched_at)
+    run_date = fetched_at[:10] if fetched_at else ''
+    current_run_id = f"{run_date}_{run_label}" if run_label else fetched_at[:16]
+
+    # Check if this is actually a new run
+    prev_run_id = alert_state.get('last_run_id', '')
+    is_new_run = current_run_id != prev_run_id
 
     # Find minimum multi-model mean (coldest point in forecast)
     valid_mmm = [v for v in mmm if v is not None]
@@ -528,17 +541,25 @@ def track_trend_persistence(data: dict, alert_state: dict) -> dict:
 
     if current_signal:
         if current_signal == prev_signal:
-            # Signal persists - increment count
-            new_count = prev_count + 1
-
-            # Determine if strengthening or weakening
-            if prev_strength is not None and current_strength is not None:
-                if current_signal == 'cold':
-                    trend = 'strengthening' if current_strength < prev_strength else 'weakening'
-                else:  # warm
-                    trend = 'strengthening' if current_strength > prev_strength else 'weakening'
+            # Signal persists - only increment if this is a new run
+            if is_new_run:
+                new_count = prev_count + 1
+                # Determine if strengthening or weakening vs previous run
+                if prev_strength is not None and current_strength is not None:
+                    if current_signal == 'cold':
+                        trend = 'strengthening' if current_strength < prev_strength else 'weakening'
+                    else:  # warm
+                        trend = 'strengthening' if current_strength > prev_strength else 'weakening'
+                else:
+                    trend = 'steady'
+                # Update state for new run
+                alert_state['trend_run_count'] = new_count
+                alert_state['trend_strength'] = current_strength
+                alert_state['last_run_id'] = current_run_id
             else:
-                trend = 'steady'
+                # Same run - keep existing count and trend
+                new_count = prev_count
+                trend = 'steady'  # Can't determine trend within same run
 
             result = {
                 'signal': current_signal,
@@ -546,12 +567,8 @@ def track_trend_persistence(data: dict, alert_state: dict) -> dict:
                 'trend': trend,
                 'strength': current_strength
             }
-
-            # Update state
-            alert_state['trend_run_count'] = new_count
-            alert_state['trend_strength'] = current_strength
         else:
-            # New signal or signal changed
+            # New signal or signal changed - always reset
             result = {
                 'signal': current_signal,
                 'run_count': 1,
@@ -562,6 +579,7 @@ def track_trend_persistence(data: dict, alert_state: dict) -> dict:
             alert_state['trend_signal'] = current_signal
             alert_state['trend_run_count'] = 1
             alert_state['trend_strength'] = current_strength
+            alert_state['last_run_id'] = current_run_id
     else:
         # No signal - reset
         if prev_signal:
@@ -574,6 +592,7 @@ def track_trend_persistence(data: dict, alert_state: dict) -> dict:
         alert_state['trend_signal'] = None
         alert_state['trend_run_count'] = 0
         alert_state['trend_strength'] = None
+        alert_state['last_run_id'] = current_run_id
 
     return result
 
