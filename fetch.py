@@ -26,6 +26,7 @@ HOURLY_VARIABLE = "temperature_850hPa"
 
 # Retention policy
 RETENTION_DAYS = 7
+HISTORY_RUNS = 6  # Keep last 6 runs in rolling history (3 days of 00z/12z)
 
 # Model definitions with run schedules
 # delay_hours: typical hours after 00z/12z before data is available
@@ -228,6 +229,44 @@ def generate_summary(all_model_data: dict, data_dir: Path, timestamp: datetime) 
     import shutil
     shutil.copy(summary_path, latest_path)
     print(f"  Summary latest: summary_latest.json")
+
+    # Update rolling history
+    update_history(summary, data_dir)
+
+
+def update_history(current_summary: dict, data_dir: Path) -> None:
+    """Update rolling history file with current run, keeping last N runs."""
+    history_path = data_dir / "history.json"
+
+    # Load existing history or create new
+    if history_path.exists():
+        with open(history_path, "r") as f:
+            history = json.load(f)
+    else:
+        history = {
+            "location": {"latitude": LATITUDE, "longitude": LONGITUDE, "name": "London"},
+            "variable": HOURLY_VARIABLE,
+            "runs": []
+        }
+
+    # Create run entry (compact - just the essentials)
+    run_entry = {
+        "fetched_at": current_summary["fetched_at"],
+        "timestamps": current_summary["timestamps"],
+        "models": current_summary["models"],
+        "multi_model_mean": current_summary.get("multi_model_mean", [])
+    }
+
+    # Add to front of list
+    history["runs"].insert(0, run_entry)
+
+    # Keep only last N runs
+    history["runs"] = history["runs"][:HISTORY_RUNS]
+
+    # Save updated history
+    with open(history_path, "w") as f:
+        json.dump(history, f, indent=2)
+    print(f"  History updated: {len(history['runs'])} runs")
 
 
 def get_filename(model_key: str, timestamp: datetime) -> str:
