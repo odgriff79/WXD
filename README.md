@@ -5,7 +5,7 @@ Automated pipeline to fetch ensemble weather forecasts for trend comparison and 
 ## Architecture
 
 ```
-Open-Meteo API → Oracle VM (cron 07:30/19:30 UTC) → GitHub (timestamped JSON) → Claude.ai (analysis)
+Open-Meteo API → Oracle VM (cron 09:00/21:00 UTC) → GitHub (timestamped JSON) → Claude.ai (analysis)
 ```
 
 **VM Role**: Dumb data pipe. Fetch JSON, timestamp, commit, push. No analysis.
@@ -16,9 +16,9 @@ Open-Meteo API → Oracle VM (cron 07:30/19:30 UTC) → GitHub (timestamped JSON
 
 ### Timestamped Files (for trend comparison)
 ```
-data/gfs_2025-12-27_0730Z.json      # GFS fetch at 07:30 UTC
-data/gfs_2025-12-27_1930Z.json      # GFS fetch at 19:30 UTC
-data/ecmwf_2025-12-27_0730Z.json    # ECMWF fetch at 07:30 UTC
+data/gfs_2025-12-27_0900Z.json      # GFS fetch at 09:00 UTC
+data/gfs_2025-12-27_2100Z.json      # GFS fetch at 21:00 UTC
+data/ecmwf_ifs_2025-12-27_0900Z.json    # ECMWF IFS fetch at 09:00 UTC
 ...
 ```
 
@@ -33,10 +33,10 @@ data/gem_latest.json    → gem_2025-12-27_1930Z.json
 
 | Model | Members | Runs | Typical Delay | Best Fetch Time |
 |-------|---------|------|---------------|-----------------|
-| GFS (GEFS) | 31 | 00z, 06z, 12z, 18z | ~3.5h | 07:30, 19:30 UTC |
-| ECMWF IFS | 51 | 00z, 12z | ~7h | 07:30, 19:30 UTC |
-| ECMWF AIFS | 51 | 00z, 12z | ~7h | 07:30, 19:30 UTC |
-| GEM (GEPS) | 21 | 00z, 12z | ~4h | 07:30, 19:30 UTC |
+| GFS (GEFS) | 31 | 00z, 06z, 12z, 18z | ~3.5h | 09:00, 21:00 UTC |
+| ECMWF IFS | 51 | 00z, 12z | ~8h | 09:00, 21:00 UTC |
+| ECMWF AIFS | 51 | 00z, 12z | ~8h | 09:00, 21:00 UTC |
+| GEM (GEPS) | 21 | 00z, 12z | ~4h | 09:00, 21:00 UTC |
 
 ## Data Content
 
@@ -61,7 +61,7 @@ Variable: `temperature_850hPa` at London (51.5074, -0.1278)
 cd ~/wxd && source venv/bin/activate
 python fetch.py
 
-# Data is auto-fetched by VM cron at 07:30 and 19:30 UTC
+# Data is auto-fetched by VM cron at 09:00 and 21:00 UTC
 ```
 
 ## For Claude.ai Analysis

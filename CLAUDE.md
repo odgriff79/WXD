@@ -25,17 +25,17 @@ VM fetches timestamped JSON from Open-Meteo, pushes to GitHub. Claude.ai does al
 
 | Model | Members | Runs | Delay | Best Capture |
 |-------|---------|------|-------|--------------|
-| GFS | 31 | 00z, 06z, 12z, 18z | ~3.5h | 07:30, 19:30 UTC |
-| ECMWF IFS | 51 | 00z, 12z | ~7h | 07:30, 19:30 UTC |
-| ECMWF AIFS | 51 | 00z, 12z | ~7h | 07:30, 19:30 UTC |
-| GEM | 21 | 00z, 12z | ~4h | 07:30, 19:30 UTC |
+| GFS | 31 | 00z, 06z, 12z, 18z | ~3.5h | 09:00, 21:00 UTC |
+| ECMWF IFS | 51 | 00z, 12z | ~8h | 09:00, 21:00 UTC |
+| ECMWF AIFS | 51 | 00z, 12z | ~8h | 09:00, 21:00 UTC |
+| GEM | 21 | 00z, 12z | ~4h | 09:00, 21:00 UTC |
 
 ## VM Setup
 
 - **User**: ubuntu
 - **Project dir**: ~/wxd
 - **Venv**: ~/wxd/venv
-- **Cron**: 07:30 and 19:30 UTC daily
+- **Cron**: 09:00 and 21:00 UTC daily (after ECMWF dissemination)
 
 ## Data Structure
 
@@ -74,12 +74,12 @@ tail -50 cron.log
 ## Cron Job
 
 ```
-30 7,19 * * * /home/ubuntu/wxd/cron_fetch.sh
+0 9,21 * * * /home/ubuntu/wxd/cron_fetch.sh
 ```
 
-Runs at 07:30 and 19:30 UTC to capture:
-- 00z runs (available by ~07:00 for all models)
-- 12z runs (available by ~19:00 for all models)
+Runs at 09:00 and 21:00 UTC to capture:
+- 00z runs (ECMWF available ~08:00, +1h buffer)
+- 12z runs (ECMWF available ~20:00, +1h buffer)
 
 ## Troubleshooting
 
