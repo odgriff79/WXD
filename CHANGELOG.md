@@ -18,7 +18,7 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 ### Changed
 - `post_to_bluesky()` now returns post reference (uri/cid) to enable threading
 - Claude CLI prompt enhanced with structured ANALYSIS CONTEXT section
-- **IFS → ECM** - Chart legend now shows "ECM (51)" instead of "IFS (51)" for better UK weather community recognition
+- **IFS → ECM** - Chart legend AND post text now shows "ECM" instead of "ECMWF IFS" for better UK weather community recognition
 - **Chart title simplified** - Shows "(00z run)" or "(12z run)" without fetch timestamp
 - **cron_fetch.sh** - Now commits and pushes chart_latest.png after Bluesky post
 

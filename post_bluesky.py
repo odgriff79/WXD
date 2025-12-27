@@ -47,6 +47,19 @@ RUN_DIFF_THRESHOLD = 2.0  # Flag if model shifts more than this
 MODEL_DIVERGENCE_THRESHOLD = 4.0  # Inter-model disagreement threshold
 HYSTERESIS_RUNS = 2  # Must appear in N consecutive runs to trigger
 
+# Model display names (for posts and alerts)
+MODEL_NAMES = {
+    'gfs': 'GFS',
+    'ecmwf_ifs': 'ECM',
+    'ecmwf_aifs': 'AIFS',
+    'gem': 'GEM'
+}
+
+
+def format_model_name(model_key: str) -> str:
+    """Format model key for display in posts."""
+    return MODEL_NAMES.get(model_key, model_key.upper().replace('_', ' '))
+
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
@@ -129,7 +142,7 @@ def analyze_run_diff(data: dict) -> list:
                         diff = curr_val - prev_val
                         if abs(diff) >= RUN_DIFF_THRESHOLD:
                             diffs.append({
-                                'model': model_key.upper().replace('_', ' '),
+                                'model': format_model_name(model_key),
                                 'timestamp': ts,
                                 'diff': round(diff, 1),
                                 'direction': 'warmed' if diff > 0 else 'cooled'
@@ -160,7 +173,7 @@ def check_cold_threshold(data: dict) -> dict:
         for i, val in enumerate(means):
             if val is not None and val < coldest['temp']:
                 coldest['temp'] = val
-                coldest['model'] = model_key.upper().replace('_', ' ')
+                coldest['model'] = format_model_name(model_key)
                 if i < len(timestamps):
                     coldest['date'] = timestamps[i][:10]  # Just date
 
@@ -210,8 +223,8 @@ def check_model_divergence(data: dict) -> dict:
                 max_divergence = {
                     'diff': round(diff, 1),
                     'date': ts[:10],
-                    'coldest': coldest[0].upper().replace('_', ' '),
-                    'warmest': warmest[0].upper().replace('_', ' '),
+                    'coldest': format_model_name(coldest[0]),
+                    'warmest': format_model_name(warmest[0]),
                     'coldest_temp': round(coldest[1], 1),
                     'warmest_temp': round(warmest[1], 1)
                 }
@@ -278,7 +291,7 @@ def check_warm_threshold(data: dict) -> dict:
         for i, val in enumerate(means):
             if val is not None and val > warmest['temp']:
                 warmest['temp'] = val
-                warmest['model'] = model_key.upper().replace('_', ' ')
+                warmest['model'] = format_model_name(model_key)
                 if i < len(timestamps):
                     warmest['date'] = timestamps[i][:10]
 
@@ -359,7 +372,7 @@ def find_peak_percentile(percentile_data: dict) -> dict:
             # Check extreme first
             if i < len(pct_extreme) and pct_extreme[i] > peak['pct']:
                 peak = {
-                    'model': model_key.upper().replace('_', ' '),
+                    'model': format_model_name(model_key),
                     'date': ts[:10],
                     'pct': pct_extreme[i],
                     'threshold': 'extreme'
@@ -367,7 +380,7 @@ def find_peak_percentile(percentile_data: dict) -> dict:
             # Then cold (only if no extreme is higher)
             elif i < len(pct_cold) and pct_cold[i] > peak['pct']:
                 peak = {
-                    'model': model_key.upper().replace('_', ' '),
+                    'model': format_model_name(model_key),
                     'date': ts[:10],
                     'pct': pct_cold[i],
                     'threshold': 'cold'
@@ -623,9 +636,9 @@ def calculate_timing_uncertainty(data: dict) -> dict:
         'threshold': COLD_THRESHOLD,
         'mid_date': mid_date,
         'spread_days': round(spread_days, 1),
-        'earliest_model': earliest[0].upper().replace('_', ' '),
+        'earliest_model': format_model_name(earliest[0]),
         'earliest_date': earliest[1]['timestamp'][:10],
-        'latest_model': latest[0].upper().replace('_', ' '),
+        'latest_model': format_model_name(latest[0]),
         'latest_date': latest[1]['timestamp'][:10],
         'models_crossing': len(cold_crossings),
         'models_total': len(models)
@@ -738,7 +751,7 @@ def generate_fallback_post(data: dict) -> str:
             valid_means = [m for m in means if m is not None]
             if valid_means:
                 extremes.append({
-                    'model': model_key.upper().replace('_', ' '),
+                    'model': format_model_name(model_key),
                     'min': min(valid_means),
                     'max': max(valid_means)
                 })
@@ -782,7 +795,7 @@ def format_analysis_context(run_diff_text: str, confidence: str,
     if bimodal_info:
         # Pick most dramatic bimodal split
         for model, info in bimodal_info.items():
-            model_name = model.upper().replace('_', ' ')
+            model_name = format_model_name(model)
             context_parts.append(
                 f"BIMODAL: {model_name} split - {info['cold_pct']}% cold scenario ({info['cold_mean']}°C) vs {info['warm_pct']}% mild ({info['warm_mean']}°C) for {info['date']}"
             )
@@ -845,7 +858,7 @@ Write a Bluesky post (max 250 chars to leave room for confidence indicator):
 ANALYSIS CONTEXT:
 {analysis_context}
 
-Data shows ensemble means from GFS, ECMWF IFS, ECMWF AIFS, and GEM models."""
+Data shows ensemble means from GFS, ECM, AIFS, and GEM models."""
 
     try:
         with open(data_path, 'r') as f:
