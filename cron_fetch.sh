@@ -1,7 +1,7 @@
 #!/bin/bash
 # WXD Cron Fetch Script
-# Fetches weather data and pushes to GitHub
-# Schedule: 07:30 UTC (captures 00z runs) and 19:30 UTC (captures 12z runs)
+# Fetches weather data, pushes to GitHub, optionally posts to Bluesky
+# Schedule: 09:00 UTC (captures 00z runs) and 21:00 UTC (captures 12z runs)
 
 set -e
 
@@ -18,7 +18,6 @@ source venv/bin/activate
 python fetch.py >> cron.log 2>&1
 
 # Commit and push all data files
-# Use git add -A to handle new timestamped files and deleted old files
 cd data
 if [ -n "$(git status --porcelain)" ]; then
     TIMESTAMP=$(date -u +%Y-%m-%d_%H%MZ)
@@ -29,6 +28,15 @@ if [ -n "$(git status --porcelain)" ]; then
     echo "Pushed: $TIMESTAMP" >> cron.log
 else
     echo "No changes to commit" >> cron.log
+fi
+
+# Post to Bluesky if credentials are set
+cd "$WXD_DIR"
+if [ -n "$BSKY_HANDLE" ] && [ -n "$BSKY_PASSWORD" ]; then
+    echo "Posting to Bluesky..." >> cron.log
+    python post_bluesky.py >> cron.log 2>&1 || echo "Bluesky post failed" >> cron.log
+else
+    echo "Bluesky credentials not set, skipping post" >> cron.log
 fi
 
 echo "=== Complete ===" >> cron.log
