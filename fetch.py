@@ -136,22 +136,17 @@ def save_json(data: dict, filename: str, data_dir: Path) -> None:
     print(f"  Saved: {filepath.name}")
 
 
-def save_latest_symlink(model_key: str, filename: str, data_dir: Path) -> None:
-    """Create/update a 'latest' file for easy access."""
+def save_latest_copy(model_key: str, filename: str, data_dir: Path) -> None:
+    """Create/update a 'latest' file for easy access (copy, not symlink for git)."""
+    import shutil
     latest_path = data_dir / f"{model_key}_latest.json"
     source_path = data_dir / filename
 
-    # On Windows, copy instead of symlink; on Unix, use symlink
-    if os.name == 'nt':
-        import shutil
-        if latest_path.exists():
-            latest_path.unlink()
-        shutil.copy(source_path, latest_path)
-    else:
-        if latest_path.exists() or latest_path.is_symlink():
-            latest_path.unlink()
-        latest_path.symlink_to(filename)
-    print(f"  Latest: {latest_path.name} -> {filename}")
+    # Always copy (symlinks don't work on GitHub - they just store filename as text)
+    if latest_path.exists() or latest_path.is_symlink():
+        latest_path.unlink()
+    shutil.copy(source_path, latest_path)
+    print(f"  Latest: {latest_path.name} (copy of {filename})")
 
 
 def cleanup_old_files(data_dir: Path, retention_days: int) -> int:
@@ -203,7 +198,7 @@ def main():
             data = fetch_model(model_key, model_config)
             filename = get_filename(model_key, now)
             save_json(data, filename, data_dir)
-            save_latest_symlink(model_key, filename, data_dir)
+            save_latest_copy(model_key, filename, data_dir)
             success_count += 1
         except requests.RequestException as e:
             print(f"  ERROR: {e}")
