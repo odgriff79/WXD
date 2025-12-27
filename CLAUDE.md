@@ -17,7 +17,7 @@ VM fetches timestamped JSON from Open-Meteo, pushes to GitHub. Claude.ai does al
 [2025-12-27] Timestamped files for history: gfs_2025-12-27_0730Z.json format
 [2025-12-27] 7-day rolling retention: auto-cleanup of old files
 [2025-12-27] past_days=3 in API: includes previous model runs for trend comparison
-[2025-12-27] Fetch at 07:30/19:30 UTC: optimal for capturing 00z/12z runs across all models
+[2025-12-27] Fetch at 09:00/21:00 UTC: optimal for capturing 00z/12z runs (ECMWF ready by 08:00/20:00)
 [2025-12-27] Latest symlinks: gfs_latest.json points to most recent fetch
 ```
 
@@ -81,12 +81,40 @@ Runs at 09:00 and 21:00 UTC to capture:
 - 00z runs (ECMWF available ~08:00, +1h buffer)
 - 12z runs (ECMWF available ~20:00, +1h buffer)
 
+## Bluesky Automation
+
+Posts are made automatically after each fetch if credentials are configured.
+
+**Setup:**
+```bash
+# Copy template and edit with your credentials
+cp ~/.wxd_env.template ~/.wxd_env
+nano ~/.wxd_env
+
+# Add your Bluesky handle and app password:
+# export BSKY_HANDLE="your.handle.bsky.social"
+# export BSKY_PASSWORD="your-app-password"
+
+# Test manually
+cd ~/wxd && source venv/bin/activate
+python post_bluesky.py
+```
+
+**How it works:**
+1. Reads history_compact.json
+2. Pipes to Claude CLI for AI commentary (max 300 chars)
+3. Generates matplotlib chart (dark theme)
+4. Posts text + image to Bluesky
+
+**Get app password:** https://bsky.app/settings/app-passwords
+
 ## Troubleshooting
 
 1. **Fetch fails**: Check Open-Meteo status, network connectivity
 2. **Push fails**: Verify SSH key, git remote config
 3. **Data stale**: Check `cron.log`, verify crontab
 4. **Old files not deleted**: Check cleanup logic in fetch.py
+5. **Bluesky post fails**: Check credentials in ~/.wxd_env, check cron.log
 
 ## DO NOT
 
