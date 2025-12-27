@@ -437,6 +437,8 @@ def get_claude_commentary(data_path: Path, run_diff_text: str, confidence: str) 
 Write a Bluesky post (max 250 chars to leave room for confidence indicator):
 - Lead with the key finding (cold/warm signal, timing)
 - Note model agreement or disagreement
+- If run-to-run shifts are noted below, mention which model shifted and direction (e.g., "GFS cooled 2.5°C since 12z, now aligning with IFS")
+- Run-to-run consistency is as important as inter-model agreement - volatile models deserve mention
 - Keep it punchy and informative
 - No hashtags, no emojis (confidence emoji added separately)
 - Use °C for temperatures
