@@ -13,6 +13,7 @@ import requests
 import os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from statistics import mean
 
 # London coordinates
 LATITUDE = 51.5074
@@ -127,6 +128,108 @@ def fetch_model(model_key: str, model_config: dict) -> dict:
     return data
 
 
+def calculate_ensemble_stats(data: dict) -> dict:
+    """Calculate ensemble mean, min, max, spread for each timestep."""
+    hourly = data.get("hourly", {})
+    timestamps = hourly.get("time", [])
+
+    # Find all member columns (temperature_850hPa_member01, etc.)
+    member_keys = [k for k in hourly.keys() if k.startswith("temperature_850hPa_member")]
+
+    if not member_keys:
+        return None
+
+    stats = {
+        "timestamps": timestamps,
+        "mean": [],
+        "min": [],
+        "max": [],
+        "spread": []
+    }
+
+    # Calculate stats for each timestep
+    num_timesteps = len(timestamps)
+    for i in range(num_timesteps):
+        values = []
+        for key in member_keys:
+            val = hourly[key][i]
+            if val is not None:
+                values.append(val)
+
+        if values:
+            mean_val = round(mean(values), 2)
+            min_val = round(min(values), 2)
+            max_val = round(max(values), 2)
+            spread_val = round(max_val - min_val, 2)
+        else:
+            mean_val = min_val = max_val = spread_val = None
+
+        stats["mean"].append(mean_val)
+        stats["min"].append(min_val)
+        stats["max"].append(max_val)
+        stats["spread"].append(spread_val)
+
+    return stats
+
+
+def generate_summary(all_model_data: dict, data_dir: Path, timestamp: datetime) -> None:
+    """Generate summary JSON with ensemble means for all models."""
+    summary = {
+        "fetched_at": timestamp.isoformat().replace("+00:00", "Z"),
+        "location": {"latitude": LATITUDE, "longitude": LONGITUDE, "name": "London"},
+        "variable": HOURLY_VARIABLE,
+        "models": {}
+    }
+
+    # Get timestamps from first model (they should all match)
+    timestamps = None
+
+    for model_key, data in all_model_data.items():
+        stats = calculate_ensemble_stats(data)
+        if stats:
+            if timestamps is None:
+                timestamps = stats["timestamps"]
+            summary["models"][model_key] = {
+                "mean": stats["mean"],
+                "min": stats["min"],
+                "max": stats["max"],
+                "spread": stats["spread"]
+            }
+
+    summary["timestamps"] = timestamps
+
+    # Calculate multi-model mean (average of model means)
+    if timestamps and summary["models"]:
+        multi_model_mean = []
+        for i in range(len(timestamps)):
+            model_means = []
+            for model_stats in summary["models"].values():
+                val = model_stats["mean"][i]
+                if val is not None:
+                    model_means.append(val)
+            if model_means:
+                multi_model_mean.append(round(mean(model_means), 2))
+            else:
+                multi_model_mean.append(None)
+        summary["multi_model_mean"] = multi_model_mean
+
+    # Save timestamped summary
+    time_str = timestamp.strftime("%Y-%m-%d_%H%MZ")
+    summary_filename = f"summary_{time_str}.json"
+    summary_path = data_dir / summary_filename
+    with open(summary_path, "w") as f:
+        json.dump(summary, f, indent=2)
+    print(f"  Summary saved: {summary_filename}")
+
+    # Save latest copy
+    latest_path = data_dir / "summary_latest.json"
+    if latest_path.exists():
+        latest_path.unlink()
+    import shutil
+    shutil.copy(summary_path, latest_path)
+    print(f"  Summary latest: summary_latest.json")
+
+
 def get_filename(model_key: str, timestamp: datetime) -> str:
     """Generate timestamped filename for a model fetch."""
     # Format: gfs_2025-12-27_0730Z.json
@@ -197,6 +300,7 @@ def main():
     print()
 
     success_count = 0
+    all_model_data = {}
 
     for model_key, model_config in MODELS.items():
         print(f"Fetching {model_config['description']}...")
@@ -205,11 +309,22 @@ def main():
             filename = get_filename(model_key, now)
             save_json(data, filename, data_dir)
             save_latest_copy(model_key, filename, data_dir)
+            all_model_data[model_key] = data
             success_count += 1
         except requests.RequestException as e:
             print(f"  ERROR: {e}")
         except Exception as e:
             print(f"  ERROR: {e}")
+
+    print()
+
+    # Generate summary with ensemble stats
+    if all_model_data:
+        print("Generating ensemble summary...")
+        try:
+            generate_summary(all_model_data, data_dir, now)
+        except Exception as e:
+            print(f"  ERROR generating summary: {e}")
 
     print()
 
