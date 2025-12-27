@@ -8,6 +8,7 @@ confidence indicators, triggers threshold alerts, and posts to Bluesky.
 Usage:
     python post_bluesky.py                      # Normal post with chart
     python post_bluesky.py --changelog "msg"    # Post changelog update
+    python post_bluesky.py --weekly             # Post weekly summary
 """
 
 import argparse
@@ -656,6 +657,87 @@ def post_to_bluesky(text: str, image_path: Path = None, handle: str = None, pass
         return False
 
 
+def generate_weekly_summary(data: dict) -> str:
+    """Generate a brief weekly summary from history data."""
+    runs = data.get('runs', [])
+    if not runs:
+        return None
+
+    # Get stats from latest run
+    latest = runs[0]
+    models = latest.get('models', {})
+    mmm = latest.get('multi_model_mean', [])
+
+    if not mmm or not models:
+        return None
+
+    # Find overall range this week
+    valid_mmm = [v for v in mmm if v is not None]
+    if not valid_mmm:
+        return None
+
+    min_temp = min(valid_mmm)
+    max_temp = max(valid_mmm)
+
+    # Check model agreement
+    model_mins = []
+    model_maxs = []
+    for model_data in models.values():
+        means = model_data.get('mean', [])
+        valid = [v for v in means if v is not None]
+        if valid:
+            model_mins.append(min(valid))
+            model_maxs.append(max(valid))
+
+    if model_mins and model_maxs:
+        coldest_model_temp = min(model_mins)
+        warmest_model_temp = max(model_maxs)
+        spread = warmest_model_temp - coldest_model_temp
+    else:
+        spread = 0
+
+    # Build summary
+    if spread > 6:
+        agreement = "Models showing significant disagreement"
+    elif spread > 3:
+        agreement = "Models in moderate agreement"
+    else:
+        agreement = "Models in good agreement"
+
+    summary = f"📊 Weekly 850hPa outlook: Range {min_temp:.0f}°C to {max_temp:.0f}°C. {agreement}. Follow for 2x daily updates."
+
+    return summary
+
+
+def post_weekly(data_path: Path, handle: str = None, password: str = None) -> int:
+    """Post weekly summary to Bluesky."""
+    if not handle or not password:
+        print("ERROR: BSKY_HANDLE and BSKY_PASSWORD not set")
+        return 1
+
+    if not data_path.exists():
+        print(f"ERROR: {data_path} not found")
+        return 1
+
+    with open(data_path, 'r') as f:
+        data = json.load(f)
+
+    summary = generate_weekly_summary(data)
+    if not summary:
+        print("ERROR: Could not generate weekly summary")
+        return 1
+
+    print(f"Posting weekly summary ({len(summary)} chars):")
+    print(f"  {summary}")
+
+    if post_to_bluesky(summary, None, handle, password):
+        print("Weekly summary posted successfully")
+        return 0
+    else:
+        print("Failed to post weekly summary")
+        return 1
+
+
 def post_changelog(message: str, handle: str = None, password: str = None) -> int:
     """Post a changelog/update message to Bluesky."""
     if not handle or not password:
@@ -684,6 +766,7 @@ def post_changelog(message: str, handle: str = None, password: str = None) -> in
 def main():
     parser = argparse.ArgumentParser(description='WXD Bluesky Poster')
     parser.add_argument('--changelog', '-c', type=str, help='Post a changelog/update message')
+    parser.add_argument('--weekly', '-w', action='store_true', help='Post weekly summary')
     args = parser.parse_args()
 
     script_dir = Path(__file__).parent
@@ -699,6 +782,10 @@ def main():
     # Handle changelog mode
     if args.changelog:
         return post_changelog(args.changelog, bsky_handle, bsky_password)
+
+    # Handle weekly summary mode
+    if args.weekly:
+        return post_weekly(data_path, bsky_handle, bsky_password)
 
     print(f"WXD Bluesky Poster - {utcnow().isoformat()}")
     print()
