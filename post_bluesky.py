@@ -7,8 +7,8 @@ confidence indicators, triggers threshold alerts, and posts to Bluesky.
 
 Usage:
     python post_bluesky.py                      # Normal post with chart
-    python post_bluesky.py --changelog "msg"    # Post changelog update
-    python post_bluesky.py --weekly             # Post weekly summary
+    python post_bluesky.py --changelog "msg"    # Post manual changelog
+    python post_bluesky.py --weekly             # Post weekly git changelog (auto)
 """
 
 import argparse
@@ -657,84 +657,76 @@ def post_to_bluesky(text: str, image_path: Path = None, handle: str = None, pass
         return False
 
 
-def generate_weekly_summary(data: dict) -> str:
-    """Generate a brief weekly summary from history data."""
-    runs = data.get('runs', [])
-    if not runs:
+def get_weekly_commits() -> list:
+    """Get git commits from the past week."""
+    try:
+        result = subprocess.run(
+            ['git', 'log', '--since=1 week ago', '--oneline', '--no-merges'],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip().split('\n')
+        return []
+    except Exception:
+        return []
+
+
+def generate_weekly_changelog() -> str:
+    """Generate weekly changelog from git commits."""
+    commits = get_weekly_commits()
+
+    if not commits:
+        return None  # No commits this week, skip posting
+
+    # Summarize commits (strip commit hashes, keep messages)
+    messages = []
+    for commit in commits[:5]:  # Max 5 commits to fit in post
+        # Format: "abc1234 Commit message here"
+        parts = commit.split(' ', 1)
+        if len(parts) > 1:
+            messages.append(parts[1])
+
+    if not messages:
         return None
-
-    # Get stats from latest run
-    latest = runs[0]
-    models = latest.get('models', {})
-    mmm = latest.get('multi_model_mean', [])
-
-    if not mmm or not models:
-        return None
-
-    # Find overall range this week
-    valid_mmm = [v for v in mmm if v is not None]
-    if not valid_mmm:
-        return None
-
-    min_temp = min(valid_mmm)
-    max_temp = max(valid_mmm)
-
-    # Check model agreement
-    model_mins = []
-    model_maxs = []
-    for model_data in models.values():
-        means = model_data.get('mean', [])
-        valid = [v for v in means if v is not None]
-        if valid:
-            model_mins.append(min(valid))
-            model_maxs.append(max(valid))
-
-    if model_mins and model_maxs:
-        coldest_model_temp = min(model_mins)
-        warmest_model_temp = max(model_maxs)
-        spread = warmest_model_temp - coldest_model_temp
-    else:
-        spread = 0
 
     # Build summary
-    if spread > 6:
-        agreement = "Models showing significant disagreement"
-    elif spread > 3:
-        agreement = "Models in moderate agreement"
+    if len(commits) == 1:
+        summary = f"🔧 WXD this week: {messages[0]}"
     else:
-        agreement = "Models in good agreement"
+        bullet_points = "; ".join(messages[:3])
+        if len(commits) > 3:
+            summary = f"🔧 WXD this week ({len(commits)} updates): {bullet_points}..."
+        else:
+            summary = f"🔧 WXD this week: {bullet_points}"
 
-    summary = f"📊 Weekly 850hPa outlook: Range {min_temp:.0f}°C to {max_temp:.0f}°C. {agreement}. Follow for 2x daily updates."
+    # Truncate if needed
+    if len(summary) > 300:
+        summary = summary[:297] + "..."
 
     return summary
 
 
-def post_weekly(data_path: Path, handle: str = None, password: str = None) -> int:
-    """Post weekly summary to Bluesky."""
+def post_weekly(handle: str = None, password: str = None) -> int:
+    """Post weekly changelog to Bluesky."""
     if not handle or not password:
         print("ERROR: BSKY_HANDLE and BSKY_PASSWORD not set")
         return 1
 
-    if not data_path.exists():
-        print(f"ERROR: {data_path} not found")
-        return 1
-
-    with open(data_path, 'r') as f:
-        data = json.load(f)
-
-    summary = generate_weekly_summary(data)
+    summary = generate_weekly_changelog()
     if not summary:
-        print("ERROR: Could not generate weekly summary")
-        return 1
+        print("No commits this week, skipping post")
+        return 0  # Not an error, just nothing to post
 
-    print(f"Posting weekly summary ({len(summary)} chars):")
+    print(f"Posting weekly changelog ({len(summary)} chars):")
     print(f"  {summary}")
 
     if post_to_bluesky(summary, None, handle, password):
-        print("Weekly summary posted successfully")
+        print("Weekly changelog posted successfully")
         return 0
     else:
-        print("Failed to post weekly summary")
+        print("Failed to post weekly changelog")
         return 1
 
 
@@ -783,9 +775,9 @@ def main():
     if args.changelog:
         return post_changelog(args.changelog, bsky_handle, bsky_password)
 
-    # Handle weekly summary mode
+    # Handle weekly changelog mode
     if args.weekly:
-        return post_weekly(data_path, bsky_handle, bsky_password)
+        return post_weekly(bsky_handle, bsky_password)
 
     print(f"WXD Bluesky Poster - {utcnow().isoformat()}")
     print()
