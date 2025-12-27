@@ -4,8 +4,13 @@ WXD Bluesky Poster - Generates AI commentary and posts to Bluesky.
 
 Reads history_compact.json, analyzes run-to-run changes, generates
 confidence indicators, triggers threshold alerts, and posts to Bluesky.
+
+Usage:
+    python post_bluesky.py                      # Normal post with chart
+    python post_bluesky.py --changelog "msg"    # Post changelog update
 """
 
+import argparse
 import json
 import subprocess
 import sys
@@ -632,7 +637,36 @@ def post_to_bluesky(text: str, image_path: Path = None, handle: str = None, pass
         return False
 
 
+def post_changelog(message: str, handle: str = None, password: str = None) -> int:
+    """Post a changelog/update message to Bluesky."""
+    if not handle or not password:
+        print("ERROR: BSKY_HANDLE and BSKY_PASSWORD not set")
+        return 1
+
+    # Prepend emoji if not present
+    if not message.startswith('🔧'):
+        message = f"🔧 WXD update: {message}"
+
+    # Truncate if needed
+    if len(message) > 300:
+        message = message[:297] + "..."
+
+    print(f"Posting changelog ({len(message)} chars):")
+    print(f"  {message}")
+
+    if post_to_bluesky(message, None, handle, password):
+        print("Changelog posted successfully")
+        return 0
+    else:
+        print("Failed to post changelog")
+        return 1
+
+
 def main():
+    parser = argparse.ArgumentParser(description='WXD Bluesky Poster')
+    parser.add_argument('--changelog', '-c', type=str, help='Post a changelog/update message')
+    args = parser.parse_args()
+
     script_dir = Path(__file__).parent
     data_dir = script_dir / "data"
     data_path = data_dir / "history_compact.json"
@@ -642,6 +676,10 @@ def main():
     # Check for credentials in environment
     bsky_handle = os.environ.get('BSKY_HANDLE')
     bsky_password = os.environ.get('BSKY_PASSWORD')
+
+    # Handle changelog mode
+    if args.changelog:
+        return post_changelog(args.changelog, bsky_handle, bsky_password)
 
     print(f"WXD Bluesky Poster - {utcnow().isoformat()}")
     print()
