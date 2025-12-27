@@ -268,6 +268,49 @@ def update_history(current_summary: dict, data_dir: Path) -> None:
         json.dump(history, f, indent=2)
     print(f"  History updated: {len(history['runs'])} runs")
 
+    # Also save compact version (every 12 hours only - for Claude Web)
+    save_compact_history(history, data_dir)
+
+
+def save_compact_history(history: dict, data_dir: Path) -> None:
+    """Save compact history with only 12-hourly data points (00Z/12Z)."""
+    compact = {
+        "location": history["location"],
+        "variable": history["variable"],
+        "note": "Compact version - 12-hourly data only (00Z/12Z)",
+        "runs": []
+    }
+
+    for run in history["runs"]:
+        timestamps = run.get("timestamps", [])
+        # Find indices for 00Z and 12Z times
+        indices = []
+        for i, ts in enumerate(timestamps):
+            if "T00:00" in ts or "T12:00" in ts:
+                indices.append(i)
+
+        compact_run = {
+            "fetched_at": run["fetched_at"],
+            "timestamps": [timestamps[i] for i in indices if i < len(timestamps)],
+            "models": {},
+            "multi_model_mean": [run["multi_model_mean"][i] for i in indices if i < len(run.get("multi_model_mean", []))]
+        }
+
+        for model_key, model_data in run.get("models", {}).items():
+            compact_run["models"][model_key] = {
+                "mean": [model_data["mean"][i] for i in indices if i < len(model_data.get("mean", []))],
+                "min": [model_data["min"][i] for i in indices if i < len(model_data.get("min", []))],
+                "max": [model_data["max"][i] for i in indices if i < len(model_data.get("max", []))],
+                "spread": [model_data["spread"][i] for i in indices if i < len(model_data.get("spread", []))]
+            }
+
+        compact["runs"].append(compact_run)
+
+    compact_path = data_dir / "history_compact.json"
+    with open(compact_path, "w") as f:
+        json.dump(compact, f, indent=2)
+    print(f"  Compact history: {len(compact['runs'])} runs, 12-hourly")
+
 
 def get_filename(model_key: str, timestamp: datetime) -> str:
     """Generate timestamped filename for a model fetch."""
