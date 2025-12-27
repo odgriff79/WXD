@@ -10,8 +10,13 @@ The VM runs this on a schedule; Claude Web reads the JSON from GitHub.
 
 import json
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
+
+
+def utcnow() -> datetime:
+    """Return current UTC time (timezone-aware)."""
+    return datetime.now(timezone.utc)
 
 # London coordinates
 LATITUDE = 51.5074
@@ -59,7 +64,7 @@ def fetch_model(model_key: str, model_config: dict) -> dict:
     data["_wxd_metadata"] = {
         "model": model_key,
         "description": model_config["description"],
-        "fetched_at": datetime.utcnow().isoformat() + "Z",
+        "fetched_at": utcnow().isoformat().replace("+00:00", "Z"),
         "location": {"latitude": LATITUDE, "longitude": LONGITUDE},
         "variable": HOURLY_VARIABLE
     }
@@ -82,7 +87,7 @@ def main():
     data_dir = script_dir / "data"
     data_dir.mkdir(exist_ok=True)
 
-    print(f"WXD Fetch - {datetime.utcnow().isoformat()}Z")
+    print(f"WXD Fetch - {utcnow().isoformat().replace('+00:00', 'Z')}")
     print(f"Target: {LATITUDE}, {LONGITUDE} (London)")
     print(f"Variable: {HOURLY_VARIABLE}")
     print(f"Forecast days: {FORECAST_DAYS}")
