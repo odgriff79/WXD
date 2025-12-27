@@ -36,7 +36,7 @@ MODELS = {
         "delay_hours": 3.5
     },
     "ecmwf": {
-        "api_name": "ifs_0.25",
+        "api_name": "ecmwf_ifs025",
         "description": "ECMWF IFS Ensemble (51 members)",
         "runs": ["00z", "12z"],
         "delay_hours": 7
