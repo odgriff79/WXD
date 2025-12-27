@@ -19,6 +19,7 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 from statistics import mean, stdev
+from collections import defaultdict
 
 # Try imports - will fail gracefully if not installed
 try:
@@ -295,6 +296,342 @@ def check_warm_threshold(data: dict) -> dict:
     return None
 
 
+def analyze_percentile_framing(data_dir: Path) -> dict:
+    """
+    Count what % of ensemble members are below key thresholds.
+    Reads raw model files to access individual members.
+    Returns dict with model -> {timestamp -> pct_below_threshold}
+    """
+    results = {}
+    thresholds = [COLD_THRESHOLD, EXTREME_COLD_THRESHOLD]  # -5, -8
+
+    for model_key in ['gfs', 'ecmwf_ifs', 'ecmwf_aifs', 'gem']:
+        model_path = data_dir / f"{model_key}_latest.json"
+        if not model_path.exists():
+            continue
+
+        try:
+            with open(model_path, 'r') as f:
+                model_data = json.load(f)
+
+            hourly = model_data.get('hourly', {})
+            timestamps = hourly.get('time', [])
+
+            # Find all member columns
+            member_keys = [k for k in hourly.keys() if k.startswith('temperature_850hPa_member')]
+            if not member_keys:
+                continue
+
+            model_results = {'timestamps': [], 'pct_below_cold': [], 'pct_below_extreme': []}
+
+            for i, ts in enumerate(timestamps):
+                values = []
+                for key in member_keys:
+                    if i < len(hourly[key]) and hourly[key][i] is not None:
+                        values.append(hourly[key][i])
+
+                if values:
+                    pct_cold = round(100 * sum(1 for v in values if v < COLD_THRESHOLD) / len(values), 0)
+                    pct_extreme = round(100 * sum(1 for v in values if v < EXTREME_COLD_THRESHOLD) / len(values), 0)
+                    model_results['timestamps'].append(ts)
+                    model_results['pct_below_cold'].append(pct_cold)
+                    model_results['pct_below_extreme'].append(pct_extreme)
+
+            results[model_key] = model_results
+
+        except Exception as e:
+            print(f"  Percentile error for {model_key}: {e}")
+            continue
+
+    return results
+
+
+def find_peak_percentile(percentile_data: dict) -> dict:
+    """Find the peak percentile (most members below threshold) across all models."""
+    peak = {'model': None, 'date': None, 'pct': 0, 'threshold': 'cold'}
+
+    for model_key, data in percentile_data.items():
+        timestamps = data.get('timestamps', [])
+        pct_cold = data.get('pct_below_cold', [])
+        pct_extreme = data.get('pct_below_extreme', [])
+
+        for i, ts in enumerate(timestamps):
+            # Check extreme first
+            if i < len(pct_extreme) and pct_extreme[i] > peak['pct']:
+                peak = {
+                    'model': model_key.upper().replace('_', ' '),
+                    'date': ts[:10],
+                    'pct': pct_extreme[i],
+                    'threshold': 'extreme'
+                }
+            # Then cold (only if no extreme is higher)
+            elif i < len(pct_cold) and pct_cold[i] > peak['pct']:
+                peak = {
+                    'model': model_key.upper().replace('_', ' '),
+                    'date': ts[:10],
+                    'pct': pct_cold[i],
+                    'threshold': 'cold'
+                }
+
+    # Only return if significant (>20% of members)
+    if peak['pct'] >= 20:
+        return peak
+    return None
+
+
+def detect_bimodal_distribution(data_dir: Path) -> dict:
+    """
+    Detect if ensemble shows bimodal split (2 distinct temperature clusters).
+    Simple approach: check if there's a gap in the distribution.
+    """
+    results = {}
+
+    for model_key in ['gfs', 'ecmwf_ifs', 'ecmwf_aifs', 'gem']:
+        model_path = data_dir / f"{model_key}_latest.json"
+        if not model_path.exists():
+            continue
+
+        try:
+            with open(model_path, 'r') as f:
+                model_data = json.load(f)
+
+            hourly = model_data.get('hourly', {})
+            timestamps = hourly.get('time', [])
+
+            member_keys = [k for k in hourly.keys() if k.startswith('temperature_850hPa_member')]
+            if len(member_keys) < 10:  # Need enough members for meaningful split
+                continue
+
+            # Check each timestamp for bimodal distribution
+            for i, ts in enumerate(timestamps):
+                values = []
+                for key in member_keys:
+                    if i < len(hourly[key]) and hourly[key][i] is not None:
+                        values.append(hourly[key][i])
+
+                if len(values) < 10:
+                    continue
+
+                # Sort values and look for gap
+                sorted_vals = sorted(values)
+                n = len(sorted_vals)
+
+                # Find largest gap in distribution
+                max_gap = 0
+                gap_idx = 0
+                for j in range(1, n):
+                    gap = sorted_vals[j] - sorted_vals[j-1]
+                    if gap > max_gap:
+                        max_gap = gap
+                        gap_idx = j
+
+                # Bimodal if gap > 3°C and both clusters have meaningful membership (>25%)
+                if max_gap >= 3.0:
+                    cold_cluster = sorted_vals[:gap_idx]
+                    warm_cluster = sorted_vals[gap_idx:]
+
+                    cold_pct = round(100 * len(cold_cluster) / n)
+                    warm_pct = round(100 * len(warm_cluster) / n)
+
+                    # Both clusters need at least 25% of members
+                    if cold_pct >= 25 and warm_pct >= 25:
+                        cold_mean = round(mean(cold_cluster), 1)
+                        warm_mean = round(mean(warm_cluster), 1)
+
+                        results[model_key] = {
+                            'timestamp': ts,
+                            'date': ts[:10],
+                            'cold_pct': cold_pct,
+                            'warm_pct': warm_pct,
+                            'cold_mean': cold_mean,
+                            'warm_mean': warm_mean,
+                            'gap': round(max_gap, 1)
+                        }
+                        break  # Take first significant bimodal instance
+
+        except Exception as e:
+            print(f"  Bimodal error for {model_key}: {e}")
+            continue
+
+    return results
+
+
+def track_trend_persistence(data: dict, alert_state: dict) -> dict:
+    """
+    Track how many consecutive runs a cold/warm signal has appeared.
+    Updates alert_state and returns persistence info for Claude.
+    """
+    runs = data.get('runs', [])
+    if not runs:
+        return None
+
+    current = runs[0]
+    mmm = current.get('multi_model_mean', [])
+
+    if not mmm:
+        return None
+
+    # Find minimum multi-model mean (coldest point in forecast)
+    valid_mmm = [v for v in mmm if v is not None]
+    if not valid_mmm:
+        return None
+
+    min_temp = min(valid_mmm)
+    max_temp = max(valid_mmm)
+
+    # Determine current signal type
+    current_signal = None
+    if min_temp < COLD_THRESHOLD:
+        current_signal = 'cold'
+    elif max_temp > WARM_THRESHOLD:
+        current_signal = 'warm'
+
+    # Get previous persistence state
+    prev_signal = alert_state.get('trend_signal', None)
+    prev_count = alert_state.get('trend_run_count', 0)
+    prev_strength = alert_state.get('trend_strength', None)  # min_temp of previous run
+
+    # Calculate current strength (how far below/above threshold)
+    if current_signal == 'cold':
+        current_strength = min_temp
+    elif current_signal == 'warm':
+        current_strength = max_temp
+    else:
+        current_strength = None
+
+    result = None
+
+    if current_signal:
+        if current_signal == prev_signal:
+            # Signal persists - increment count
+            new_count = prev_count + 1
+
+            # Determine if strengthening or weakening
+            if prev_strength is not None and current_strength is not None:
+                if current_signal == 'cold':
+                    trend = 'strengthening' if current_strength < prev_strength else 'weakening'
+                else:  # warm
+                    trend = 'strengthening' if current_strength > prev_strength else 'weakening'
+            else:
+                trend = 'steady'
+
+            result = {
+                'signal': current_signal,
+                'run_count': new_count,
+                'trend': trend,
+                'strength': current_strength
+            }
+
+            # Update state
+            alert_state['trend_run_count'] = new_count
+            alert_state['trend_strength'] = current_strength
+        else:
+            # New signal or signal changed
+            result = {
+                'signal': current_signal,
+                'run_count': 1,
+                'trend': 'new',
+                'strength': current_strength
+            }
+
+            alert_state['trend_signal'] = current_signal
+            alert_state['trend_run_count'] = 1
+            alert_state['trend_strength'] = current_strength
+    else:
+        # No signal - reset
+        if prev_signal:
+            result = {
+                'signal': 'neutral',
+                'run_count': 0,
+                'trend': 'cleared',
+                'prev_signal': prev_signal
+            }
+        alert_state['trend_signal'] = None
+        alert_state['trend_run_count'] = 0
+        alert_state['trend_strength'] = None
+
+    return result
+
+
+def calculate_timing_uncertainty(data: dict) -> dict:
+    """
+    When models agree on event but disagree on timing.
+    Find when each model first crosses threshold and calculate spread.
+    """
+    runs = data.get('runs', [])
+    if not runs:
+        return None
+
+    current = runs[0]
+    models = current.get('models', {})
+    timestamps = current.get('timestamps', [])
+
+    if len(models) < 2 or not timestamps:
+        return None
+
+    # Find when each model first crosses cold threshold
+    cold_crossings = {}
+
+    for model_key, model_data in models.items():
+        means = model_data.get('mean', [])
+        for i, val in enumerate(means):
+            if val is not None and val < COLD_THRESHOLD:
+                if i < len(timestamps):
+                    cold_crossings[model_key] = {
+                        'timestamp': timestamps[i],
+                        'index': i,
+                        'temp': val
+                    }
+                break
+
+    # Need at least 2 models to cross for comparison
+    if len(cold_crossings) < 2:
+        return None
+
+    # Calculate timing spread
+    indices = [v['index'] for v in cold_crossings.values()]
+    min_idx = min(indices)
+    max_idx = max(indices)
+
+    # Each index is 12 hours (compact history uses 12-hourly data)
+    spread_hours = (max_idx - min_idx) * 12
+
+    # Only report if spread > 24 hours
+    if spread_hours <= 24:
+        return None
+
+    # Find earliest and latest crossing
+    earliest = min(cold_crossings.items(), key=lambda x: x[1]['index'])
+    latest = max(cold_crossings.items(), key=lambda x: x[1]['index'])
+
+    # Calculate middle date
+    earliest_ts = earliest[1]['timestamp']
+    latest_ts = latest[1]['timestamp']
+
+    try:
+        earliest_dt = datetime.fromisoformat(earliest_ts.replace('Z', '+00:00'))
+        latest_dt = datetime.fromisoformat(latest_ts.replace('Z', '+00:00'))
+        mid_dt = earliest_dt + (latest_dt - earliest_dt) / 2
+        mid_date = mid_dt.strftime('%b %d')
+    except:
+        mid_date = earliest_ts[:10]
+
+    spread_days = spread_hours / 24
+
+    return {
+        'event': 'cold',
+        'threshold': COLD_THRESHOLD,
+        'mid_date': mid_date,
+        'spread_days': round(spread_days, 1),
+        'earliest_model': earliest[0].upper().replace('_', ' '),
+        'earliest_date': earliest[1]['timestamp'][:10],
+        'latest_model': latest[0].upper().replace('_', ' '),
+        'latest_date': latest[1]['timestamp'][:10],
+        'models_crossing': len(cold_crossings),
+        'models_total': len(models)
+    }
+
+
 def calculate_confidence(data: dict) -> str:
     """Calculate confidence indicator based on model agreement and spread."""
     runs = data.get('runs', [])
@@ -424,26 +761,89 @@ def generate_fallback_post(data: dict) -> str:
     return f"London 850hPa update: {coldest['model']} coldest at {coldest['min']:.1f}°C, {warmest['model']} warmest at {warmest['max']:.1f}°C for {date_range}. Chart attached."
 
 
-def get_claude_commentary(data_path: Path, run_diff_text: str, confidence: str) -> tuple:
+def format_analysis_context(run_diff_text: str, confidence: str,
+                           percentile_info: dict, bimodal_info: dict,
+                           persistence_info: dict, timing_info: dict) -> str:
+    """Format all analysis results into context for Claude CLI prompt."""
+    context_parts = []
+
+    # Run-to-run shifts
+    if run_diff_text:
+        context_parts.append(f"RUN SHIFT: {run_diff_text}")
+
+    # Percentile framing
+    if percentile_info:
+        threshold_name = "extreme cold (<-8°C)" if percentile_info['threshold'] == 'extreme' else "cold (<-5°C)"
+        context_parts.append(
+            f"PERCENTILE: {int(percentile_info['pct'])}% of {percentile_info['model']} members below {threshold_name} by {percentile_info['date']}"
+        )
+
+    # Bimodal detection
+    if bimodal_info:
+        # Pick most dramatic bimodal split
+        for model, info in bimodal_info.items():
+            model_name = model.upper().replace('_', ' ')
+            context_parts.append(
+                f"BIMODAL: {model_name} split - {info['cold_pct']}% cold scenario ({info['cold_mean']}°C) vs {info['warm_pct']}% mild ({info['warm_mean']}°C) for {info['date']}"
+            )
+            break  # Just report first/most significant
+
+    # Trend persistence
+    if persistence_info:
+        signal = persistence_info.get('signal')
+        run_count = persistence_info.get('run_count', 0)
+        trend = persistence_info.get('trend', '')
+
+        if signal == 'neutral' and trend == 'cleared':
+            prev = persistence_info.get('prev_signal', 'signal')
+            context_parts.append(f"TREND: {prev.title()} signal has cleared")
+        elif signal and run_count >= 2:
+            if trend == 'strengthening':
+                context_parts.append(f"TREND: {signal.title()} signal now in run #{run_count}, strengthening")
+            elif trend == 'weakening':
+                context_parts.append(f"TREND: {signal.title()} signal persists (run #{run_count}) but weakening")
+            else:
+                context_parts.append(f"TREND: {signal.title()} signal now in {run_count} consecutive runs")
+
+    # Timing uncertainty
+    if timing_info:
+        context_parts.append(
+            f"TIMING: Cold arrives ~{timing_info['mid_date']} ±{timing_info['spread_days']} days ({timing_info['models_crossing']}/{timing_info['models_total']} models crossing threshold)"
+        )
+
+    # Confidence
+    context_parts.append(f"CONFIDENCE: {confidence}")
+
+    return "\n".join(context_parts)
+
+
+def get_claude_commentary(data_path: Path, run_diff_text: str, confidence: str,
+                          percentile_info: dict = None, bimodal_info: dict = None,
+                          persistence_info: dict = None, timing_info: dict = None) -> tuple:
     """Pipe JSON to Claude CLI and get commentary. Returns (text, is_fallback)."""
     import time
 
-    extra_context = ""
-    if run_diff_text:
-        extra_context += f"\n\nNOTE: {run_diff_text}"
-    extra_context += f"\n\nConfidence indicator to append: {confidence}"
+    # Build analysis context
+    analysis_context = format_analysis_context(
+        run_diff_text, confidence,
+        percentile_info, bimodal_info,
+        persistence_info, timing_info
+    )
 
     prompt = f"""You are WXD, a weather ensemble analysis bot. Analyse this 4-model ensemble 850hPa temperature data for London.
 
 Write a Bluesky post (max 250 chars to leave room for confidence indicator):
 - Lead with the key finding (cold/warm signal, timing)
-- Note model agreement or disagreement
-- If run-to-run shifts are noted below, mention which model shifted and direction (e.g., "GFS cooled 2.5°C since 12z, now aligning with IFS")
-- Run-to-run consistency is as important as inter-model agreement - volatile models deserve mention
+- Use the ANALYSIS CONTEXT below to add depth - weave in percentile/bimodal/persistence info naturally
+- If run-to-run shifts are noted, mention which model shifted
+- Timing uncertainty is valuable ("cold arrives Dec 30 ±2 days")
+- Trend persistence builds narrative ("cold now in 4th consecutive run")
 - Keep it punchy and informative
 - No hashtags, no emojis (confidence emoji added separately)
 - Use °C for temperatures
-{extra_context}
+
+ANALYSIS CONTEXT:
+{analysis_context}
 
 Data shows ensemble means from GFS, ECMWF IFS, ECMWF AIFS, and GEM models."""
 
@@ -620,19 +1020,39 @@ def generate_chart(data_path: Path, output_path: Path) -> bool:
         return False
 
 
-def post_to_bluesky(text: str, image_path: Path = None, handle: str = None, password: str = None) -> bool:
-    """Post to Bluesky with optional image."""
+def post_to_bluesky(text: str, image_path: Path = None, handle: str = None, password: str = None,
+                    reply_to: dict = None) -> dict:
+    """Post to Bluesky with optional image. Returns post reference for threading.
+
+    Args:
+        text: Post text
+        image_path: Optional image to attach
+        handle: Bluesky handle
+        password: App password
+        reply_to: Optional dict with 'uri' and 'cid' to reply to (for threading)
+
+    Returns:
+        dict with 'uri' and 'cid' of posted message, or None on failure
+    """
     if not HAS_ATPROTO:
         print("atproto not installed, skipping post")
-        return False
+        return None
 
     if not handle or not password:
         print("Bluesky credentials not provided")
-        return False
+        return None
 
     try:
         client = Client()
         client.login(handle, password)
+
+        # Build reply reference if threading
+        reply_ref = None
+        if reply_to and reply_to.get('uri') and reply_to.get('cid'):
+            reply_ref = {
+                'root': {'uri': reply_to['uri'], 'cid': reply_to['cid']},
+                'parent': {'uri': reply_to['uri'], 'cid': reply_to['cid']}
+            }
 
         if image_path and image_path.exists():
             with open(image_path, 'rb') as f:
@@ -645,16 +1065,21 @@ def post_to_bluesky(text: str, image_path: Path = None, handle: str = None, pass
                     'image': upload.blob
                 }]
             }
-            client.send_post(text=text, embed=embed)
+            response = client.send_post(text=text, embed=embed, reply_to=reply_ref)
         else:
-            client.send_post(text=text)
+            response = client.send_post(text=text, reply_to=reply_ref)
 
         print("Posted to Bluesky successfully")
-        return True
+
+        # Return post reference for threading
+        return {
+            'uri': response.uri,
+            'cid': response.cid
+        }
 
     except Exception as e:
         print(f"Error posting to Bluesky: {e}")
-        return False
+        return None
 
 
 def get_weekly_commits() -> list:
@@ -877,13 +1302,59 @@ def main():
         if alert_state.get('warm_count', 0) > 0:
             alert_state['warm_count'] -= 1
 
-    # Save alert state
+    # NEW: Percentile framing analysis
+    print("Analyzing percentile framing...")
+    percentile_data = analyze_percentile_framing(data_dir)
+    percentile_info = find_peak_percentile(percentile_data)
+    if percentile_info:
+        print(f"  Peak: {int(percentile_info['pct'])}% of {percentile_info['model']} below threshold on {percentile_info['date']}")
+    else:
+        print("  No significant percentile signals")
+
+    # NEW: Bimodal detection
+    print("Detecting bimodal distributions...")
+    bimodal_info = detect_bimodal_distribution(data_dir)
+    if bimodal_info:
+        for model, info in bimodal_info.items():
+            print(f"  {model.upper()}: {info['cold_pct']}% cold vs {info['warm_pct']}% mild (gap: {info['gap']}°C)")
+    else:
+        print("  No bimodal splits detected")
+
+    # NEW: Trend persistence
+    print("Tracking trend persistence...")
+    persistence_info = track_trend_persistence(data, alert_state)
+    if persistence_info:
+        signal = persistence_info.get('signal', 'neutral')
+        run_count = persistence_info.get('run_count', 0)
+        trend = persistence_info.get('trend', '')
+        if signal != 'neutral':
+            print(f"  {signal.title()} signal: run #{run_count}, {trend}")
+        elif trend == 'cleared':
+            print(f"  Signal cleared (was {persistence_info.get('prev_signal', 'unknown')})")
+    else:
+        print("  No trend persistence data")
+
+    # NEW: Timing uncertainty
+    print("Calculating timing uncertainty...")
+    timing_info = calculate_timing_uncertainty(data)
+    if timing_info:
+        print(f"  Cold arrives ~{timing_info['mid_date']} ±{timing_info['spread_days']} days")
+    else:
+        print("  No significant timing spread")
+
+    # Save alert state (includes trend persistence)
     save_alert_state(state_path, alert_state)
     print()
 
-    # Generate main commentary
+    # Generate main commentary with all analysis context
     print("Generating AI commentary...")
-    text, is_fallback = get_claude_commentary(data_path, run_diff_text, confidence)
+    text, is_fallback = get_claude_commentary(
+        data_path, run_diff_text, confidence,
+        percentile_info=percentile_info,
+        bimodal_info=bimodal_info,
+        persistence_info=persistence_info,
+        timing_info=timing_info
+    )
     if not text:
         print("ERROR: Failed to generate commentary")
         return 1
@@ -909,10 +1380,11 @@ def main():
         # Post main update
         print("Posting main update to Bluesky...")
         image = chart_path if chart_ok else None
-        post_ok = post_to_bluesky(main_text, image, bsky_handle, bsky_password)
-        if not post_ok:
+        main_post_ref = post_to_bluesky(main_text, image, bsky_handle, bsky_password)
+        if not main_post_ref:
             return 1
 
+        # Post alerts as REPLIES to main post (creates thread)
         # Post cold alert if triggered
         if cold_alert:
             if cold_alert['type'] == 'extreme':
@@ -920,9 +1392,9 @@ def main():
             else:
                 alert_text = f"❄️ Cold signal: {cold_alert['model']} showing {cold_alert['temp']}°C at 850hPa for {cold_alert['date']}. Elevated snow risk for UK uplands."
 
-            print(f"Posting cold alert ({len(alert_text)} chars):")
+            print(f"Posting cold alert as reply ({len(alert_text)} chars):")
             print(f"  {alert_text}")
-            post_to_bluesky(alert_text, None, bsky_handle, bsky_password)
+            post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
 
         # Post warm alert if triggered (summer only)
         if warm_alert:
@@ -931,25 +1403,25 @@ def main():
             else:
                 alert_text = f"☀️ Warm signal: {warm_alert['model']} showing {warm_alert['temp']}°C at 850hPa for {warm_alert['date']}. Above-average temperatures expected."
 
-            print(f"Posting warm alert ({len(alert_text)} chars):")
+            print(f"Posting warm alert as reply ({len(alert_text)} chars):")
             print(f"  {alert_text}")
-            post_to_bluesky(alert_text, None, bsky_handle, bsky_password)
+            post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
 
         # Post divergence alert if significant (one-off, no hysteresis needed)
         if divergence_info and divergence_info['diff'] > 6.0:  # Only post for really big gaps
             alert_text = f"⚡ Model disagreement: {divergence_info['diff']}°C gap for {divergence_info['date']}. {divergence_info['coldest']} at {divergence_info['coldest_temp']}°C vs {divergence_info['warmest']} at {divergence_info['warmest_temp']}°C. Low confidence."
 
-            print(f"Posting divergence alert ({len(alert_text)} chars):")
+            print(f"Posting divergence alert as reply ({len(alert_text)} chars):")
             print(f"  {alert_text}")
-            post_to_bluesky(alert_text, None, bsky_handle, bsky_password)
+            post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
 
         # Post swing alert if dramatic pattern change
         if swing_info and abs(swing_info['swing']) >= 8.0:  # Only post for really big swings
             alert_text = f"🔄 Pattern flip: {abs(swing_info['swing'])}°C {swing_info['direction']} expected {swing_info['start_date']} to {swing_info['end_date']}. Major temperature change incoming."
 
-            print(f"Posting swing alert ({len(alert_text)} chars):")
+            print(f"Posting swing alert as reply ({len(alert_text)} chars):")
             print(f"  {alert_text}")
-            post_to_bluesky(alert_text, None, bsky_handle, bsky_password)
+            post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
     else:
         print("BSKY_HANDLE and BSKY_PASSWORD not set, skipping post")
         print("Set these environment variables to enable posting")

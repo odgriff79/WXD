@@ -116,6 +116,11 @@ python post_bluesky.py
 4. **Old files not deleted**: Check cleanup logic in fetch.py
 5. **Bluesky post fails**: Check credentials in ~/.wxd_env, check cron.log
 
+## ALWAYS DO
+
+- **Update CHANGELOG.md** after any code changes (new features, bug fixes, config changes)
+- Document what changed, when, and why
+
 ## DO NOT
 
 - Add analysis code
