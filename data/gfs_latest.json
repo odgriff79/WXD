@@ -1,7 +1,7 @@
 {
   "latitude": 51.5,
   "longitude": -0.25,
-  "generationtime_ms": 1.8193721771240234,
+  "generationtime_ms": 1.8085241317749023,
   "utc_offset_seconds": 0,
   "timezone": "GMT",
   "timezone_abbreviation": "GMT",
@@ -13165,7 +13165,7 @@
   "_wxd_metadata": {
     "model": "gfs",
     "description": "GFS Ensemble (31 members)",
-    "fetched_at": "2025-12-27T08:29:27.188751Z",
+    "fetched_at": "2025-12-27T08:57:52.152475Z",
     "location": {
       "latitude": 51.5074,
       "longitude": -0.1278,
@@ -13175,7 +13175,7 @@
     "forecast_days": 14,
     "past_days": 3,
     "run_info": {
-      "fetch_time": "2025-12-27T08:29:27Z",
+      "fetch_time": "2025-12-27T08:57:52Z",
       "likely_run": "00z",
       "runs_available": [
         "00z",
