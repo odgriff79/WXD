@@ -10,6 +10,7 @@ The VM runs this on a schedule; Claude Web reads the JSON from GitHub.
 
 import json
 import requests
+import subprocess
 import os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -63,6 +64,19 @@ BASE_URL = "https://ensemble-api.open-meteo.com/v1/ensemble"
 def utcnow() -> datetime:
     """Return current UTC time (timezone-aware)."""
     return datetime.now(timezone.utc)
+
+
+def send_ntfy_alert(message: str) -> None:
+    """Send push notification via ntfy.sh."""
+    try:
+        subprocess.run(
+            ['curl', '-s', '-d', message, 'https://ntfy.sh/wxd-alerts'],
+            timeout=10,
+            capture_output=True
+        )
+        print(f"  Alert sent: {message}")
+    except Exception as e:
+        print(f"  Failed to send alert: {e}")
 
 
 def get_model_run_info(model_key: str) -> dict:
@@ -382,6 +396,7 @@ def main():
     print()
 
     success_count = 0
+    failed_models = []
     all_model_data = {}
 
     for model_key, model_config in MODELS.items():
@@ -395,10 +410,19 @@ def main():
             success_count += 1
         except requests.RequestException as e:
             print(f"  ERROR: {e}")
+            failed_models.append(model_key)
         except Exception as e:
             print(f"  ERROR: {e}")
+            failed_models.append(model_key)
 
     print()
+
+    # Send alert if any models failed
+    if failed_models:
+        if len(failed_models) == len(MODELS):
+            send_ntfy_alert(f"WXD: All {len(MODELS)} model fetches FAILED. Open-Meteo may be down.")
+        else:
+            send_ntfy_alert(f"WXD: {len(failed_models)}/{len(MODELS)} fetches failed: {', '.join(failed_models)}")
 
     # Generate summary with ensemble stats
     if all_model_data:

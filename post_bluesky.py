@@ -50,6 +50,20 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def get_run_label(fetched_at: str) -> str:
+    """Determine which model run this fetch captures (00z or 12z)."""
+    try:
+        dt = datetime.fromisoformat(fetched_at.replace('Z', '+00:00'))
+        hour = dt.hour
+        # 09:00 UTC fetch captures 00z run, 21:00 UTC captures 12z run
+        if 6 <= hour < 18:
+            return "00z run"
+        else:
+            return "12z run"
+    except Exception:
+        return ""
+
+
 def load_alert_state(state_path: Path) -> dict:
     """Load alert state for hysteresis tracking."""
     if state_path.exists():
@@ -578,7 +592,10 @@ def generate_chart(data_path: Path, output_path: Path) -> bool:
         # Formatting
         ax.set_xlabel('Date (UTC)', fontsize=12)
         ax.set_ylabel('850hPa Temperature (°C)', fontsize=12)
-        ax.set_title(f'London 850hPa Ensemble Forecast\nFetched: {run.get("fetched_at", "Unknown")}',
+        fetched_at = run.get("fetched_at", "Unknown")
+        run_label = get_run_label(fetched_at)
+        title_suffix = f" ({run_label})" if run_label else ""
+        ax.set_title(f'London 850hPa Ensemble Forecast{title_suffix}\nFetched: {fetched_at}',
                     fontsize=14)
         ax.legend(loc='upper right', fontsize=10)
         ax.grid(True, alpha=0.3)
