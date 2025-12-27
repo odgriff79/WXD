@@ -236,7 +236,12 @@ def check_model_divergence(data: dict) -> dict:
 
 
 def check_rapid_swing(data: dict) -> dict:
-    """Check for rapid temperature swing (≥6°C change in 48h window)."""
+    """Check for rapid temperature swing (≥6°C change in 48h window).
+
+    Only considers FUTURE swings (start_date >= today) to avoid
+    narrating past weather events. Historical data is for run-to-run
+    comparison, not for reporting what already happened.
+    """
     runs = data.get('runs', [])
     if not runs:
         return None
@@ -248,16 +253,23 @@ def check_rapid_swing(data: dict) -> dict:
     if len(mmm) < 5 or len(timestamps) < 5:  # Need at least a few data points
         return None
 
-    # Look for biggest 48h swing (4 x 12h intervals)
+    # Only look at future timestamps (>= today)
+    today = utcnow().strftime('%Y-%m-%d')
+
+    # Look for biggest 48h swing (4 x 12h intervals) in FUTURE only
     max_swing = {'swing': 0, 'start_date': None, 'end_date': None, 'direction': None}
 
     for i in range(len(mmm) - 4):
+        start_date = timestamps[i][:10]
+        # Skip historical swings - only report future forecast
+        if start_date < today:
+            continue
         if mmm[i] is not None and mmm[i + 4] is not None:
             swing = mmm[i + 4] - mmm[i]
             if abs(swing) > abs(max_swing['swing']):
                 max_swing = {
                     'swing': round(swing, 1),
-                    'start_date': timestamps[i][:10],
+                    'start_date': start_date,
                     'end_date': timestamps[i + 4][:10],
                     'direction': 'warming' if swing > 0 else 'cooling'
                 }
