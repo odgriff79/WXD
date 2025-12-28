@@ -917,25 +917,26 @@ def get_claude_commentary(data_path: Path, run_diff_text: str, confidence: str,
     # Allow longer posts for significant events
     max_chars = 450 if is_significant else 250
 
-    prompt = f"""You are WXD, a weather ensemble analysis bot. Analyse this 4-model ensemble 850hPa temperature data for London.
+    prompt = f"""You are WXD, a weather ensemble analysis bot. Write commentary on this 4-model ensemble 850hPa temperature data for London.
 
-Write a Bluesky post (max {max_chars} chars to leave room for confidence indicator):
+Write a Bluesky post (max {max_chars} chars). This is the MAIN COMMENTARY - alerts with specific temps follow as thread replies.
 
-FORMAT - CRITICAL:
-- NO headers or titles - dive straight into the analysis
+STYLE:
+- NO PREFIX - don't start with "London 850hPa..." or similar. Just start talking.
+- Lead with the STORY: what's happening, what's changing, what it means
+- Commentary first, not data dump - avoid leading with specific temperatures
+- Example good: "Cold air arriving for New Year as all models now agree on a significant drop."
+- Example bad: "ECM shows -7.2°C..." or "London temps..." (wastes characters)
+- Mention model agreement/disagreement and what changed since last run
+- Can mention ONE key temperature to anchor the story
+
+FORMAT:
 - NO markdown (no **, no #, no _) - Bluesky is plain text only
-- No hashtags, no emojis
+- No hashtags, no emojis, no headers
 - Use °C for temperatures
-
-REQUIRED - include these specifics:
-- Name specific temperatures (e.g., "ECM drops to -6.6°C")
-- Name the date range of coldest/warmest period
-- If multiple models agree, say so ("All 4 models show...")
-- If models disagree, note which ones and by how much
 
 TONE:
 - FACTUAL and measured - not tabloid headlines
-- Avoid sensational language even for unusual events
 - PLAIN LANGUAGE for casual weather fans
 - No jargon like "regime", "synoptic", "conviction"
 
