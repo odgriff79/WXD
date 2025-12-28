@@ -8,6 +8,12 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 - ~~**Anytime preview/testing mode** - Allow fresh data fetch for preview/testing without polluting or contaminating the production data files or history. Must ensure complete isolation from scheduled runs.~~ **DONE**
 - ~~**ICON/UKMO/MOGREPS commentary enhancement** - Ported Tracker A's rich analysis features to all trackers.~~ **DONE**
 
+### Fixed
+- **MOGREPS longitude bug** - Was using 0-360 convention (359.87°) but MOGREPS files use -180..180 convention. With `method='nearest'`, 359.87 snapped to 179.86° (Pacific Ocean) instead of London. Fix: use -0.1278° directly. Debug confirmed: correct selection now at -0.14°.
+
+### Known Issues (Resolved)
+- ~~**MOGREPS data completely wrong** - Chart showed inverted trend vs Meteociel reference. Root cause: longitude convention mismatch selecting Pacific instead of London.~~ **FIXED**
+
 ## [2025-12-28] - Shared Analysis Module & Enhanced Trackers
 
 ### Code Audit (Claude Web)

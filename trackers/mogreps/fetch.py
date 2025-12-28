@@ -25,9 +25,7 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 
 # London coordinates
 LATITUDE = 51.5074
-LONGITUDE = -0.1278
-# MOGREPS uses 0-360 longitude convention
-LONGITUDE_360 = 360 + LONGITUDE  # = 359.87
+LONGITUDE = -0.1278  # MOGREPS uses -180..180 convention (NOT 0-360)
 
 # Forecast configuration - 24-hourly intervals to reduce S3 download time
 # MOGREPS-G goes to 7 days (168h), but S3 access is slow (~2-3 min/file)
@@ -130,7 +128,7 @@ def fetch_forecast_hour(fs, run_date: str, run_hour: str, forecast_hour: int) ->
             point = ds['air_temperature'].sel(
                 pressure=85000,
                 latitude=LATITUDE,
-                longitude=LONGITUDE_360,
+                longitude=LONGITUDE,
                 method='nearest'
             )
 
