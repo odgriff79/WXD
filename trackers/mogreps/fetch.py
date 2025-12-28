@@ -63,32 +63,27 @@ def get_latest_run() -> tuple:
     - 12z run available ~18:00 UTC
     - 18z run available ~00:00 UTC next day
 
-    We target 00z and 12z runs for 2x daily posting.
+    Cron runs at 00:30, 06:30, 12:30, 18:30 UTC to catch each run.
     """
     now = utcnow()
     hour = now.hour
 
-    # Account for ~6 hour processing delay
-    available_hour = hour - MODEL["delay_hours"]
-
-    if available_hour < 0:
-        # Before 06:00 UTC - use previous day's 12z run
+    # Each run available 6 hours after run time
+    # 00:30 → 18z (prev day), 06:30 → 00z, 12:30 → 06z, 18:30 → 12z
+    if hour < 6:
+        # 00:00-05:59 UTC - 18z from previous day is newest
         run_date = now - timedelta(days=1)
-        run_hour = 12
-    elif available_hour < 6:
+        run_hour = 18
+    elif hour < 12:
         # 06:00-11:59 UTC - 00z just became available
         run_date = now
         run_hour = 0
-    elif available_hour < 12:
-        # 12:00-17:59 UTC - use 00z (12z not ready yet)
+    elif hour < 18:
+        # 12:00-17:59 UTC - 06z just became available
         run_date = now
-        run_hour = 0
-    elif available_hour < 18:
-        # 18:00-23:59 UTC - 12z just became available
-        run_date = now
-        run_hour = 12
+        run_hour = 6
     else:
-        # Use today's 12z run
+        # 18:00-23:59 UTC - 12z just became available
         run_date = now
         run_hour = 12
 
@@ -168,14 +163,22 @@ def fetch_forecast_hour(fs, run_date: str, run_hour: str, forecast_hour: int) ->
         return None
 
 
-def fetch_mogreps_data(run_date: str = None, run_hour: str = None, data_dir: Path = None) -> dict:
-    """Fetch complete MOGREPS-G forecast."""
+def get_fallback_run(run_date: str, run_hour: str) -> tuple:
+    """Get the previous model run as fallback."""
+    parts = run_date.split('/')
+    dt = datetime(int(parts[0]), int(parts[1]), int(parts[2]), int(run_hour), tzinfo=timezone.utc)
+    prev_dt = dt - timedelta(hours=6)  # Previous run is 6 hours earlier
+    return prev_dt.strftime("%Y/%m/%d"), f"{prev_dt.hour:02d}"
+
+
+def fetch_mogreps_data(run_date: str = None, run_hour: str = None, data_dir: Path = None, allow_fallback: bool = True) -> dict:
+    """Fetch complete MOGREPS-G forecast. Falls back to earlier run if target unavailable."""
     import s3fs
 
     if run_date is None or run_hour is None:
         run_date, run_hour = get_latest_run()
 
-    print(f"  Run: {run_date} {run_hour}z")
+    print(f"  Target run: {run_date} {run_hour}z")
 
     # Connect to S3 (anonymous access)
     fs = s3fs.S3FileSystem(anon=True)
@@ -186,8 +189,18 @@ def fetch_mogreps_data(run_date: str = None, run_hour: str = None, data_dir: Pat
         if result:
             forecasts.append(result)
 
+    # Fallback to earlier run if target unavailable
+    if not forecasts and allow_fallback:
+        fb_date, fb_hour = get_fallback_run(run_date, run_hour)
+        print(f"\n  Target run not available, falling back to {fb_date} {fb_hour}z...")
+        run_date, run_hour = fb_date, fb_hour
+        for fh in FORECAST_HOURS:
+            result = fetch_forecast_hour(fs, run_date, run_hour, fh)
+            if result:
+                forecasts.append(result)
+
     if not forecasts:
-        raise ValueError("No forecast data retrieved")
+        raise ValueError("No forecast data retrieved (tried fallback)")
 
     # Build timestamps from forecast hours
     parts = run_date.split('/')
