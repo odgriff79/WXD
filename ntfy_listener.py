@@ -15,6 +15,10 @@ Tracker D (UKMO):
 - 'ukmo': Run UKMO analysis on current data (quick)
 - 'ukmo-fresh': Fetch new UKMO data first, then analyze (isolated)
 
+Tracker C (MOGREPS):
+- 'mogreps': Run MOGREPS analysis on current data (quick)
+- 'mogreps-fresh': Fetch new MOGREPS data first, then analyze (isolated)
+
 Results sent to wxd-alerts topic.
 """
 import subprocess
@@ -30,6 +34,7 @@ print('WXD ntfy listener started')
 print('Commands:')
 print('  Tracker A: "preview" (quick) or "fresh" (fetch new)')
 print('  Tracker B: "icon" (quick) or "icon-fresh" (fetch new)')
+print('  Tracker C: "mogreps" (quick) or "mogreps-fresh" (fetch new)')
 print('  Tracker D: "ukmo" (quick) or "ukmo-fresh" (fetch new)')
 print('Send to: https://ntfy.sh/wxd-cmd')
 
@@ -118,6 +123,33 @@ def handle_ukmo_fresh():
     return f"=== UKMO FRESH FETCH ===\n{fetch_output}\n\n=== UKMO ANALYSIS ===\n{analysis_output}"
 
 
+def handle_mogreps():
+    """Quick MOGREPS preview using existing data."""
+    print(f'MOGREPS preview requested at {time.strftime("%H:%M:%S")}')
+    output = run_command(['/home/ubuntu/wxd/venv/bin/python', 'trackers/mogreps/post.py', '--dry-run'])
+    return output
+
+
+def handle_mogreps_fresh():
+    """Fetch fresh MOGREPS data (isolated) then preview.
+    Note: MOGREPS fetch downloads from AWS S3, may take a few minutes.
+    """
+    print(f'Fresh MOGREPS preview requested at {time.strftime("%H:%M:%S")}')
+
+    # Step 1: Fetch fresh MOGREPS data in preview mode (isolated)
+    print('  Fetching fresh MOGREPS data (AWS S3)...')
+    fetch_output = run_command(
+        ['/home/ubuntu/wxd/venv/bin/python', 'trackers/mogreps/fetch.py', '--preview'],
+        timeout=600  # 10 min timeout for S3 downloads
+    )
+
+    # Step 2: Run MOGREPS analysis on preview data
+    print('  Running MOGREPS analysis...')
+    analysis_output = run_command(['/home/ubuntu/wxd/venv/bin/python', 'trackers/mogreps/post.py', '--preview'])
+
+    return f"=== MOGREPS FRESH FETCH ===\n{fetch_output}\n\n=== MOGREPS ANALYSIS ===\n{analysis_output}"
+
+
 while True:
     try:
         # Stream messages with timeout
@@ -144,12 +176,17 @@ while True:
                             output = handle_ukmo()
                         elif cmd == 'ukmo-fresh':
                             output = handle_ukmo_fresh()
+                        elif cmd == 'mogreps':
+                            output = handle_mogreps()
+                        elif cmd == 'mogreps-fresh':
+                            output = handle_mogreps_fresh()
 
                         if output:
                             # Clean up output for ntfy
-                            if 'PREVIEW' in output or 'DRY RUN' in output or 'FRESH' in output or 'ICON' in output or 'UKMO' in output:
+                            if 'PREVIEW' in output or 'DRY RUN' in output or 'FRESH' in output or 'ICON' in output or 'UKMO' in output or 'MOGREPS' in output:
                                 # Find the header - check model-specific markers first
-                                for marker in ['UKMO FRESH FETCH', 'UKMO ANALYSIS', 'UKMO Fetch',
+                                for marker in ['MOGREPS FRESH FETCH', 'MOGREPS ANALYSIS', 'MOGREPS-G',
+                                              'UKMO FRESH FETCH', 'UKMO ANALYSIS', 'UKMO Fetch',
                                               'ICON FRESH FETCH', 'ICON ANALYSIS', 'ICON-EU-EPS',
                                               'FRESH PREVIEW', 'FRESH FETCH', 'DRY RUN', 'PREVIEW']:
                                     if marker in output:
