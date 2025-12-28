@@ -827,9 +827,16 @@ def generate_fallback_post(data: dict) -> str:
 
 def format_analysis_context(run_diff_text: str, confidence: str,
                            percentile_info: dict, bimodal_info: dict,
-                           persistence_info: dict, timing_info: dict) -> str:
+                           persistence_info: dict, timing_info: dict,
+                           cold_info: dict = None) -> str:
     """Format all analysis results into context for Claude CLI prompt."""
     context_parts = []
+
+    # Cold threshold - EXPLICIT ranked list so Claude doesn't misread JSON
+    if cold_info and cold_info.get('models'):
+        models = cold_info['models']
+        ranked = ", ".join([f"{m['model']} {m['temp']}°C on {m['date']}" for m in models])
+        context_parts.append(f"COLD RANKING (coldest first): {ranked}")
 
     # Run-to-run shifts
     if run_diff_text:
@@ -896,7 +903,8 @@ def get_claude_commentary(data_path: Path, run_diff_text: str, confidence: str,
     analysis_context = format_analysis_context(
         run_diff_text, confidence,
         percentile_info, bimodal_info,
-        persistence_info, timing_info
+        persistence_info, timing_info,
+        cold_info=cold_info
     )
 
     # Determine if this is a significant event (multi-model agreement, high percentile)
@@ -1586,8 +1594,10 @@ def main():
             pct = int(percentile_info['pct'])
             model = percentile_info['model'].upper()
             date = percentile_info['date']
-            threshold = percentile_info.get('threshold', '-5°C')
-            alert_text = f"📊 High confidence: {pct}% of {model} ensemble members below {threshold} by {date}. Strong agreement on cold signal."
+            # Convert threshold key to actual temperature
+            threshold_key = percentile_info.get('threshold', 'cold')
+            threshold_temp = '-8°C' if threshold_key == 'extreme' else '-5°C'
+            alert_text = f"📊 High confidence: {pct}% of {model} ensemble members below {threshold_temp} by {date}. Strong agreement on cold signal."
 
             if dry_run:
                 print(f"[PERCENTILE ALERT] ({len(alert_text)} chars):")
