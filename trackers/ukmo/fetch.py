@@ -61,7 +61,7 @@ def fetch_ukmo_data(data_dir: Path) -> dict:
         "latitude": LATITUDE,
         "longitude": LONGITUDE,
         "hourly": "temperature_850hPa",
-        "models": "ukmo_seamless",
+        "models": "ukmo_global_deterministic_10km",
         "forecast_days": FORECAST_DAYS,
         "timezone": "UTC"
     }
@@ -199,7 +199,7 @@ def main():
     mode_str = "PREVIEW MODE (isolated)" if preview else "Production"
     print(f"WXD UKMO Fetch - {now.isoformat().replace('+00:00', 'Z')} [{mode_str}]")
     print(f"Target: {LATITUDE}, {LONGITUDE} (London)")
-    print(f"Source: Open-Meteo API (ukmo_seamless)")
+    print(f"Source: Open-Meteo API (ukmo_global_deterministic_10km)")
     print(f"Model: {MODEL['description']}")
     print()
 
