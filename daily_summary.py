@@ -247,7 +247,7 @@ def get_claude_comparison(metoffice: dict, model_summary: str) -> str:
     mo_text = "\n".join(mo_parts) if mo_parts else "Met Office narrative not available"
 
     from datetime import datetime
-    today = datetime.now().strftime("%d %b")
+    today = datetime.now().strftime("%d %m %Y")
 
     prompt = f"""You are WXD daily summary writer. Write a brief, readable summary of what the weather models suggest is coming.
 
@@ -258,7 +258,7 @@ WXD MODEL DATA (850hPa temps, London):
 {model_summary}
 
 Write a 280-char Bluesky post:
-- Start with "WXD Daily {today}:"
+- Start with "UK Daily {today}:"
 - Describe what our models suggest in plain English
 - Cold 850hPa temps often mean settled, frosty weather in southern UK - not necessarily stormy
 - Wintry showers more likely in north/Scotland with cold air
@@ -290,7 +290,7 @@ def generate_fallback_summary(model_summary: str) -> str:
     import re
     from datetime import datetime
 
-    today = datetime.now().strftime("%d %b")
+    today = datetime.now().strftime("%d %m %Y")
     temps = re.findall(r'(-?\d+\.?\d*)C', model_summary)
 
     if temps:
@@ -298,15 +298,15 @@ def generate_fallback_summary(model_summary: str) -> str:
         coldest = min(temps_float)
 
         if coldest <= -8:
-            return f"WXD Daily {today}: Cold air mass settling in across the UK. Models show 850hPa temps well below freezing - expect sharp overnight frosts and cold, crisp days. Wintry showers possible in the north, but often settled and sunny further south."
+            return f"UK Daily {today}: Cold air mass settling in across the UK. Models show 850hPa temps well below freezing - expect sharp overnight frosts and cold, crisp days. Wintry showers possible in the north, but often settled and sunny further south."
         elif coldest <= -5:
-            return f"WXD Daily {today}: A proper cold spell on the way. Upper-level temps dropping below the -5C mark - classic setup for widespread frost and cold but often settled conditions, especially across southern areas."
+            return f"UK Daily {today}: A proper cold spell on the way. Upper-level temps dropping below the -5C mark - classic setup for widespread frost and cold but often settled conditions, especially across southern areas."
         elif coldest <= 0:
-            return f"WXD Daily {today}: Chilly spell ahead with 850hPa temps near or below freezing. Expect overnight frosts and cooler than average conditions, though nothing extreme. Settled weather likely for many."
+            return f"UK Daily {today}: Chilly spell ahead with 850hPa temps near or below freezing. Expect overnight frosts and cooler than average conditions, though nothing extreme. Settled weather likely for many."
         else:
-            return f"WXD Daily {today}: Near-normal or mild conditions ahead. No significant cold signals in the models at 850hPa level. Quiet weather pattern continuing."
+            return f"UK Daily {today}: Near-normal or mild conditions ahead. No significant cold signals in the models at 850hPa level. Quiet weather pattern continuing."
 
-    return f"WXD Daily {today}: Model data collected - see individual tracker posts for detailed breakdown."
+    return f"UK Daily {today}: Model data collected - see individual tracker posts for detailed breakdown."
 
 
 def post_to_bluesky(text: str, reply_to: dict = None,
