@@ -3,20 +3,22 @@
 WXD Tracker B - ICON-EU-EPS 850hPa Temperature Fetch
 
 Fetches ICON-EU ensemble 850hPa temperature data from DWD Open Data.
-Uses GRIB2 files with point extraction for London coordinates.
+Uses GRIB2 files with Python eccodes for point extraction.
 
 Data source: https://opendata.dwd.de/weather/nwp/icon-eu-eps/grib/
 Files: icon-eu-eps_europe_icosahedral_pressure-level_YYYYMMDDHH_FFF_850_t.grib2.bz2
 
-Runs 4x daily: 00z, 06z, 12z, 18z (fetch at +4hr delay)
+Grid: ICON-EU uses unstructured icosahedral grid (164984 cells).
+Coordinates loaded from DWD grid file: icon_grid_0037_R03B07_N02.nc
+
+Runs 2x daily: 00z, 12z (only these have pressure-level 850hPa data)
 """
 
 import argparse
 import bz2
 import json
+import math
 import os
-import re
-import subprocess
 import tempfile
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -31,11 +33,15 @@ LONGITUDE = -0.1278
 # Available: hourly 0-48, then 3-hourly to 120
 # Using: 0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120 (11 files, ~110MB total)
 FORECAST_HOURS = list(range(0, 121, 12))  # 0 to 120 hours, every 12h (5 days)
-HISTORY_RUNS = 8  # 4 runs/day * 2 days
+HISTORY_RUNS = 8  # 2 runs/day * 4 days
 RETENTION_DAYS = 7
 
 # DWD base URL for ICON-EU-EPS
 DWD_BASE = "https://opendata.dwd.de/weather/nwp/icon-eu-eps/grib"
+
+# Grid file URL and local path
+GRID_FILE_URL = "https://opendata.dwd.de/weather/lib/cdo/icon_grid_0037_R03B07_N02.nc.bz2"
+GRID_FILE_NAME = "icon_grid_0037_R03B07_N02.nc"
 
 # Model info
 # Note: Pressure-level 850hPa data only available for 00z and 12z runs
@@ -47,6 +53,9 @@ MODEL = {
     "runs": ["00z", "12z"],  # Only these have pressure-level 850hPa
     "delay_hours": 4
 }
+
+# Cached nearest grid cell index (computed once from grid file)
+_NEAREST_INDEX = None
 
 
 def utcnow():
@@ -91,70 +100,112 @@ def build_file_url(run_date: str, run_hour: str, forecast_hour: int) -> str:
     return f"{DWD_BASE}/{run_hour}/t/{filename}"
 
 
-def check_grib_tools_available() -> bool:
-    """Check if eccodes grib_ls is installed."""
-    try:
-        result = subprocess.run(['grib_ls', '-V'], capture_output=True, text=True, timeout=5)
-        return result.returncode == 0
-    except:
-        return False
+def ensure_grid_file(data_dir: Path) -> Path:
+    """Download grid file if not present. Returns path to NC file."""
+    grid_path = data_dir / GRID_FILE_NAME
+
+    if grid_path.exists():
+        return grid_path
+
+    print("  Downloading ICON-EU grid file (one-time, ~55MB)...")
+    bz2_path = data_dir / f"{GRID_FILE_NAME}.bz2"
+
+    response = requests.get(GRID_FILE_URL, timeout=300)
+    response.raise_for_status()
+
+    with open(bz2_path, 'wb') as f:
+        f.write(response.content)
+
+    # Decompress
+    print("  Decompressing grid file...")
+    with bz2.open(bz2_path, 'rb') as f_in:
+        with open(grid_path, 'wb') as f_out:
+            f_out.write(f_in.read())
+
+    bz2_path.unlink()
+    print(f"  Grid file saved: {grid_path.name}")
+    return grid_path
 
 
-def extract_london_point(grib_path: Path) -> list:
+def get_nearest_index(grid_path: Path, lat: float, lon: float) -> int:
+    """Find nearest grid cell index for given coordinates.
+
+    ICON grid uses clat/clon (cell centers) in radians.
     """
-    Extract London grid point values from GRIB file using eccodes grib_ls.
+    global _NEAREST_INDEX
+
+    if _NEAREST_INDEX is not None:
+        return _NEAREST_INDEX
+
+    import netCDF4 as nc
+
+    grid = nc.Dataset(str(grid_path))
+    clat = grid.variables["clat"][:]  # radians
+    clon = grid.variables["clon"][:]  # radians
+    grid.close()
+
+    # Find nearest cell using spherical distance approximation
+    lat_r = math.radians(lat)
+    lon_r = math.radians(lon)
+
+    best_i = None
+    best_d = float("inf")
+
+    for i in range(len(clat)):
+        dlat = clat[i] - lat_r
+        dlon = clon[i] - lon_r
+        # Approximate equirectangular distance (good for nearest)
+        d = dlat * dlat + (math.cos(lat_r) * dlon) ** 2
+        if d < best_d:
+            best_d = d
+            best_i = i
+
+    _NEAREST_INDEX = best_i
+    return best_i
+
+
+def extract_london_point(grib_path: Path, nearest_idx: int) -> list:
+    """
+    Extract London grid point values from GRIB file using Python eccodes.
     Returns list of temperature values in Celsius.
     """
-    try:
-        # Use grib_ls with -l option for nearest point extraction
-        # Format: -l lat,lon,mode (mode 1 = nearest neighbor)
-        result = subprocess.run(
-            ['grib_ls', '-l', f'{LATITUDE},{LONGITUDE},1', '-p', 'perturbationNumber', str(grib_path)],
-            capture_output=True,
-            text=True,
-            timeout=60
-        )
+    from eccodes import (
+        codes_grib_new_from_file,
+        codes_release,
+        codes_get,
+        codes_get_values,
+    )
 
-        if result.returncode != 0:
-            print(f"    grib_ls error: {result.stderr}")
-            return []
+    members = {}
 
-        # Parse output - grib_ls outputs a table with columns
-        # The -l option adds "value" column with interpolated value
-        # Example output:
-        # perturbationNumber value
-        # 1                  273.15
-        # 2                  274.20
-        # ...
-        values = []
-        lines = result.stdout.strip().split('\n')
+    with open(grib_path, "rb") as f:
+        msg_count = 0
+        while True:
+            msg = codes_grib_new_from_file(f)
+            if msg is None:
+                break
+            msg_count += 1
+            try:
+                vals = codes_get_values(msg)
+                v = float(vals[nearest_idx])
+                v_c = v - 273.15  # Kelvin to Celsius
 
-        for line in lines:
-            # Skip header lines and empty lines
-            if not line or 'perturbationNumber' in line or 'messages' in line:
-                continue
-
-            parts = line.split()
-            if len(parts) >= 2:
+                # Get ensemble member ID
                 try:
-                    # Last column should be the value
-                    temp_kelvin = float(parts[-1])
-                    temp_celsius = temp_kelvin - 273.15
-                    values.append(temp_celsius)
-                except ValueError:
-                    continue
+                    mid = int(codes_get(msg, "perturbationNumber"))
+                except:
+                    mid = msg_count
 
-        return values
+                members[mid] = v_c
+            finally:
+                codes_release(msg)
 
-    except subprocess.TimeoutExpired:
-        print("    grib_ls timeout")
-        return []
-    except Exception as e:
-        print(f"    grib_ls error: {e}")
-        return []
+    # Return sorted by member ID
+    return [members[k] for k in sorted(members.keys())]
 
 
-def fetch_forecast_hour(run_date: str, run_hour: str, forecast_hour: int, work_dir: Path) -> dict:
+def fetch_forecast_hour(run_date: str, run_hour: str, forecast_hour: int,
+                        work_dir: Path, nearest_idx: int) -> dict:
     """
     Fetch and process one forecast hour.
     Returns dict with member temperatures.
@@ -188,8 +239,8 @@ def fetch_forecast_hour(run_date: str, run_hour: str, forecast_hour: int, work_d
         # Remove compressed file immediately
         bz2_path.unlink()
 
-        # Extract London point
-        temps = extract_london_point(grib_path)
+        # Extract London point using Python eccodes
+        temps = extract_london_point(grib_path, nearest_idx)
 
         # Remove decompressed file
         grib_path.unlink()
@@ -198,7 +249,7 @@ def fetch_forecast_hour(run_date: str, run_hour: str, forecast_hour: int, work_d
             # Sanity check: expect ~40 ensemble members
             if len(temps) < 35 or len(temps) > 45:
                 print(f"WARNING: Expected ~40 members, got {len(temps)}")
-            print(f"→ {len(temps)} members, mean={mean(temps):.1f}°C")
+            print(f"-> {len(temps)} members, mean={mean(temps):.1f}C")
             return {
                 "forecast_hour": forecast_hour,
                 "members": temps,
@@ -209,7 +260,7 @@ def fetch_forecast_hour(run_date: str, run_hour: str, forecast_hour: int, work_d
                 "spread": round(max(temps) - min(temps), 2)
             }
         else:
-            print("no data extracted - check wgrib2 output")
+            print("no data extracted")
             return None
 
     except requests.RequestException as e:
@@ -220,7 +271,7 @@ def fetch_forecast_hour(run_date: str, run_hour: str, forecast_hour: int, work_d
         return None
 
 
-def fetch_icon_data(run_date: str = None, run_hour: str = None) -> dict:
+def fetch_icon_data(run_date: str = None, run_hour: str = None, data_dir: Path = None) -> dict:
     """
     Fetch complete ICON-EU-EPS forecast.
     Processes files one at a time to minimize disk usage.
@@ -230,9 +281,11 @@ def fetch_icon_data(run_date: str = None, run_hour: str = None) -> dict:
 
     print(f"  Run: {run_date} {run_hour}z")
 
-    # Check eccodes grib_ls
-    if not check_grib_tools_available():
-        raise RuntimeError("eccodes grib_ls not installed - required for GRIB processing")
+    # Ensure grid file exists and get nearest index
+    grid_path = ensure_grid_file(data_dir)
+    print(f"  Loading grid coordinates...")
+    nearest_idx = get_nearest_index(grid_path, LATITUDE, LONGITUDE)
+    print(f"  Nearest grid cell index: {nearest_idx}")
 
     # Use temp directory for processing
     with tempfile.TemporaryDirectory() as work_dir:
@@ -240,7 +293,7 @@ def fetch_icon_data(run_date: str = None, run_hour: str = None) -> dict:
 
         forecasts = []
         for fh in FORECAST_HOURS:
-            result = fetch_forecast_hour(run_date, run_hour, fh, work_path)
+            result = fetch_forecast_hour(run_date, run_hour, fh, work_path, nearest_idx)
             if result:
                 forecasts.append(result)
 
@@ -356,7 +409,7 @@ def main():
     parser.add_argument('--preview', '-p', action='store_true',
                        help='Preview mode: save to isolated files')
     parser.add_argument('--run-date', help='Specific run date (YYYYMMDD)')
-    parser.add_argument('--run-hour', help='Specific run hour (00/06/12/18)')
+    parser.add_argument('--run-hour', help='Specific run hour (00/12)')
     args = parser.parse_args()
 
     preview = args.preview
@@ -369,13 +422,13 @@ def main():
     mode_str = "PREVIEW MODE (isolated)" if preview else "Production"
     print(f"WXD ICON-EU-EPS Fetch - {now.isoformat().replace('+00:00', 'Z')} [{mode_str}]")
     print(f"Target: {LATITUDE}, {LONGITUDE} (London)")
-    print(f"Source: DWD Open Data GRIB2")
+    print(f"Source: DWD Open Data GRIB2 + Python eccodes")
     print(f"Model: {MODEL['description']}")
     print()
 
     try:
         print("Fetching ICON-EU-EPS 850hPa temperature...")
-        data = fetch_icon_data(args.run_date, args.run_hour)
+        data = fetch_icon_data(args.run_date, args.run_hour, data_dir)
 
         print()
         print(f"Retrieved {len(data['timestamps'])} forecast hours")
@@ -421,6 +474,8 @@ def main():
 
     except Exception as e:
         print(f"ERROR: {e}")
+        import traceback
+        traceback.print_exc()
         if not preview:
             send_ntfy_alert(f"Fetch FAILED: {e}")
         return 1
