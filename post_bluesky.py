@@ -33,7 +33,7 @@ except ImportError:
     HAS_MATPLOTLIB = False
 
 try:
-    from atproto import Client
+    from atproto import Client, models as atproto_models
     HAS_ATPROTO = True
 except ImportError:
     HAS_ATPROTO = False
@@ -156,7 +156,14 @@ def analyze_run_diff(data: dict) -> list:
 
 
 def check_cold_threshold(data: dict) -> dict:
-    """Check if any model hits cold threshold, return details."""
+    """Check ALL models hitting cold threshold, return details for each.
+
+    Returns dict with:
+        - models: list of all models crossing threshold with their coldest temp/date
+        - coldest: the single coldest model (for backwards compat)
+        - extreme: True if any model hits extreme threshold
+        - multi_model: True if 2+ models cross threshold (strong signal)
+    """
     runs = data.get('runs', [])
     if not runs:
         return None
@@ -165,30 +172,43 @@ def check_cold_threshold(data: dict) -> dict:
     models = current.get('models', {})
     timestamps = current.get('timestamps', [])
 
-    coldest = {'temp': 999, 'model': None, 'date': None}
+    # Find coldest point for each model
+    model_coldest = []
     extreme_cold = False
 
     for model_key, model_data in models.items():
         means = model_data.get('mean', [])
+        model_min = {'temp': 999, 'model': format_model_name(model_key), 'date': None}
+
         for i, val in enumerate(means):
-            if val is not None and val < coldest['temp']:
-                coldest['temp'] = val
-                coldest['model'] = format_model_name(model_key)
+            if val is not None and val < model_min['temp']:
+                model_min['temp'] = val
                 if i < len(timestamps):
-                    coldest['date'] = timestamps[i][:10]  # Just date
+                    model_min['date'] = timestamps[i][:10]
 
-    if coldest['temp'] <= EXTREME_COLD_THRESHOLD:
-        extreme_cold = True
+        # Check if this model crosses threshold
+        if model_min['temp'] <= COLD_THRESHOLD:
+            model_min['temp'] = round(model_min['temp'], 1)
+            model_coldest.append(model_min)
+            if model_min['temp'] <= EXTREME_COLD_THRESHOLD:
+                extreme_cold = True
 
-    if coldest['temp'] <= COLD_THRESHOLD:
-        return {
-            'temp': round(coldest['temp'], 1),
-            'model': coldest['model'],
-            'date': coldest['date'],
-            'extreme': extreme_cold
-        }
+    if not model_coldest:
+        return None
 
-    return None
+    # Sort by temperature (coldest first)
+    model_coldest.sort(key=lambda x: x['temp'])
+
+    return {
+        'models': model_coldest,
+        'coldest': model_coldest[0],  # Backwards compat - single coldest
+        'temp': model_coldest[0]['temp'],  # Backwards compat
+        'model': model_coldest[0]['model'],  # Backwards compat
+        'date': model_coldest[0]['date'],  # Backwards compat
+        'extreme': extreme_cold,
+        'multi_model': len(model_coldest) >= 2,
+        'type': 'extreme' if extreme_cold else 'cold'
+    }
 
 
 def check_model_divergence(data: dict) -> dict:
@@ -867,7 +887,8 @@ def format_analysis_context(run_diff_text: str, confidence: str,
 
 def get_claude_commentary(data_path: Path, run_diff_text: str, confidence: str,
                           percentile_info: dict = None, bimodal_info: dict = None,
-                          persistence_info: dict = None, timing_info: dict = None) -> tuple:
+                          persistence_info: dict = None, timing_info: dict = None,
+                          cold_info: dict = None) -> tuple:
     """Pipe JSON to Claude CLI and get commentary. Returns (text, is_fallback)."""
     import time
 
@@ -878,19 +899,34 @@ def get_claude_commentary(data_path: Path, run_diff_text: str, confidence: str,
         persistence_info, timing_info
     )
 
+    # Determine if this is a significant event (multi-model agreement, high percentile)
+    is_significant = False
+    if cold_info and cold_info.get('multi_model'):
+        is_significant = True
+    if percentile_info and percentile_info.get('pct', 0) >= 80:
+        is_significant = True
+
+    # Allow longer posts for significant events
+    max_chars = 450 if is_significant else 250
+
     prompt = f"""You are WXD, a weather ensemble analysis bot. Analyse this 4-model ensemble 850hPa temperature data for London.
 
-Write a Bluesky post (max 250 chars to leave room for confidence indicator):
-- Lead with the key finding (cold/warm signal, timing)
-- Use the ANALYSIS CONTEXT below to add depth - weave in percentile/bimodal/persistence info naturally
-- If run-to-run shifts are noted, mention which model shifted
-- Timing uncertainty is valuable ("cold arrives Dec 30 ±2 days")
-- PLAIN LANGUAGE ONLY - write for casual weather fans, not meteorologists
-- Avoid jargon like "conviction", "regime", "synoptic" - say "all models agree" not "model consensus"
-- Be direct: "cold easing" not "losing conviction", "models show" not "signal persists"
-- Keep it punchy and engaging
-- No hashtags, no emojis (confidence emoji added separately)
+Write a Bluesky post (max {max_chars} chars to leave room for confidence indicator):
+
+REQUIRED - include these specifics:
+- Name specific temperatures (e.g., "ECM drops to -6.6°C")
+- Name the date range of coldest/warmest period
+- If multiple models agree, name them ("GFS, ECM, AIFS all show...")
+- If models disagree, note which ones and by how much
+
+TONE:
+- FACTUAL and measured - this is weather analysis, not tabloid headlines
+- Avoid sensational language even for unusual events
+- PLAIN LANGUAGE for casual weather fans, not meteorologists
+- Be direct: "cold easing" not "losing conviction"
+- No jargon like "regime", "synoptic", "conviction"
 - Use °C for temperatures
+- No hashtags, no emojis
 
 ANALYSIS CONTEXT:
 {analysis_context}
@@ -913,8 +949,11 @@ Data shows ensemble means from GFS, ECM, AIFS, and GEM models."""
 
         if result.returncode == 0:
             text = result.stdout.strip()
-            if len(text) > 270:
-                text = text[:267] + "..."
+            # For significant events, allow up to 280 chars (leave room for confidence)
+            # For normal posts, keep tighter at 250
+            limit = 280 if is_significant else 250
+            if len(text) > limit:
+                text = text[:limit-3] + "..."
             return text, False
 
         # Check if auth error
@@ -933,8 +972,9 @@ Data shows ensemble means from GFS, ECM, AIFS, and GEM models."""
 
             if result.returncode == 0:
                 text = result.stdout.strip()
-                if len(text) > 270:
-                    text = text[:267] + "..."
+                limit = 280 if is_significant else 250
+                if len(text) > limit:
+                    text = text[:limit-3] + "..."
                 return text, False
 
             # Still failing - use fallback
@@ -1107,13 +1147,17 @@ def post_to_bluesky(text: str, image_path: Path = None, handle: str = None, pass
         client = Client()
         client.login(handle, password)
 
-        # Build reply reference if threading
+        # Build reply reference if threading (must use proper atproto models)
         reply_ref = None
         if reply_to and reply_to.get('uri') and reply_to.get('cid'):
-            reply_ref = {
-                'root': {'uri': reply_to['uri'], 'cid': reply_to['cid']},
-                'parent': {'uri': reply_to['uri'], 'cid': reply_to['cid']}
-            }
+            strong_ref = atproto_models.ComAtprotoRepoStrongRef.Main(
+                uri=reply_to['uri'],
+                cid=reply_to['cid']
+            )
+            reply_ref = atproto_models.AppBskyFeedPost.ReplyRef(
+                root=strong_ref,
+                parent=strong_ref
+            )
 
         if image_path and image_path.exists():
             with open(image_path, 'rb') as f:
@@ -1300,29 +1344,24 @@ def main():
     cold_alert = None
 
     if cold_info:
-        print(f"  Cold signal: {cold_info['temp']}°C ({cold_info['model']}) on {cold_info['date']}")
+        models_crossing = cold_info.get('models', [])
+        print(f"  Cold signal: {len(models_crossing)} models below -5°C")
+        for m in models_crossing:
+            print(f"    {m['model']}: {m['temp']}°C on {m['date']}")
 
         if cold_info['extreme']:
             alert_state['extreme_cold_count'] += 1
             if alert_state['extreme_cold_count'] >= HYSTERESIS_RUNS:
-                cold_alert = {
-                    'type': 'extreme',
-                    'temp': cold_info['temp'],
-                    'model': cold_info['model'],
-                    'date': cold_info['date']
-                }
+                cold_alert = cold_info  # Pass full info including all models
+                cold_alert['type'] = 'extreme'
                 print(f"  EXTREME COLD ALERT triggered (count: {alert_state['extreme_cold_count']})")
         else:
             alert_state['extreme_cold_count'] = 0
 
         alert_state['cold_count'] += 1
         if alert_state['cold_count'] >= HYSTERESIS_RUNS and not cold_alert:
-            cold_alert = {
-                'type': 'cold',
-                'temp': cold_info['temp'],
-                'model': cold_info['model'],
-                'date': cold_info['date']
-            }
+            cold_alert = cold_info  # Pass full info including all models
+            cold_alert['type'] = 'cold'
             print(f"  COLD ALERT triggered (count: {alert_state['cold_count']})")
     else:
         print("  No cold signal")
@@ -1414,7 +1453,8 @@ def main():
         percentile_info=percentile_info,
         bimodal_info=bimodal_info,
         persistence_info=persistence_info,
-        timing_info=timing_info
+        timing_info=timing_info,
+        cold_info=cold_info  # For significant event detection
     )
     if not text:
         print("ERROR: Failed to generate commentary")
@@ -1446,12 +1486,25 @@ def main():
             return 1
 
         # Post alerts as REPLIES to main post (creates thread)
-        # Post cold alert if triggered
+        # Post cold alert if triggered - now with multi-model support
         if cold_alert:
-            if cold_alert['type'] == 'extreme':
-                alert_text = f"⚠️ Extreme cold signal: {cold_alert['model']} showing {cold_alert['temp']}°C at 850hPa for {cold_alert['date']}. Significant snow/ice risk for UK if verified."
+            models_crossing = cold_alert.get('models', [])
+            is_multi = cold_alert.get('multi_model', False)
+            is_extreme = cold_alert.get('extreme', False)
+
+            if is_multi and len(models_crossing) >= 2:
+                # Multi-model agreement - strong signal, format all models
+                model_temps = ", ".join([f"{m['model']} {m['temp']}°C" for m in models_crossing])
+                if is_extreme:
+                    alert_text = f"⚠️ Multi-model extreme cold: {model_temps} at 850hPa around {cold_alert['date']}. {len(models_crossing)}/4 models agree - significant snow/ice risk."
+                else:
+                    alert_text = f"❄️ Multi-model cold signal: {model_temps} at 850hPa around {cold_alert['date']}. {len(models_crossing)}/4 models below -5°C - elevated snow risk."
             else:
-                alert_text = f"❄️ Cold signal: {cold_alert['model']} showing {cold_alert['temp']}°C at 850hPa for {cold_alert['date']}. Elevated snow risk for UK uplands."
+                # Single model crossing
+                if is_extreme:
+                    alert_text = f"⚠️ Extreme cold signal: {cold_alert['model']} showing {cold_alert['temp']}°C at 850hPa for {cold_alert['date']}. Significant snow/ice risk if verified."
+                else:
+                    alert_text = f"❄️ Cold signal: {cold_alert['model']} showing {cold_alert['temp']}°C at 850hPa for {cold_alert['date']}. Elevated snow risk for UK uplands."
 
             print(f"Posting cold alert as reply ({len(alert_text)} chars):")
             print(f"  {alert_text}")
@@ -1481,6 +1534,18 @@ def main():
             alert_text = f"🔄 Pattern flip: {abs(swing_info['swing'])}°C {swing_info['direction']} expected {swing_info['start_date']} to {swing_info['end_date']}. Major temperature change incoming."
 
             print(f"Posting swing alert as reply ({len(alert_text)} chars):")
+            print(f"  {alert_text}")
+            post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
+
+        # Post percentile alert if >80% of ensemble members cross threshold
+        if percentile_info and percentile_info.get('pct', 0) >= 80:
+            pct = int(percentile_info['pct'])
+            model = percentile_info['model'].upper()
+            date = percentile_info['date']
+            threshold = percentile_info.get('threshold', '-5°C')
+            alert_text = f"📊 High confidence: {pct}% of {model} ensemble members below {threshold} by {date}. Strong agreement on cold signal."
+
+            print(f"Posting percentile alert as reply ({len(alert_text)} chars):")
             print(f"  {alert_text}")
             post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
     else:
