@@ -230,16 +230,22 @@ def generate_chart(data: dict, chart_path: Path) -> bool:
         # Parse dates
         dates = [datetime.fromisoformat(t.replace('Z', '+00:00')) for t in timestamps]
 
+        # Convert None to NaN for matplotlib
+        import numpy as np
+        mean_arr = np.array([float(x) if x is not None else np.nan for x in mean_temps])
+        min_arr = np.array([float(x) if x is not None else np.nan for x in min_temps]) if min_temps else None
+        max_arr = np.array([float(x) if x is not None else np.nan for x in max_temps]) if max_temps else None
+
         # Create plot
         plt.style.use('dark_background')
         fig, ax = plt.subplots(figsize=(12, 6))
 
         # Plot spread
-        if min_temps and max_temps:
-            ax.fill_between(dates, min_temps, max_temps, alpha=0.3, color='cyan', label='ICON spread')
+        if min_arr is not None and max_arr is not None:
+            ax.fill_between(dates, min_arr, max_arr, alpha=0.3, color='cyan', label='ICON spread')
 
         # Plot mean
-        ax.plot(dates, mean_temps, color='cyan', linewidth=2, label='ICON mean')
+        ax.plot(dates, mean_arr, color='cyan', linewidth=2, label='ICON mean')
 
         # Threshold lines
         ax.axhline(y=COLD_THRESHOLD, color='blue', linestyle='--', alpha=0.5, linewidth=1)
