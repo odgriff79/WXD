@@ -398,7 +398,7 @@ def generate_stats_post(model_summary: str) -> str:
     return header + stats
 
 
-def post_to_bluesky(text: str, reply_to: dict = None,
+def post_to_bluesky(text: str, reply_to: dict = None, root_post: dict = None,
                     handle: str = None, password: str = None) -> dict:
     """Post to Bluesky, optionally as reply (for threading)."""
     if not HAS_ATPROTO or not handle or not password:
@@ -409,10 +409,22 @@ def post_to_bluesky(text: str, reply_to: dict = None,
         client.login(handle, password)
 
         if reply_to:
-            # Create reply reference
+            # Use root_post if provided, otherwise reply_to is both parent and root
+            root = root_post if root_post else reply_to
+
+            # Create StrongRef objects manually
+            parent_ref = atproto_models.ComAtprotoRepoStrongRef.Main(
+                uri=reply_to["uri"],
+                cid=reply_to["cid"]
+            )
+            root_ref = atproto_models.ComAtprotoRepoStrongRef.Main(
+                uri=root["uri"],
+                cid=root["cid"]
+            )
+
             reply_ref = atproto_models.AppBskyFeedPost.ReplyRef(
-                parent=atproto_models.create_strong_ref(reply_to),
-                root=atproto_models.create_strong_ref(reply_to)
+                parent=parent_ref,
+                root=root_ref
             )
             response = client.send_post(text=text, reply_to=reply_ref)
         else:
@@ -513,17 +525,19 @@ def main():
     print()
     print("Posting thread to Bluesky...")
 
-    # Post 1: Met Office today
+    # Post 1: Met Office today (root of thread)
     result1 = post_to_bluesky(post1, handle=bsky_handle, password=bsky_password)
     if not result1:
         print("  Failed to post Met Office today")
         return 1
     print(f"  Post 1: {result1['uri']}")
+    root_post = result1  # All replies point to this as root
     last_result = result1
 
     # Post 2: Met Office long range (if available)
     if post2:
-        result2 = post_to_bluesky(post2, reply_to=last_result, handle=bsky_handle, password=bsky_password)
+        result2 = post_to_bluesky(post2, reply_to=last_result, root_post=root_post,
+                                   handle=bsky_handle, password=bsky_password)
         if not result2:
             print("  Failed to post Met Office long range")
             return 1
@@ -531,14 +545,16 @@ def main():
         last_result = result2
 
     # Post 3: AI Commentary
-    result3 = post_to_bluesky(post3, reply_to=last_result, handle=bsky_handle, password=bsky_password)
+    result3 = post_to_bluesky(post3, reply_to=last_result, root_post=root_post,
+                               handle=bsky_handle, password=bsky_password)
     if not result3:
         print("  Failed to post AI commentary")
         return 1
     print(f"  Post 3: {result3['uri']}")
 
     # Post 4: Stats
-    result4 = post_to_bluesky(post4, reply_to=result3, handle=bsky_handle, password=bsky_password)
+    result4 = post_to_bluesky(post4, reply_to=result3, root_post=root_post,
+                               handle=bsky_handle, password=bsky_password)
     if not result4:
         print("  Failed to post stats")
         return 1
