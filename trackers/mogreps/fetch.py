@@ -46,7 +46,7 @@ MODEL = {
     "description": "MOGREPS-G (18 members)",
     "members": 18,
     "runs": ["00z", "06z", "12z", "18z"],
-    "delay_hours": 4
+    "delay_hours": 6  # AWS S3 has ~6h delay from run time
 }
 
 
@@ -55,39 +55,42 @@ def utcnow():
 
 
 def get_latest_run() -> tuple:
-    """Determine the latest available model run based on current time."""
+    """Determine the latest available model run based on current time.
+
+    MOGREPS-G has ~6 hour delay on AWS S3:
+    - 00z run available ~06:00 UTC
+    - 06z run available ~12:00 UTC
+    - 12z run available ~18:00 UTC
+    - 18z run available ~00:00 UTC next day
+
+    We target 00z and 12z runs for 2x daily posting.
+    """
     now = utcnow()
     hour = now.hour
 
-    # Account for ~4 hour processing delay
+    # Account for ~6 hour processing delay
     available_hour = hour - MODEL["delay_hours"]
 
     if available_hour < 0:
-        # Use previous day's 18z run
+        # Before 06:00 UTC - use previous day's 12z run
         run_date = now - timedelta(days=1)
-        run_hour = 18
+        run_hour = 12
     elif available_hour < 6:
-        # Use previous day's 18z run
-        run_date = now - timedelta(days=1)
-        run_hour = 18
-    elif available_hour < 12:
-        # Use today's 06z run
+        # 06:00-11:59 UTC - 00z just became available
         run_date = now
-        run_hour = 6
+        run_hour = 0
+    elif available_hour < 12:
+        # 12:00-17:59 UTC - use 00z (12z not ready yet)
+        run_date = now
+        run_hour = 0
     elif available_hour < 18:
-        # Use today's 12z run
+        # 18:00-23:59 UTC - 12z just became available
         run_date = now
         run_hour = 12
     else:
-        # Use today's 18z run
+        # Use today's 12z run
         run_date = now
-        run_hour = 18
-
-    # For 2x daily posting, prefer 00z and 12z
-    # Adjust to nearest "main" run
-    if run_hour in [6, 18]:
-        # Check if we should use 00z or 12z instead
-        pass  # Keep as is for now, more frequent updates
+        run_hour = 12
 
     return run_date.strftime("%Y/%m/%d"), f"{run_hour:02d}"
 
