@@ -354,7 +354,7 @@ MOGREPS runs 4x daily. Posts tagged "MOGREPS:" as UK ensemble benchmark."""
         run_full_analysis(data, trend_state_path, is_ensemble=True)
 
     # SAFEGUARD: Check for extreme shifts that indicate bad data comparison
-    MAX_REASONABLE_SHIFT = 8.0  # More than 8C shift is suspicious
+    MAX_REASONABLE_SHIFT = 10.0  # More than 10C shift is suspicious (allows for strong pattern changes)
     if run_diff and abs(run_diff['shift']) > MAX_REASONABLE_SHIFT:
         print(f"  WARNING: Extreme shift detected ({run_diff['shift']}C)")
         print(f"  This likely indicates comparing to corrupted historical data")
