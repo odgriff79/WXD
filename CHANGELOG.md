@@ -6,12 +6,36 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ### TODO
 - ~~**Anytime preview/testing mode** - Allow fresh data fetch for preview/testing without polluting or contaminating the production data files or history. Must ensure complete isolation from scheduled runs.~~ **DONE**
-- **ICON/UKMO commentary enhancement** - Current post.py for Trackers B/D have basic Claude prompts that produce templated fallback text. Need to port Tracker A's rich analysis features:
-  - Percentile framing (% of members below threshold)
-  - Trend persistence tracking (run streak detection)
-  - Timing uncertainty (date spread)
-  - Better structured ANALYSIS CONTEXT in Claude prompt
-  - Current first posts just say "Model shows -7.7°C" - no storytelling
+- ~~**ICON/UKMO/MOGREPS commentary enhancement** - Ported Tracker A's rich analysis features to all trackers.~~ **DONE**
+
+## [2025-12-28] - Shared Analysis Module & Enhanced Trackers
+
+### Added
+- **Shared analysis module** (`trackers/shared/analysis.py`) - Common analysis functions across all trackers:
+  - Trend persistence tracking (consecutive runs with same signal)
+  - Percentile framing (ensemble spread at coldest point, agreement level)
+  - Timing uncertainty analysis (cold window duration, confidence level)
+  - Run-on-run shift detection (shared between ensemble and deterministic models)
+  - Full analysis pipeline function for easy integration
+
+- **Enriched Claude CLI context** - All trackers now pass comprehensive analysis to Claude:
+  - Shift information with direction and date
+  - Cold signal with ensemble min/max
+  - Trend persistence (e.g., "Cold persisting for 3 runs")
+  - Spread analysis (e.g., "High agreement, 4C spread")
+  - Timing window (e.g., "Cold spell spans ~3 days")
+
+### Changed
+- **ICON tracker** - Now uses shared analysis module with percentile framing
+- **MOGREPS tracker** - Now uses shared analysis module with percentile framing
+- **UKMO tracker** - Now uses shared analysis module (deterministic, no percentile framing)
+- **Chart x-axis** - All trackers now use consistent 16-day horizon
+- **Chart tick interval** - Changed from daily to every 2 days for cleaner display
+
+### Technical
+- Added `sys.path.insert()` to each tracker for shared module imports
+- Separate trend state files per tracker (`trend_state.json`)
+- Analysis functions return both individual results and formatted context string
 
 ### Added
 - **Local VM config file** - `.vm_config` (gitignored) stores VM IP and SSH key path for remote orchestration

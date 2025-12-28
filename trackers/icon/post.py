@@ -8,7 +8,10 @@ Runs 4x daily: 04:00, 10:00, 16:00, 22:00 UTC
 Features:
 - Run-on-run shift detection
 - Cold/warm threshold alerts
-- Claude CLI commentary
+- Trend persistence tracking
+- Percentile framing
+- Timing uncertainty analysis
+- Claude CLI commentary with enriched context
 - Bluesky posting with chart
 """
 
@@ -16,13 +19,17 @@ import argparse
 import json
 import os
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Thresholds (same as main tracker)
-COLD_THRESHOLD = -5
-EXTREME_COLD = -8
-WARM_THRESHOLD = 10
+# Add parent directory to path for shared imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from shared.analysis import (
+    COLD_THRESHOLD, EXTREME_COLD, WARM_THRESHOLD,
+    utcnow, run_full_analysis
+)
 
 # Try to import atproto for Bluesky
 try:
@@ -30,10 +37,6 @@ try:
     HAS_ATPROTO = True
 except ImportError:
     HAS_ATPROTO = False
-
-
-def utcnow():
-    return datetime.now(timezone.utc)
 
 
 def get_run_label(fetched_at: str) -> str:
@@ -54,15 +57,11 @@ def get_run_label(fetched_at: str) -> str:
 
 
 def load_alert_state(state_path: Path) -> dict:
-    """Load alert state for hysteresis tracking."""
+    """Load alert state for intro tracking."""
     if state_path.exists():
         with open(state_path, 'r') as f:
             return json.load(f)
-    return {
-        "cold_count": 0,
-        "extreme_cold_count": 0,
-        "intro_posted": False
-    }
+    return {"intro_posted": False}
 
 
 def save_alert_state(state_path: Path, state: dict) -> None:
@@ -70,113 +69,26 @@ def save_alert_state(state_path: Path, state: dict) -> None:
         json.dump(state, f, indent=2)
 
 
-def analyze_run_diff(data: dict) -> dict:
-    """Compare current run to previous run."""
-    runs = data.get("runs", [])
-    if len(runs) < 2:
-        return None
+def get_claude_commentary(data_path: Path, full_context: str, run_diff: dict, cold_info: dict) -> tuple:
+    """Get Claude CLI commentary for ICON data with enriched context."""
+    prompt = f"""You are WXD ICON tracker. Write brief commentary on ICON ensemble (40 members) 850hPa temperature data for London.
 
-    current = runs[0]
-    previous = runs[1]
-
-    curr_mean = current.get("mean", [])
-    prev_mean = previous.get("mean", [])
-
-    if not curr_mean or not prev_mean:
-        return None
-
-    # Find max difference in overlapping range
-    min_len = min(len(curr_mean), len(prev_mean))
-    max_diff = 0
-    max_diff_idx = 0
-
-    for i in range(min_len):
-        if curr_mean[i] is not None and prev_mean[i] is not None:
-            diff = curr_mean[i] - prev_mean[i]
-            if abs(diff) > abs(max_diff):
-                max_diff = diff
-                max_diff_idx = i
-
-    if abs(max_diff) >= 2.0:  # Significant shift threshold
-        timestamps = current.get("timestamps", [])
-        date = timestamps[max_diff_idx][:10] if max_diff_idx < len(timestamps) else "unknown"
-        direction = "warmer" if max_diff > 0 else "colder"
-        return {
-            "shift": round(max_diff, 1),
-            "direction": direction,
-            "date": date
-        }
-
-    return None
-
-
-def check_cold_threshold(data: dict) -> dict:
-    """Check if ICON crosses cold threshold."""
-    runs = data.get("runs", [])
-    if not runs:
-        return None
-
-    current = runs[0]
-    mean_temps = current.get("mean", [])
-    min_temps = current.get("min", [])
-    timestamps = current.get("timestamps", [])
-
-    if not mean_temps or not timestamps:
-        return None
-
-    # Find coldest point
-    coldest_temp = None
-    coldest_idx = None
-
-    for i, temp in enumerate(mean_temps):
-        if temp is not None and temp < COLD_THRESHOLD:
-            if coldest_temp is None or temp < coldest_temp:
-                coldest_temp = temp
-                coldest_idx = i
-
-    if coldest_temp is not None:
-        date = timestamps[coldest_idx][:10] if coldest_idx < len(timestamps) else "unknown"
-        min_temp = min_temps[coldest_idx] if coldest_idx < len(min_temps) else coldest_temp
-        return {
-            "temp": round(coldest_temp, 1),
-            "min_temp": round(min_temp, 1) if min_temp else None,
-            "date": date,
-            "extreme": coldest_temp <= EXTREME_COLD
-        }
-
-    return None
-
-
-def get_claude_commentary(data_path: Path, run_diff: dict, cold_info: dict) -> tuple:
-    """Get Claude CLI commentary for ICON data."""
-    context_parts = []
-
-    if run_diff:
-        context_parts.append(f"SHIFT: ICON moved {abs(run_diff['shift'])}°C {run_diff['direction']} since last run around {run_diff['date']}")
-
-    if cold_info:
-        context_parts.append(f"COLD: ICON ensemble mean hits {cold_info['temp']}°C on {cold_info['date']}")
-        if cold_info.get('min_temp'):
-            context_parts.append(f"COLDEST MEMBER: {cold_info['min_temp']}°C")
-
-    context = "\n".join(context_parts) if context_parts else "No significant changes"
-
-    prompt = f"""You are WXD ICON tracker. Write brief commentary on ICON ensemble 850hPa temperature data for London.
-
-Write a Bluesky post (max 250 chars). This tracks the German ICON model separately from the main 4-model ensemble.
+Write a Bluesky post (max 250 chars). This tracks the German DWD ICON model separately from the main 4-model ensemble.
 
 STYLE:
 - Start with "ICON:" to identify this tracker
 - Note any significant changes from last run
-- Mention the cold/warm signal if present
+- If trend is persisting across multiple runs, mention it
+- If ensemble agreement is notable (tight or wide spread), mention it briefly
+- Mention timing if confidence is relevant
 - Keep it brief and factual
 
-CONTEXT:
-{context}
+ANALYSIS CONTEXT:
+{full_context}
 
 FORMAT:
 - Plain text only (no markdown, emojis, hashtags)
-- Use °C for temperatures"""
+- Use C for temperatures (not degrees symbol)"""
 
     try:
         with open(data_path, 'r') as f:
@@ -230,6 +142,11 @@ def generate_chart(data: dict, chart_path: Path) -> bool:
         # Parse dates
         dates = [datetime.fromisoformat(t.replace('Z', '+00:00')) for t in timestamps]
 
+        # Calculate consistent x-axis range (16 days from first timestamp)
+        from datetime import timedelta
+        x_start = dates[0]
+        x_end = x_start + timedelta(days=16)
+
         # Convert None to NaN for matplotlib
         import numpy as np
         mean_arr = np.array([float(x) if x is not None else np.nan for x in mean_temps])
@@ -269,8 +186,9 @@ def generate_chart(data: dict, chart_path: Path) -> bool:
         ax.set_ylabel('850hPa Temperature (°C)', fontsize=12)
         ax.legend(loc='upper right', fontsize=10)
         ax.grid(True, alpha=0.3)
+        ax.set_xlim(x_start, x_end)
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
-        ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
+        ax.xaxis.set_major_locator(mdates.DayLocator(interval=2))
         fig.autofmt_xdate()
 
         # Watermark
@@ -424,28 +342,35 @@ ICON runs 2x daily (00z/12z). Posts tagged "ICON:" to distinguish from main 4-mo
         run_label = get_run_label(fetched_at)
         print(f"Data: fetched {fetched_at[:19]}Z, {run_label}")
 
-    # Analyze
-    print("Analyzing run-on-run changes...")
-    run_diff = analyze_run_diff(data)
+    # Run full analysis with shared module
+    print("Running full analysis...")
+    trend_state_path = data_dir / "trend_state.json"
+    run_diff, cold_info, trend_analysis, percentile_analysis, timing_analysis, full_context = \
+        run_full_analysis(data, trend_state_path, is_ensemble=True)
+
     if run_diff:
-        print(f"  Shift: {run_diff['shift']}°C {run_diff['direction']}")
+        print(f"  Shift: {run_diff['shift']}C {run_diff['direction']}")
     else:
         print("  No significant shift")
 
-    print("Checking cold threshold...")
-    cold_info = check_cold_threshold(data)
     if cold_info:
-        print(f"  Cold signal: {cold_info['temp']}°C on {cold_info['date']}")
+        print(f"  Cold signal: {cold_info['temp']}C on {cold_info['date']}")
     else:
         print("  No cold signal")
+
+    if trend_analysis.get("cold_persistence", 0) >= 2:
+        print(f"  Trend: Cold persisting for {trend_analysis['cold_persistence']} runs")
+
+    if percentile_analysis.get("agreement_level"):
+        print(f"  Agreement: {percentile_analysis['agreement_level']} ({percentile_analysis.get('spread_at_coldest', '?')}C spread)")
 
     # Generate chart
     print("Generating chart...")
     chart_ok = generate_chart(data, chart_path)
 
-    # Get commentary
+    # Get commentary with enriched context
     print("Generating commentary...")
-    text, is_fallback = get_claude_commentary(history_path, run_diff, cold_info)
+    text, is_fallback = get_claude_commentary(history_path, full_context, run_diff, cold_info)
     print(f"  Commentary ({len(text)} chars):")
     print(f"  {text}")
 
