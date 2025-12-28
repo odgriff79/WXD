@@ -1289,7 +1289,15 @@ def main():
     parser = argparse.ArgumentParser(description='WXD Bluesky Poster')
     parser.add_argument('--changelog', '-c', type=str, help='Post a changelog/update message')
     parser.add_argument('--weekly', '-w', action='store_true', help='Post weekly summary')
+    parser.add_argument('--dry-run', '-n', action='store_true', help='Preview mode - run analysis but do not post to Bluesky')
     args = parser.parse_args()
+
+    dry_run = args.dry_run
+    if dry_run:
+        print("=" * 50)
+        print("DRY RUN MODE - will NOT post to Bluesky")
+        print("=" * 50)
+        print()
 
     script_dir = Path(__file__).parent
     data_dir = script_dir / "data"
@@ -1476,68 +1484,101 @@ def main():
     chart_ok = generate_chart(data_path, chart_path)
     print()
 
-    # Post to Bluesky
-    if bsky_handle and bsky_password:
+    # Post to Bluesky (or show preview in dry-run mode)
+    if dry_run:
+        print("=" * 50)
+        print("PREVIEW - Would post the following:")
+        print("=" * 50)
+        print()
+        print(f"[MAIN POST] ({len(main_text)} chars):")
+        print(f"  {main_text}")
+        print(f"  Image: {chart_path if chart_ok else 'None'}")
+        print()
+        main_post_ref = {'uri': 'dry-run', 'cid': 'dry-run'}  # Fake ref for showing alerts
+    elif bsky_handle and bsky_password:
         # Post main update
         print("Posting main update to Bluesky...")
         image = chart_path if chart_ok else None
         main_post_ref = post_to_bluesky(main_text, image, bsky_handle, bsky_password)
         if not main_post_ref:
             return 1
+    else:
+        print("BSKY_HANDLE and BSKY_PASSWORD not set, skipping post")
+        print("Set these environment variables to enable posting")
+        main_post_ref = None
 
-        # Post alerts as REPLIES to main post (creates thread)
-        # Post cold alert if triggered - now with multi-model support
+    # Generate alert texts and post/preview them
+    if main_post_ref:
+        # Cold alert - now with multi-model support
         if cold_alert:
             models_crossing = cold_alert.get('models', [])
             is_multi = cold_alert.get('multi_model', False)
             is_extreme = cold_alert.get('extreme', False)
 
             if is_multi and len(models_crossing) >= 2:
-                # Multi-model agreement - strong signal, format all models
                 model_temps = ", ".join([f"{m['model']} {m['temp']}°C" for m in models_crossing])
                 if is_extreme:
                     alert_text = f"⚠️ Multi-model extreme cold: {model_temps} at 850hPa around {cold_alert['date']}. {len(models_crossing)}/4 models agree - significant snow/ice risk."
                 else:
                     alert_text = f"❄️ Multi-model cold signal: {model_temps} at 850hPa around {cold_alert['date']}. {len(models_crossing)}/4 models below -5°C - elevated snow risk."
             else:
-                # Single model crossing
                 if is_extreme:
                     alert_text = f"⚠️ Extreme cold signal: {cold_alert['model']} showing {cold_alert['temp']}°C at 850hPa for {cold_alert['date']}. Significant snow/ice risk if verified."
                 else:
                     alert_text = f"❄️ Cold signal: {cold_alert['model']} showing {cold_alert['temp']}°C at 850hPa for {cold_alert['date']}. Elevated snow risk for UK uplands."
 
-            print(f"Posting cold alert as reply ({len(alert_text)} chars):")
-            print(f"  {alert_text}")
-            post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
+            if dry_run:
+                print(f"[COLD ALERT] ({len(alert_text)} chars):")
+                print(f"  {alert_text}")
+                print()
+            else:
+                print(f"Posting cold alert as reply ({len(alert_text)} chars):")
+                print(f"  {alert_text}")
+                post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
 
-        # Post warm alert if triggered (summer only)
+        # Warm alert (summer only)
         if warm_alert:
             if warm_alert.get('extreme'):
                 alert_text = f"🌡️ Extreme warmth signal: {warm_alert['model']} showing {warm_alert['temp']}°C at 850hPa for {warm_alert['date']}. Potential heatwave conditions."
             else:
                 alert_text = f"☀️ Warm signal: {warm_alert['model']} showing {warm_alert['temp']}°C at 850hPa for {warm_alert['date']}. Above-average temperatures expected."
 
-            print(f"Posting warm alert as reply ({len(alert_text)} chars):")
-            print(f"  {alert_text}")
-            post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
+            if dry_run:
+                print(f"[WARM ALERT] ({len(alert_text)} chars):")
+                print(f"  {alert_text}")
+                print()
+            else:
+                print(f"Posting warm alert as reply ({len(alert_text)} chars):")
+                print(f"  {alert_text}")
+                post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
 
-        # Post divergence alert if significant (one-off, no hysteresis needed)
-        if divergence_info and divergence_info['diff'] > 6.0:  # Only post for really big gaps
+        # Divergence alert
+        if divergence_info and divergence_info['diff'] > 6.0:
             alert_text = f"⚡ Model disagreement: {divergence_info['diff']}°C gap for {divergence_info['date']}. {divergence_info['coldest']} at {divergence_info['coldest_temp']}°C vs {divergence_info['warmest']} at {divergence_info['warmest_temp']}°C. Low confidence."
 
-            print(f"Posting divergence alert as reply ({len(alert_text)} chars):")
-            print(f"  {alert_text}")
-            post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
+            if dry_run:
+                print(f"[DIVERGENCE ALERT] ({len(alert_text)} chars):")
+                print(f"  {alert_text}")
+                print()
+            else:
+                print(f"Posting divergence alert as reply ({len(alert_text)} chars):")
+                print(f"  {alert_text}")
+                post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
 
-        # Post swing alert if dramatic pattern change
-        if swing_info and abs(swing_info['swing']) >= 8.0:  # Only post for really big swings
+        # Swing alert
+        if swing_info and abs(swing_info['swing']) >= 8.0:
             alert_text = f"🔄 Pattern flip: {abs(swing_info['swing'])}°C {swing_info['direction']} expected {swing_info['start_date']} to {swing_info['end_date']}. Major temperature change incoming."
 
-            print(f"Posting swing alert as reply ({len(alert_text)} chars):")
-            print(f"  {alert_text}")
-            post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
+            if dry_run:
+                print(f"[SWING ALERT] ({len(alert_text)} chars):")
+                print(f"  {alert_text}")
+                print()
+            else:
+                print(f"Posting swing alert as reply ({len(alert_text)} chars):")
+                print(f"  {alert_text}")
+                post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
 
-        # Post percentile alert if >80% of ensemble members cross threshold
+        # Percentile alert
         if percentile_info and percentile_info.get('pct', 0) >= 80:
             pct = int(percentile_info['pct'])
             model = percentile_info['model'].upper()
@@ -1545,12 +1586,14 @@ def main():
             threshold = percentile_info.get('threshold', '-5°C')
             alert_text = f"📊 High confidence: {pct}% of {model} ensemble members below {threshold} by {date}. Strong agreement on cold signal."
 
-            print(f"Posting percentile alert as reply ({len(alert_text)} chars):")
-            print(f"  {alert_text}")
-            post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
-    else:
-        print("BSKY_HANDLE and BSKY_PASSWORD not set, skipping post")
-        print("Set these environment variables to enable posting")
+            if dry_run:
+                print(f"[PERCENTILE ALERT] ({len(alert_text)} chars):")
+                print(f"  {alert_text}")
+                print()
+            else:
+                print(f"Posting percentile alert as reply ({len(alert_text)} chars):")
+                print(f"  {alert_text}")
+                post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
 
     print()
     print("Complete")
