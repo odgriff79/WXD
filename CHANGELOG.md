@@ -28,15 +28,59 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 ### Investigated
 - **Previous Runs API** - Not suitable for backfill (no 850hPa data, no ensemble members)
 - **ICON & UKMO expansion** - Initial investigation found deterministic-only via Open-Meteo Forecast API
+- **Open-Meteo ICON 850hPa** - Returns NULL for `temperature_850hPa` on ICON ensemble despite API docs claiming support. Works fine for GFS/ECMWF. Likely data availability/ingestion issue on their side.
 
-### Future Work (from Gemini/ChatGPT research)
-Open-Meteo Ensemble API actually supports more ensemble models than initially realized:
-- **ICON EPS Seamless** - 40 members (`models=icon_seamless` on Ensemble API)
+### Multi-Tracker Architecture
+Separating models into independent trackers rather than mixing into one ensemble:
+- **Tracker A** - Main 4-model ensemble (GFS, ECM, AIFS, GEM) via Open-Meteo - 2x daily (08:30, 20:30 UTC)
+- **Tracker B** - ICON-EU-EPS (40 members) via DWD GRIB - 2x daily (04:30, 16:30 UTC for 00z/12z runs)
+- **Tracker C** - MOGREPS (UK Met Office ensembles) - future
+- **Tracker D** - UKMO HD 0.1 (deterministic benchmark) - future
+
+Each tracker: own subfolder (`trackers/icon/`), own schedule, own cron, own Bluesky posts prefixed with model name.
+
+**Tracker B implementation:**
+- Uses ICON-EU-EPS (European domain) not ICON-EPS (global) - smaller files
+- Only 00z and 12z runs have pressure-level 850hPa data (06z/18z only have model-level)
+- Forecast range: 0-120h (5 days) at 12-hourly intervals
+- Requires `wgrib2` for GRIB point extraction
+- Files: `trackers/icon/fetch.py`, `trackers/icon/post.py`, `trackers/icon/cron_icon.sh`
+- ntfy commands: `icon` (quick preview), `icon-fresh` (fetch new data)
+
+### ICON 850hPa Data Solution (from GPT/Gemini research)
+Open-Meteo doesn't provide ICON 850hPa, but DWD Open Data does via GRIB:
+
+**Source:** `https://opendata.dwd.de/weather/nwp/icon-eu-eps/grib/[HH]/t/`
+- Files: `icon-eu-eps_europe_icosahedral_pressure-level_YYYYMMDDHH_FFF_850_t.grib2.bz2`
+- Each file ~10MB compressed, contains all 40 ensemble members for one forecast hour
+- Only 00z and 12z runs have pressure-level data (06z/18z have model-level only)
+
+**Implementation approach (fetch.py):**
+1. Download one .bz2 file at a time (~10MB)
+2. Decompress to temp .grib2
+3. Use `wgrib2 -lon -0.1 51.5` to extract London point → tiny output
+4. Delete temp files immediately
+5. Aggregate all hours to JSON
+
+**Data flow per run:**
+- 11 files (0h to 120h at 12-hourly) × 10MB = ~110MB download
+- Processed sequentially, only one file in memory at a time
+- Final output: ~50KB JSON with 40-member ensemble stats
+
+**wgrib2 command:**
+```bash
+wgrib2 file.grib2 -lon -0.1 51.5
+# Output: one line per ensemble member with val=XXX (Kelvin)
+```
+
+**Requirements:** `wgrib2` must be installed on VM
+
+### Future Work
+Open-Meteo Ensemble API supports more models (but 850hPa availability varies):
+- **ICON EPS Seamless** - 40 members (850hPa: use DWD GRIB instead)
 - **BOM ACCESS-GE** - 18 members (independent Australian global ensemble)
 - **UKMO MOGREPS-G** - 18 members (UK Met Office global ensemble)
-- **UKMO MOGREPS-UK** - 3 members (UK high-res ensemble, small N but probabilistic)
-
-This would expand from 4 → 8 ensemble sources without adding new providers.
+- **UKMO MOGREPS-UK** - 3 members (UK high-res ensemble)
 
 **Implementation notes:**
 - Use `https://ensemble-api.open-meteo.com/v1/ensemble` (not forecast API) for ensembles
@@ -44,6 +88,7 @@ This would expand from 4 → 8 ensemble sources without adding new providers.
 - Horizon mismatch between models - may need to clip to shared max or allow early endings
 - UKMO MOGREPS ensembles are separate from UKMO deterministic feed
 - Consider UKMO deterministic as "benchmark line" alongside ensemble spread
+- For any model where Open-Meteo lacks 850hPa, fall back to native GRIB + wgrib2
 
 ## [2025-12-28] - Multi-model Alerts & Remote Preview
 

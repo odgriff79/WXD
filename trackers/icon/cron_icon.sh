@@ -1,7 +1,8 @@
 #!/bin/bash
 # WXD ICON Tracker - Cron script
-# Runs 4x daily: 04:00, 10:00, 16:00, 22:00 UTC
-# Crontab: 0 4,10,16,22 * * * /home/ubuntu/wxd/trackers/icon/cron_icon.sh
+# Runs 2x daily: 04:30, 16:30 UTC (captures 00z and 12z runs)
+# Note: Only 00z/12z runs have pressure-level 850hPa data
+# Crontab: 30 4,16 * * * /home/ubuntu/wxd/trackers/icon/cron_icon.sh
 
 set -e
 

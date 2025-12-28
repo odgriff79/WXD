@@ -2,8 +2,14 @@
 """ntfy listener for WXD preview commands.
 
 Subscribe to wxd-cmd topic:
+
+Tracker A (main 4-model ensemble):
 - 'preview': Run analysis on current/stale data (quick)
-- 'fresh': Fetch new data first, then run analysis (isolated, no contamination)
+- 'fresh': Fetch new data first, then run analysis (isolated)
+
+Tracker B (ICON):
+- 'icon': Run ICON analysis on current data (quick)
+- 'icon-fresh': Fetch new ICON data first, then analyze (isolated)
 
 Results sent to wxd-alerts topic.
 """
@@ -17,7 +23,9 @@ os.chdir('/home/ubuntu/wxd')
 sys.stdout.reconfigure(line_buffering=True)
 
 print('WXD ntfy listener started')
-print('Commands: "preview" (quick) or "fresh" (fetch new data)')
+print('Commands:')
+print('  Tracker A: "preview" (quick) or "fresh" (fetch new)')
+print('  Tracker B: "icon" (quick) or "icon-fresh" (fetch new)')
 print('Send to: https://ntfy.sh/wxd-cmd')
 
 # Use ntfy JSON stream API
@@ -54,6 +62,35 @@ def handle_fresh():
 
     return f"=== FRESH FETCH ===\n{fetch_output}\n\n=== ANALYSIS ===\n{analysis_output}"
 
+
+def handle_icon():
+    """Quick ICON preview using existing data."""
+    print(f'ICON preview requested at {time.strftime("%H:%M:%S")}')
+    output = run_command(['/home/ubuntu/wxd/venv/bin/python', 'trackers/icon/post.py', '--dry-run'])
+    return output
+
+
+def handle_icon_fresh():
+    """Fetch fresh ICON data (isolated) then preview.
+    Note: ICON fetch downloads ~110MB of GRIB data, takes longer.
+    """
+    print(f'Fresh ICON preview requested at {time.strftime("%H:%M:%S")}')
+
+    # Step 1: Fetch fresh ICON data in preview mode (isolated)
+    # Longer timeout due to GRIB downloads (~110MB)
+    print('  Fetching fresh ICON data (this may take a few minutes)...')
+    fetch_output = run_command(
+        ['/home/ubuntu/wxd/venv/bin/python', 'trackers/icon/fetch.py', '--preview'],
+        timeout=600  # 10 min timeout for GRIB downloads
+    )
+
+    # Step 2: Run ICON analysis on preview data
+    print('  Running ICON analysis...')
+    analysis_output = run_command(['/home/ubuntu/wxd/venv/bin/python', 'trackers/icon/post.py', '--preview'])
+
+    return f"=== ICON FRESH FETCH ===\n{fetch_output}\n\n=== ICON ANALYSIS ===\n{analysis_output}"
+
+
 while True:
     try:
         # Stream messages with timeout
@@ -72,14 +109,22 @@ while True:
                             output = handle_preview()
                         elif cmd == 'fresh':
                             output = handle_fresh()
+                        elif cmd == 'icon':
+                            output = handle_icon()
+                        elif cmd == 'icon-fresh':
+                            output = handle_icon_fresh()
 
                         if output:
                             # Clean up output for ntfy
-                            if 'PREVIEW' in output or 'DRY RUN' in output or 'FRESH' in output:
-                                # Find the header
-                                for marker in ['FRESH PREVIEW', 'FRESH FETCH', 'DRY RUN', 'PREVIEW']:
+                            if 'PREVIEW' in output or 'DRY RUN' in output or 'FRESH' in output or 'ICON' in output:
+                                # Find the header - check ICON markers first
+                                for marker in ['ICON FRESH FETCH', 'ICON ANALYSIS', 'ICON-EU-EPS',
+                                              'FRESH PREVIEW', 'FRESH FETCH', 'DRY RUN', 'PREVIEW']:
                                     if marker in output:
-                                        output = output[output.index(marker) - 4:]
+                                        idx = output.index(marker)
+                                        # Go back a bit for context but not too far
+                                        start = max(0, idx - 10)
+                                        output = output[start:]
                                         break
                             output = output[:3500]  # ntfy limit
 

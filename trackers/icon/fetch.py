@@ -1,40 +1,50 @@
 #!/usr/bin/env python3
 """
-WXD Tracker B - ICON Ensemble Fetch
+WXD Tracker B - ICON-EU-EPS 850hPa Temperature Fetch
 
-Fetches ICON ensemble data from Open-Meteo.
-Runs 4x daily: 00z, 06z, 12z, 18z (fetch at +4hr: 04:00, 10:00, 16:00, 22:00 UTC)
+Fetches ICON-EU ensemble 850hPa temperature data from DWD Open Data.
+Uses GRIB2 files with point extraction for London coordinates.
 
-ICON-EPS: 40 ensemble members, German DWD model
+Data source: https://opendata.dwd.de/weather/nwp/icon-eu-eps/grib/
+Files: icon-eu-eps_europe_icosahedral_pressure-level_YYYYMMDDHH_FFF_850_t.grib2.bz2
+
+Runs 4x daily: 00z, 06z, 12z, 18z (fetch at +4hr delay)
 """
 
 import argparse
+import bz2
 import json
-import requests
 import os
-from datetime import datetime, timezone
+import re
+import subprocess
+import tempfile
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from statistics import mean
+import requests
 
 # London coordinates
 LATITUDE = 51.5074
 LONGITUDE = -0.1278
 
-# Forecast configuration
-FORECAST_DAYS = 7  # ICON has shorter horizon than GFS/ECM
-PAST_DAYS = 1
-HOURLY_VARIABLE = "temperature_850hPa"
-
-# Retention
-RETENTION_DAYS = 7
+# Forecast configuration - 12-hourly intervals to minimize downloads
+# Available: hourly 0-48, then 3-hourly to 120
+# Using: 0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120 (11 files, ~110MB total)
+FORECAST_HOURS = list(range(0, 121, 12))  # 0 to 120 hours, every 12h (5 days)
 HISTORY_RUNS = 8  # 4 runs/day * 2 days
+RETENTION_DAYS = 7
 
-# ICON model config
+# DWD base URL for ICON-EU-EPS
+DWD_BASE = "https://opendata.dwd.de/weather/nwp/icon-eu-eps/grib"
+
+# Model info
+# Note: Pressure-level 850hPa data only available for 00z and 12z runs
+# (06z/18z only have model-level data, not pressure-level)
 MODEL = {
-    "api_name": "icon_seamless",
-    "description": "ICON Ensemble (40 members)",
+    "name": "icon-eu-eps",
+    "description": "ICON-EU Ensemble (40 members)",
     "members": 40,
-    "runs": ["00z", "06z", "12z", "18z"],
+    "runs": ["00z", "12z"],  # Only these have pressure-level 850hPa
     "delay_hours": 4
 }
 
@@ -43,150 +53,225 @@ def utcnow():
     return datetime.now(timezone.utc)
 
 
-def get_run_label(fetched_at: str) -> str:
-    """Determine which model run this fetch captures."""
-    try:
-        dt = datetime.fromisoformat(fetched_at.replace('Z', '+00:00'))
-        hour = dt.hour
-        # 04:00 fetch = 00z, 10:00 = 06z, 16:00 = 12z, 22:00 = 18z
-        if 3 <= hour < 9:
-            return "00z"
-        elif 9 <= hour < 15:
-            return "06z"
-        elif 15 <= hour < 21:
-            return "12z"
-        else:
-            return "18z"
-    except:
-        return None
+def get_latest_run() -> tuple:
+    """Determine the latest available model run based on current time.
 
+    Note: Only 00z and 12z runs have pressure-level 850hPa data.
+    """
+    now = utcnow()
+    hour = now.hour
 
-def fetch_icon_data() -> dict:
-    """Fetch ICON ensemble data from Open-Meteo."""
-    url = "https://ensemble-api.open-meteo.com/v1/ensemble"
+    # Account for ~4 hour processing delay
+    available_hour = hour - MODEL["delay_hours"]
 
-    params = {
-        "latitude": LATITUDE,
-        "longitude": LONGITUDE,
-        "hourly": HOURLY_VARIABLE,
-        "models": MODEL["api_name"],
-        "forecast_days": FORECAST_DAYS,
-        "past_days": PAST_DAYS,
-    }
-
-    response = requests.get(url, params=params, timeout=60)
-    response.raise_for_status()
-    data = response.json()
-
-    # Add metadata
-    data["_wxd_metadata"] = {
-        "model": "icon",
-        "description": MODEL["description"],
-        "fetched_at": utcnow().isoformat().replace("+00:00", "Z"),
-        "location": {"latitude": LATITUDE, "longitude": LONGITUDE, "name": "London"},
-        "variable": HOURLY_VARIABLE,
-        "forecast_days": FORECAST_DAYS,
-        "run_info": {
-            "fetch_time": utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "likely_run": get_run_label(utcnow().isoformat()),
-            "runs_available": MODEL["runs"],
-            "typical_delay_hours": MODEL["delay_hours"]
-        }
-    }
-
-    return data
-
-
-def calculate_ensemble_stats(data: dict) -> dict:
-    """Calculate ensemble mean, min, max, spread from raw data."""
-    hourly = data.get("hourly", {})
-    times = hourly.get("time", [])
-
-    # Find all ensemble member columns
-    member_keys = [k for k in hourly.keys() if k.startswith(HOURLY_VARIABLE + "_member")]
-
-    if not member_keys or not times:
-        return None
-
-    stats = {
-        "timestamps": times,
-        "mean": [],
-        "min": [],
-        "max": [],
-        "spread": [],
-        "members": len(member_keys)
-    }
-
-    for i in range(len(times)):
-        values = []
-        for key in member_keys:
-            val = hourly[key][i]
-            if val is not None:
-                values.append(val)
-
-        if values:
-            mean_val = mean(values)
-            min_val = min(values)
-            max_val = max(values)
-            stats["mean"].append(round(mean_val, 2))
-            stats["min"].append(round(min_val, 2))
-            stats["max"].append(round(max_val, 2))
-            stats["spread"].append(round(max_val - min_val, 2))
-        else:
-            stats["mean"].append(None)
-            stats["min"].append(None)
-            stats["max"].append(None)
-            stats["spread"].append(None)
-
-    return stats
-
-
-def generate_summary(data: dict, data_dir: Path, timestamp: datetime, preview: bool = False) -> None:
-    """Generate summary JSON with ensemble stats."""
-    stats = calculate_ensemble_stats(data)
-
-    if not stats:
-        print("  ERROR: Could not calculate stats")
-        return
-
-    summary = {
-        "fetched_at": timestamp.isoformat().replace("+00:00", "Z"),
-        "location": {"latitude": LATITUDE, "longitude": LONGITUDE, "name": "London"},
-        "variable": HOURLY_VARIABLE,
-        "model": "icon",
-        "description": MODEL["description"],
-        "timestamps": stats["timestamps"],
-        "mean": stats["mean"],
-        "min": stats["min"],
-        "max": stats["max"],
-        "spread": stats["spread"],
-        "members": stats["members"]
-    }
-
-    if preview:
-        summary_path = data_dir / "preview_summary.json"
-        with open(summary_path, "w") as f:
-            json.dump(summary, f, indent=2)
-        print(f"  Preview summary saved: preview_summary.json (isolated)")
+    if available_hour < 0:
+        # Use previous day's 12z run
+        run_date = now - timedelta(days=1)
+        run_hour = 12
+    elif available_hour < 12:
+        # Use today's 00z run
+        run_date = now
+        run_hour = 0
     else:
-        # Timestamped file
-        time_str = timestamp.strftime("%Y-%m-%d_%H%MZ")
-        summary_filename = f"summary_{time_str}.json"
-        summary_path = data_dir / summary_filename
-        with open(summary_path, "w") as f:
-            json.dump(summary, f, indent=2)
-        print(f"  Summary saved: {summary_filename}")
+        # Use today's 12z run
+        run_date = now
+        run_hour = 12
 
-        # Latest copy
-        latest_path = data_dir / "summary_latest.json"
-        import shutil
-        if latest_path.exists():
-            latest_path.unlink()
-        shutil.copy(summary_path, latest_path)
-        print(f"  Summary latest: summary_latest.json")
+    return run_date.strftime("%Y%m%d"), f"{run_hour:02d}"
 
-        # Update history
-        update_history(summary, data_dir)
+
+def get_run_label(run_hour: str) -> str:
+    """Get human-readable run label."""
+    return f"{run_hour}z"
+
+
+def build_file_url(run_date: str, run_hour: str, forecast_hour: int) -> str:
+    """Build URL for a specific GRIB file."""
+    filename = f"icon-eu-eps_europe_icosahedral_pressure-level_{run_date}{run_hour}_{forecast_hour:03d}_850_t.grib2.bz2"
+    return f"{DWD_BASE}/{run_hour}/t/{filename}"
+
+
+def check_wgrib2_available() -> bool:
+    """Check if wgrib2 is installed."""
+    try:
+        result = subprocess.run(['wgrib2', '-version'], capture_output=True, text=True, timeout=5)
+        return result.returncode == 0
+    except:
+        return False
+
+
+def extract_london_point(grib_path: Path) -> list:
+    """
+    Extract London grid point values from GRIB file using wgrib2.
+    Returns list of (member_number, temperature_kelvin) tuples.
+    """
+    try:
+        # Use wgrib2 to extract just the London point
+        # -lon extracts the nearest grid point value
+        result = subprocess.run(
+            ['wgrib2', str(grib_path), '-lon', str(LONGITUDE), str(LATITUDE)],
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+
+        if result.returncode != 0:
+            print(f"    wgrib2 error: {result.stderr}")
+            return []
+
+        # Parse output - format is: record:location:lon=X,lat=Y,val=Z
+        values = []
+        for line in result.stdout.strip().split('\n'):
+            if not line:
+                continue
+
+            # Extract value from line
+            # Example: 1:0:lon=-0.100000,lat=51.500000,val=273.15
+            match = re.search(r'val=([\d.-]+)', line)
+            if match:
+                temp_kelvin = float(match.group(1))
+                temp_celsius = temp_kelvin - 273.15
+                values.append(temp_celsius)
+
+        return values
+
+    except subprocess.TimeoutExpired:
+        print("    wgrib2 timeout")
+        return []
+    except Exception as e:
+        print(f"    wgrib2 error: {e}")
+        return []
+
+
+def fetch_forecast_hour(run_date: str, run_hour: str, forecast_hour: int, work_dir: Path) -> dict:
+    """
+    Fetch and process one forecast hour.
+    Returns dict with member temperatures.
+    """
+    url = build_file_url(run_date, run_hour, forecast_hour)
+
+    try:
+        # Download compressed file
+        print(f"    Fetching +{forecast_hour:03d}h...", end=" ", flush=True)
+        response = requests.get(url, timeout=120)
+
+        if response.status_code == 404:
+            print("not available yet")
+            return None
+
+        response.raise_for_status()
+        compressed_size = len(response.content) / 1024 / 1024
+        print(f"({compressed_size:.1f}MB)", end=" ", flush=True)
+
+        # Save compressed file
+        bz2_path = work_dir / f"temp_{forecast_hour:03d}.grib2.bz2"
+        with open(bz2_path, 'wb') as f:
+            f.write(response.content)
+
+        # Decompress
+        grib_path = work_dir / f"temp_{forecast_hour:03d}.grib2"
+        with bz2.open(bz2_path, 'rb') as f_in:
+            with open(grib_path, 'wb') as f_out:
+                f_out.write(f_in.read())
+
+        # Remove compressed file immediately
+        bz2_path.unlink()
+
+        # Extract London point
+        temps = extract_london_point(grib_path)
+
+        # Remove decompressed file
+        grib_path.unlink()
+
+        if temps:
+            # Sanity check: expect ~40 ensemble members
+            if len(temps) < 35 or len(temps) > 45:
+                print(f"WARNING: Expected ~40 members, got {len(temps)}")
+            print(f"→ {len(temps)} members, mean={mean(temps):.1f}°C")
+            return {
+                "forecast_hour": forecast_hour,
+                "members": temps,
+                "member_count": len(temps),
+                "mean": round(mean(temps), 2),
+                "min": round(min(temps), 2),
+                "max": round(max(temps), 2),
+                "spread": round(max(temps) - min(temps), 2)
+            }
+        else:
+            print("no data extracted - check wgrib2 output")
+            return None
+
+    except requests.RequestException as e:
+        print(f"download error: {e}")
+        return None
+    except Exception as e:
+        print(f"error: {e}")
+        return None
+
+
+def fetch_icon_data(run_date: str = None, run_hour: str = None) -> dict:
+    """
+    Fetch complete ICON-EU-EPS forecast.
+    Processes files one at a time to minimize disk usage.
+    """
+    if run_date is None or run_hour is None:
+        run_date, run_hour = get_latest_run()
+
+    print(f"  Run: {run_date} {run_hour}z")
+
+    # Check wgrib2
+    if not check_wgrib2_available():
+        raise RuntimeError("wgrib2 not installed - required for GRIB processing")
+
+    # Use temp directory for processing
+    with tempfile.TemporaryDirectory() as work_dir:
+        work_path = Path(work_dir)
+
+        forecasts = []
+        for fh in FORECAST_HOURS:
+            result = fetch_forecast_hour(run_date, run_hour, fh, work_path)
+            if result:
+                forecasts.append(result)
+
+    if not forecasts:
+        raise ValueError("No forecast data retrieved")
+
+    # Build timestamps from forecast hours
+    run_dt = datetime.strptime(f"{run_date}{run_hour}", "%Y%m%d%H")
+    run_dt = run_dt.replace(tzinfo=timezone.utc)
+
+    timestamps = []
+    means = []
+    mins = []
+    maxs = []
+    spreads = []
+
+    for fc in forecasts:
+        valid_time = run_dt + timedelta(hours=fc["forecast_hour"])
+        timestamps.append(valid_time.isoformat().replace("+00:00", "Z"))
+        means.append(fc["mean"])
+        mins.append(fc["min"])
+        maxs.append(fc["max"])
+        spreads.append(fc["spread"])
+
+    return {
+        "fetched_at": utcnow().isoformat().replace("+00:00", "Z"),
+        "run_date": run_date,
+        "run_hour": run_hour,
+        "run_label": get_run_label(run_hour),
+        "location": {"latitude": LATITUDE, "longitude": LONGITUDE, "name": "London"},
+        "variable": "temperature_850hPa",
+        "units": "C",  # Converted from Kelvin
+        "model": MODEL["name"],
+        "description": MODEL["description"],
+        "members": MODEL["members"],
+        "timestamps": timestamps,
+        "mean": means,
+        "min": mins,
+        "max": maxs,
+        "spread": spreads,
+        "forecast_hours": [fc["forecast_hour"] for fc in forecasts]
+    }
 
 
 def update_history(current_summary: dict, data_dir: Path) -> None:
@@ -200,12 +285,14 @@ def update_history(current_summary: dict, data_dir: Path) -> None:
         history = {
             "location": current_summary["location"],
             "variable": current_summary["variable"],
-            "model": "icon",
+            "model": current_summary["model"],
             "runs": []
         }
 
     run_entry = {
         "fetched_at": current_summary["fetched_at"],
+        "run_date": current_summary["run_date"],
+        "run_hour": current_summary["run_hour"],
         "timestamps": current_summary["timestamps"],
         "mean": current_summary["mean"],
         "min": current_summary["min"],
@@ -229,7 +316,7 @@ def cleanup_old_files(data_dir: Path, days: int) -> int:
 
     for f in data_dir.glob("*.json"):
         if f.name in ["summary_latest.json", "history.json", "alert_state.json",
-                      "preview_summary.json", "preview_icon.json"]:
+                      "preview_summary.json"]:
             continue
         try:
             if f.stat().st_mtime < cutoff:
@@ -254,9 +341,11 @@ def send_ntfy_alert(message: str) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='WXD ICON Tracker - Fetch ensemble data')
+    parser = argparse.ArgumentParser(description='WXD ICON Tracker - Fetch DWD GRIB data')
     parser.add_argument('--preview', '-p', action='store_true',
-                       help='Preview mode: fetch to isolated files')
+                       help='Preview mode: save to isolated files')
+    parser.add_argument('--run-date', help='Specific run date (YYYYMMDD)')
+    parser.add_argument('--run-hour', help='Specific run hour (00/06/12/18)')
     args = parser.parse_args()
 
     preview = args.preview
@@ -267,59 +356,58 @@ def main():
 
     now = utcnow()
     mode_str = "PREVIEW MODE (isolated)" if preview else "Production"
-    print(f"WXD ICON Fetch - {now.isoformat().replace('+00:00', 'Z')} [{mode_str}]")
+    print(f"WXD ICON-EU-EPS Fetch - {now.isoformat().replace('+00:00', 'Z')} [{mode_str}]")
     print(f"Target: {LATITUDE}, {LONGITUDE} (London)")
-    print(f"Variable: {HOURLY_VARIABLE}")
+    print(f"Source: DWD Open Data GRIB2")
     print(f"Model: {MODEL['description']}")
     print()
 
     try:
-        print(f"Fetching {MODEL['description']}...")
-        data = fetch_icon_data()
+        print("Fetching ICON-EU-EPS 850hPa temperature...")
+        data = fetch_icon_data(args.run_date, args.run_hour)
+
+        print()
+        print(f"Retrieved {len(data['timestamps'])} forecast hours")
+        print(f"  First: {data['timestamps'][0]}")
+        print(f"  Last:  {data['timestamps'][-1]}")
 
         if preview:
-            preview_path = data_dir / "preview_icon.json"
-            with open(preview_path, "w") as f:
-                json.dump(data, f)
-            print(f"  Saved: preview_icon.json (isolated)")
+            summary_path = data_dir / "preview_summary.json"
+            with open(summary_path, "w") as f:
+                json.dump(data, f, indent=2)
+            print(f"\nPreview summary saved: preview_summary.json (isolated)")
         else:
+            # Timestamped file
             time_str = now.strftime("%Y-%m-%d_%H%MZ")
-            filename = f"icon_{time_str}.json"
-            filepath = data_dir / filename
-            with open(filepath, "w") as f:
-                json.dump(data, f)
-            print(f"  Saved: {filename}")
+            summary_filename = f"summary_{time_str}.json"
+            summary_path = data_dir / summary_filename
+            with open(summary_path, "w") as f:
+                json.dump(data, f, indent=2)
+            print(f"\nSummary saved: {summary_filename}")
 
             # Latest copy
-            latest_path = data_dir / "icon_latest.json"
+            latest_path = data_dir / "summary_latest.json"
             import shutil
             if latest_path.exists():
                 latest_path.unlink()
-            shutil.copy(filepath, latest_path)
-            print(f"  Latest: icon_latest.json")
+            shutil.copy(summary_path, latest_path)
+            print(f"Summary latest: summary_latest.json")
 
-        print()
-        print("Generating summary...")
-        generate_summary(data, data_dir, now, preview=preview)
+            # Update history
+            update_history(data, data_dir)
 
-        if not preview:
-            print()
-            print(f"Cleaning up files older than {RETENTION_DAYS} days...")
+            # Cleanup
+            print(f"\nCleaning up files older than {RETENTION_DAYS} days...")
             deleted = cleanup_old_files(data_dir, RETENTION_DAYS)
             print(f"  Removed {deleted} old files")
 
         print()
-        print("Complete: ICON data fetched successfully")
+        print("Complete: ICON-EU-EPS data fetched successfully")
         if preview:
             print("Preview data saved (production files unchanged)")
 
         return 0
 
-    except requests.RequestException as e:
-        print(f"ERROR: {e}")
-        if not preview:
-            send_ntfy_alert(f"Fetch FAILED: {e}")
-        return 1
     except Exception as e:
         print(f"ERROR: {e}")
         if not preview:
