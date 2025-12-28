@@ -246,21 +246,26 @@ def get_claude_comparison(metoffice: dict, model_summary: str) -> str:
 
     mo_text = "\n".join(mo_parts) if mo_parts else "Met Office narrative not available"
 
-    prompt = f"""You are WXD daily summary writer. Compare Met Office narrative vs our model 850hPa data.
+    from datetime import datetime
+    today = datetime.now().strftime("%d %b")
 
-MET OFFICE SAYS:
+    prompt = f"""You are WXD daily summary writer. Write a brief, readable summary of what the weather models suggest is coming.
+
+MET OFFICE NARRATIVE:
 {mo_text}
 
-WXD MODEL DATA (850hPa temps over London, 7 days):
+WXD MODEL DATA (850hPa temps, London):
 {model_summary}
 
-Write a Bluesky post (max 280 chars):
-1. Note if Met Office narrative aligns with or differs from model signals
-2. Highlight key cold/warm signals with temperatures
-3. Start with "Daily Summary:"
-4. Be specific about agreements/disagreements
+Write a 280-char Bluesky post:
+- Start with "Met Office Summary {today}:"
+- Describe what the weather signals suggest in plain English
+- Mention if cold/mild/unsettled based on the 850hPa temps
+- Compare to Met Office narrative if they differ significantly
+- NO raw numbers or stats - write it like a weather forecaster would say it
+- Be conversational but informative
 
-Plain text only (no emojis, hashtags, markdown)."""
+Plain text only."""
 
     try:
         result = subprocess.run(
@@ -281,20 +286,27 @@ Plain text only (no emojis, hashtags, markdown)."""
 
 
 def generate_fallback_summary(model_summary: str) -> str:
-    """Generate summary when Claude CLI unavailable."""
-    # Parse temperatures from model summary
+    """Generate written narrative summary when Claude CLI unavailable."""
     import re
+    from datetime import datetime
+
+    today = datetime.now().strftime("%d %b")
     temps = re.findall(r'(-?\d+\.?\d*)C', model_summary)
+
     if temps:
         temps_float = [float(t) for t in temps]
         coldest = min(temps_float)
-        if coldest <= -7:
-            return f"Daily Summary: Strong cold signal across models. Coldest: {coldest}C at 850hPa. All trackers showing sub-zero temps through the week."
+
+        if coldest <= -8:
+            return f"Met Office Summary {today}: Models unanimous - significant cold incoming. All trackers flagging an Arctic outbreak with 850hPa temps well below freezing. Expect sharp frosts and possible wintry hazards across the UK this week."
         elif coldest <= -5:
-            return f"Daily Summary: Cold signal detected. Models show {coldest}C minimum at 850hPa. Check individual trackers for timing."
+            return f"Met Office Summary {today}: Cold signal strengthening across ensemble models. Upper-level temps dropping below -5C threshold - classic cold air signature. Worth watching for frost and wintry showers, especially in the north."
+        elif coldest <= 0:
+            return f"Met Office Summary {today}: Models showing a chilly spell ahead with 850hPa temps near or below freezing. Not extreme, but expect overnight frosts and cooler than average conditions through the forecast period."
         else:
-            return f"Daily Summary: Models showing {coldest}C minimum at 850hPa. No significant cold signals currently."
-    return "Daily Summary: Model data collected. See individual tracker posts for details."
+            return f"Met Office Summary {today}: Models suggesting near-normal or mild conditions. No significant cold signals detected at 850hPa level. Settled weather likely to continue."
+
+    return f"Met Office Summary {today}: Model data collected - see individual tracker posts for detailed breakdown."
 
 
 def post_to_bluesky(text: str, reply_to: dict = None,
