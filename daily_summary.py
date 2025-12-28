@@ -285,28 +285,87 @@ Plain text only."""
     return generate_fallback_summary(model_summary)
 
 
-def generate_fallback_summary(model_summary: str) -> str:
-    """Generate written narrative summary when Claude CLI unavailable."""
-    import re
+def generate_metoffice_post(metoffice: dict) -> str:
+    """Generate post 1: Met Office summary."""
     from datetime import datetime
-
     today = datetime.now().strftime("%d %m %Y")
+
+    # Get the today/tomorrow narrative
+    narrative = metoffice.get("today_tomorrow", "")
+    if not narrative:
+        narrative = metoffice.get("days_3_5", "")
+    if not narrative:
+        narrative = "Forecast unavailable"
+
+    # Truncate to fit with header
+    header = f"UK Daily {today} - Met Office says:\n\n"
+    max_narrative = 280 - len(header)
+    if len(narrative) > max_narrative:
+        narrative = narrative[:max_narrative-3] + "..."
+
+    return header + narrative
+
+
+def generate_ai_commentary(metoffice: dict, model_summary: str) -> str:
+    """Generate post 2: AI commentary comparing Met Office vs models."""
+    from datetime import datetime
+    today = datetime.now().strftime("%d %m %Y")
+
+    # Build context for Claude
+    mo_text = metoffice.get("today_tomorrow", "")[:200] if metoffice.get("today_tomorrow") else "Not available"
+
+    prompt = f"""Compare Met Office forecast with model data. Write 200 chars max.
+
+MET OFFICE: {mo_text}
+
+MODELS (850hPa London): {model_summary}
+
+Write brief AI commentary:
+- Note if models agree/disagree with Met Office
+- Cold 850hPa often = frosty but settled in south
+- Be conversational, no raw numbers
+- Start with "WXD view:"
+
+Plain text only."""
+
+    try:
+        result = subprocess.run(
+            ['claude', '-p', prompt, '--max-tokens', '100'],
+            capture_output=True,
+            text=True,
+            timeout=120
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()[:250]
+    except Exception as e:
+        print(f"  Claude CLI error: {e}")
+
+    # Fallback
     temps = re.findall(r'(-?\d+\.?\d*)C', model_summary)
-
     if temps:
-        temps_float = [float(t) for t in temps]
-        coldest = min(temps_float)
-
-        if coldest <= -8:
-            return f"UK Daily {today}: Cold air mass settling in across the UK. Models show 850hPa temps well below freezing - expect sharp overnight frosts and cold, crisp days. Wintry showers possible in the north, but often settled and sunny further south."
-        elif coldest <= -5:
-            return f"UK Daily {today}: A proper cold spell on the way. Upper-level temps dropping below the -5C mark - classic setup for widespread frost and cold but often settled conditions, especially across southern areas."
+        coldest = min(float(t) for t in temps)
+        if coldest <= -5:
+            return "WXD view: Models showing significant cold signal at 850hPa. Expect frosty conditions - often settled and sunny in the south, wintry showers more likely in the north."
         elif coldest <= 0:
-            return f"UK Daily {today}: Chilly spell ahead with 850hPa temps near or below freezing. Expect overnight frosts and cooler than average conditions, though nothing extreme. Settled weather likely for many."
+            return "WXD view: Chilly signal in the models with 850hPa temps near freezing. Overnight frosts likely but nothing extreme."
         else:
-            return f"UK Daily {today}: Near-normal or mild conditions ahead. No significant cold signals in the models at 850hPa level. Quiet weather pattern continuing."
+            return "WXD view: Models in line with Met Office - no major cold signals. Quiet pattern continuing."
+    return "WXD view: Model data being processed - see tracker posts for details."
 
-    return f"UK Daily {today}: Model data collected - see individual tracker posts for detailed breakdown."
+
+def generate_stats_post(model_summary: str) -> str:
+    """Generate post 3: Stats for London."""
+    from datetime import datetime
+    today = datetime.now().strftime("%d %m %Y")
+
+    header = "London 850hPa:\n"
+    # model_summary already has the stats formatted
+    stats = model_summary.replace("\n", " | ")
+
+    if len(header + stats) > 280:
+        stats = stats[:280 - len(header) - 3] + "..."
+
+    return header + stats
 
 
 def post_to_bluesky(text: str, reply_to: dict = None,
@@ -375,37 +434,67 @@ def main():
     model_summary = summarize_model_data(wxd_data)
     print(f"  {model_summary.replace(chr(10), ', ')}")
 
-    # Step 3: Get Claude comparison
+    # Step 3: Generate thread posts
     print()
-    print("Generating comparison...")
-    main_text = get_claude_comparison(metoffice, model_summary)
-    print(f"  Main post ({len(main_text)} chars):")
-    print(f"  {main_text}")
+    print("Generating thread posts...")
+
+    post1 = generate_metoffice_post(metoffice)
+    print(f"  Post 1 - Met Office ({len(post1)} chars):")
+    print(f"    {post1[:80]}...")
+
+    post2 = generate_ai_commentary(metoffice, model_summary)
+    print(f"  Post 2 - AI Commentary ({len(post2)} chars):")
+    print(f"    {post2[:80]}...")
+
+    post3 = generate_stats_post(model_summary)
+    print(f"  Post 3 - Stats ({len(post3)} chars):")
+    print(f"    {post3[:80]}...")
 
     if dry_run:
         print()
         print("=" * 50)
         print("PREVIEW (not posting):")
         print()
-        print(f"POST: {main_text}")
+        print("POST 1 (Met Office):")
+        print(post1)
+        print()
+        print("POST 2 (AI Commentary) - reply to post 1:")
+        print(post2)
+        print()
+        print("POST 3 (Stats) - reply to post 2:")
+        print(post3)
         print("=" * 50)
         print()
         print("(Attribution in pinned post)")
         return 0
 
-    # Step 4: Post to Bluesky (single post, attribution in pinned)
+    # Step 4: Post thread to Bluesky
     print()
-    print("Posting to Bluesky...")
+    print("Posting thread to Bluesky...")
 
-    result = post_to_bluesky(main_text, handle=bsky_handle, password=bsky_password)
-    if result:
-        print(f"  Posted: {result['uri']}")
-    else:
-        print("  Failed to post")
+    # Post 1: Met Office summary
+    result1 = post_to_bluesky(post1, handle=bsky_handle, password=bsky_password)
+    if not result1:
+        print("  Failed to post Met Office summary")
         return 1
+    print(f"  Post 1: {result1['uri']}")
+
+    # Post 2: AI Commentary (reply to post 1)
+    result2 = post_to_bluesky(post2, reply_to=result1, handle=bsky_handle, password=bsky_password)
+    if not result2:
+        print("  Failed to post AI commentary")
+        return 1
+    print(f"  Post 2: {result2['uri']}")
+
+    # Post 3: Stats (reply to post 2)
+    result3 = post_to_bluesky(post3, reply_to=result2, handle=bsky_handle, password=bsky_password)
+    if not result3:
+        print("  Failed to post stats")
+        return 1
+    print(f"  Post 3: {result3['uri']}")
 
     print()
-    print("Daily summary posted successfully")
+    print("Daily summary thread posted successfully")
     return 0
 
 
