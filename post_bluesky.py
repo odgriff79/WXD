@@ -913,20 +913,23 @@ def get_claude_commentary(data_path: Path, run_diff_text: str, confidence: str,
 
 Write a Bluesky post (max {max_chars} chars to leave room for confidence indicator):
 
+FORMAT - CRITICAL:
+- NO headers or titles - dive straight into the analysis
+- NO markdown (no **, no #, no _) - Bluesky is plain text only
+- No hashtags, no emojis
+- Use °C for temperatures
+
 REQUIRED - include these specifics:
 - Name specific temperatures (e.g., "ECM drops to -6.6°C")
 - Name the date range of coldest/warmest period
-- If multiple models agree, name them ("GFS, ECM, AIFS all show...")
+- If multiple models agree, say so ("All 4 models show...")
 - If models disagree, note which ones and by how much
 
 TONE:
-- FACTUAL and measured - this is weather analysis, not tabloid headlines
+- FACTUAL and measured - not tabloid headlines
 - Avoid sensational language even for unusual events
-- PLAIN LANGUAGE for casual weather fans, not meteorologists
-- Be direct: "cold easing" not "losing conviction"
+- PLAIN LANGUAGE for casual weather fans
 - No jargon like "regime", "synoptic", "conviction"
-- Use °C for temperatures
-- No hashtags, no emojis
 
 ANALYSIS CONTEXT:
 {analysis_context}
