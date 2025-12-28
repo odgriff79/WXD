@@ -34,15 +34,17 @@ if [ -f trackers/mogreps/data/chart_latest.png ]; then
     echo "  mogreps.png updated"
 fi
 
-# Check if any charts changed
-if git diff --quiet docs/charts/; then
+# Add charts (force to ensure new files are added)
+git add -f docs/charts/*.png 2>/dev/null || true
+
+# Check if any charts staged
+if git diff --cached --quiet docs/charts/; then
     echo "No chart changes to commit"
     exit 0
 fi
 
 # Commit and push
 echo "Pushing to GitHub..."
-git add docs/charts/
 git commit -m "Update charts $(date -u +%Y-%m-%d\ %H:%M)Z"
 git push
 
