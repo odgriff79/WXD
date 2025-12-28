@@ -6,6 +6,12 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ### TODO
 - ~~**Anytime preview/testing mode** - Allow fresh data fetch for preview/testing without polluting or contaminating the production data files or history. Must ensure complete isolation from scheduled runs.~~ **DONE**
+- **ICON/UKMO commentary enhancement** - Current post.py for Trackers B/D have basic Claude prompts that produce templated fallback text. Need to port Tracker A's rich analysis features:
+  - Percentile framing (% of members below threshold)
+  - Trend persistence tracking (run streak detection)
+  - Timing uncertainty (date spread)
+  - Better structured ANALYSIS CONTEXT in Claude prompt
+  - Current first posts just say "Model shows -7.7°C" - no storytelling
 
 ### Added
 - **Local VM config file** - `.vm_config` (gitignored) stores VM IP and SSH key path for remote orchestration
@@ -32,10 +38,10 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ### Multi-Tracker Architecture
 Separating models into independent trackers rather than mixing into one ensemble:
-- **Tracker A** - Main 4-model ensemble (GFS, ECM, AIFS, GEM) via Open-Meteo - 2x daily (08:30, 20:30 UTC)
-- **Tracker B** - ICON-EU-EPS (40 members) via DWD GRIB - 2x daily (04:30, 16:30 UTC for 00z/12z runs)
-- **Tracker C** - MOGREPS (UK Met Office ensembles) - future
-- **Tracker D** - UKMO HD 0.1 (deterministic benchmark) - future
+- **Tracker A** - Main 4-model ensemble (GFS, ECM, AIFS, GEM) via Open-Meteo - 2x daily (08:30, 20:30 UTC) ✅ LIVE
+- **Tracker B** - ICON-EU-EPS (40 members) via DWD GRIB - 2x daily (04:30, 16:30 UTC for 00z/12z runs) ✅ LIVE
+- **Tracker C** - MOGREPS-G (18 members) via AWS S3 NetCDF - future (bucket: `met-office-global-ensemble-model-data`)
+- **Tracker D** - UKMO Global Deterministic (~10km) via Open-Meteo - 2x daily (05:00, 17:00 UTC) ✅ LIVE
 
 Each tracker: own subfolder (`trackers/icon/`), own schedule, own cron, own Bluesky posts prefixed with model name.
 
