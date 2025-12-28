@@ -261,7 +261,24 @@ Plain text only (no emojis, hashtags, or markdown)."""
     except Exception as e:
         print(f"  Claude CLI error: {e}")
 
-    # Fallback
+    # Fallback - generate summary from model data
+    return generate_fallback_summary(model_summary)
+
+
+def generate_fallback_summary(model_summary: str) -> str:
+    """Generate summary when Claude CLI unavailable."""
+    # Parse temperatures from model summary
+    import re
+    temps = re.findall(r'(-?\d+\.?\d*)C', model_summary)
+    if temps:
+        temps_float = [float(t) for t in temps]
+        coldest = min(temps_float)
+        if coldest <= -7:
+            return f"Daily Summary: Strong cold signal across models. Coldest: {coldest}C at 850hPa. All trackers showing sub-zero temps through the week."
+        elif coldest <= -5:
+            return f"Daily Summary: Cold signal detected. Models show {coldest}C minimum at 850hPa. Check individual trackers for timing."
+        else:
+            return f"Daily Summary: Models showing {coldest}C minimum at 850hPa. No significant cold signals currently."
     return "Daily Summary: Model data collected. See individual tracker posts for details."
 
 
