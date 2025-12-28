@@ -91,10 +91,10 @@ def build_file_url(run_date: str, run_hour: str, forecast_hour: int) -> str:
     return f"{DWD_BASE}/{run_hour}/t/{filename}"
 
 
-def check_wgrib2_available() -> bool:
-    """Check if wgrib2 is installed."""
+def check_grib_tools_available() -> bool:
+    """Check if eccodes grib_ls is installed."""
     try:
-        result = subprocess.run(['wgrib2', '-version'], capture_output=True, text=True, timeout=5)
+        result = subprocess.run(['grib_ls', '-V'], capture_output=True, text=True, timeout=5)
         return result.returncode == 0
     except:
         return False
@@ -102,44 +102,55 @@ def check_wgrib2_available() -> bool:
 
 def extract_london_point(grib_path: Path) -> list:
     """
-    Extract London grid point values from GRIB file using wgrib2.
-    Returns list of (member_number, temperature_kelvin) tuples.
+    Extract London grid point values from GRIB file using eccodes grib_ls.
+    Returns list of temperature values in Celsius.
     """
     try:
-        # Use wgrib2 to extract just the London point
-        # -lon extracts the nearest grid point value
+        # Use grib_ls with -l option for nearest point extraction
+        # Format: -l lat,lon,mode (mode 1 = nearest neighbor)
         result = subprocess.run(
-            ['wgrib2', str(grib_path), '-lon', str(LONGITUDE), str(LATITUDE)],
+            ['grib_ls', '-l', f'{LATITUDE},{LONGITUDE},1', '-p', 'perturbationNumber', str(grib_path)],
             capture_output=True,
             text=True,
             timeout=60
         )
 
         if result.returncode != 0:
-            print(f"    wgrib2 error: {result.stderr}")
+            print(f"    grib_ls error: {result.stderr}")
             return []
 
-        # Parse output - format is: record:location:lon=X,lat=Y,val=Z
+        # Parse output - grib_ls outputs a table with columns
+        # The -l option adds "value" column with interpolated value
+        # Example output:
+        # perturbationNumber value
+        # 1                  273.15
+        # 2                  274.20
+        # ...
         values = []
-        for line in result.stdout.strip().split('\n'):
-            if not line:
+        lines = result.stdout.strip().split('\n')
+
+        for line in lines:
+            # Skip header lines and empty lines
+            if not line or 'perturbationNumber' in line or 'messages' in line:
                 continue
 
-            # Extract value from line
-            # Example: 1:0:lon=-0.100000,lat=51.500000,val=273.15
-            match = re.search(r'val=([\d.-]+)', line)
-            if match:
-                temp_kelvin = float(match.group(1))
-                temp_celsius = temp_kelvin - 273.15
-                values.append(temp_celsius)
+            parts = line.split()
+            if len(parts) >= 2:
+                try:
+                    # Last column should be the value
+                    temp_kelvin = float(parts[-1])
+                    temp_celsius = temp_kelvin - 273.15
+                    values.append(temp_celsius)
+                except ValueError:
+                    continue
 
         return values
 
     except subprocess.TimeoutExpired:
-        print("    wgrib2 timeout")
+        print("    grib_ls timeout")
         return []
     except Exception as e:
-        print(f"    wgrib2 error: {e}")
+        print(f"    grib_ls error: {e}")
         return []
 
 
@@ -219,9 +230,9 @@ def fetch_icon_data(run_date: str = None, run_hour: str = None) -> dict:
 
     print(f"  Run: {run_date} {run_hour}z")
 
-    # Check wgrib2
-    if not check_wgrib2_available():
-        raise RuntimeError("wgrib2 not installed - required for GRIB processing")
+    # Check eccodes grib_ls
+    if not check_grib_tools_available():
+        raise RuntimeError("eccodes grib_ls not installed - required for GRIB processing")
 
     # Use temp directory for processing
     with tempfile.TemporaryDirectory() as work_dir:
