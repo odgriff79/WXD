@@ -1348,6 +1348,16 @@ def main():
     with open(data_path, 'r') as f:
         data = json.load(f)
 
+    # Log data provenance for audit
+    runs = data.get('runs', [])
+    if runs:
+        current_run = runs[0]
+        fetched_at = current_run.get('fetched_at', 'unknown')
+        run_label = get_run_label(fetched_at)
+        timestamps = current_run.get('timestamps', [])
+        first_ts = timestamps[0] if timestamps else 'unknown'
+        print(f"Data: fetched {fetched_at[:19]}Z, {run_label}, first_ts={first_ts}")
+
     # Load alert state
     alert_state = load_alert_state(state_path)
 
