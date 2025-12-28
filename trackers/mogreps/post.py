@@ -338,11 +338,28 @@ MOGREPS runs 4x daily. Posts tagged "MOGREPS:" as UK ensemble benchmark."""
         run_hour = runs[0].get("run_hour", "?")
         print(f"Data: fetched {fetched_at[:19]}Z, {run_hour}z")
 
+    # SAFEGUARD: Check minimum forecast hours
+    MIN_FORECAST_HOURS = 4
+    if runs:
+        values = runs[0].get("values", [])
+        if len(values) < MIN_FORECAST_HOURS:
+            print(f"ERROR: Only {len(values)} forecast hours available (minimum {MIN_FORECAST_HOURS} required)")
+            print("Aborting to prevent posting incomplete data")
+            return 1
+
     # Run full analysis with shared module
     print("Running full analysis...")
     trend_state_path = data_dir / "trend_state.json"
     run_diff, cold_info, trend_analysis, percentile_analysis, timing_analysis, full_context = \
         run_full_analysis(data, trend_state_path, is_ensemble=True)
+
+    # SAFEGUARD: Check for extreme shifts that indicate bad data comparison
+    MAX_REASONABLE_SHIFT = 8.0  # More than 8C shift is suspicious
+    if run_diff and abs(run_diff['shift']) > MAX_REASONABLE_SHIFT:
+        print(f"  WARNING: Extreme shift detected ({run_diff['shift']}C)")
+        print(f"  This likely indicates comparing to corrupted historical data")
+        print("  Aborting to prevent posting misleading commentary")
+        return 1
 
     if run_diff:
         print(f"  Shift: {run_diff['shift']}C {run_diff['direction']}")
