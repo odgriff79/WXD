@@ -59,79 +59,80 @@ def utcnow():
     return datetime.now(timezone.utc)
 
 
+def clean_text(s: str) -> str:
+    """Clean whitespace from text."""
+    return re.sub(r"\s+", " ", s).strip()
+
+
 def fetch_metoffice_narrative() -> dict:
-    """Fetch Met Office UK forecast narrative."""
+    """Fetch Met Office UK forecast narrative from HTML."""
     if not HAS_REQUESTS:
         return {"error": "requests not installed"}
 
     result = {
-        "uk_forecast": None,
+        "today_tomorrow": None,
+        "days_3_5": None,
         "long_range": None,
         "fetched_at": utcnow().isoformat()
     }
 
     headers = {
-        "User-Agent": "WXD Weather Bot (wxd-london.bsky.social)"
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
     }
 
-    # Fetch UK forecast page
     try:
         resp = requests.get(METOFFICE_UK_URL, headers=headers, timeout=30)
-        if resp.status_code == 200:
-            # The Met Office site loads content via JS, but there's usually
-            # some text in meta tags or structured data
-            text = resp.text
+        if resp.status_code != 200:
+            result["error"] = f"HTTP {resp.status_code}"
+            return result
 
-            # Try to extract forecast text from various sources
-            if HAS_BS4:
-                soup = BeautifulSoup(text, 'html.parser')
+        if not HAS_BS4:
+            result["error"] = "beautifulsoup4 not installed"
+            return result
 
-                # Look for forecast summary in meta description
-                meta = soup.find('meta', attrs={'name': 'description'})
-                if meta and meta.get('content'):
-                    result["uk_forecast"] = meta['content']
+        soup = BeautifulSoup(resp.text, 'html.parser')
 
-                # Look for any forecast text divs
-                for div in soup.find_all(['p', 'div'], class_=re.compile(r'forecast|summary|outlook', re.I)):
-                    if div.text and len(div.text) > 50:
-                        result["uk_forecast"] = div.text.strip()
-                        break
-            else:
-                # Basic regex extraction
-                match = re.search(r'<meta name="description" content="([^"]+)"', text)
-                if match:
-                    result["uk_forecast"] = match.group(1)
+        # Get all text lines
+        text = soup.get_text("\n")
+        lines = [clean_text(x) for x in text.split("\n")]
+        lines = [x for x in lines if x]
 
-    except Exception as e:
-        result["uk_error"] = str(e)
+        # Extract blocks between section headers
+        def block_after(header: str, stop_headers: set) -> list:
+            out = []
+            in_block = False
+            for ln in lines:
+                if ln == header:
+                    in_block = True
+                    continue
+                if in_block and ln in stop_headers:
+                    break
+                if in_block:
+                    out.append(ln)
+            return out
 
-    # Fetch long-range forecast
-    try:
-        resp = requests.get(METOFFICE_LONGRANGE_URL, headers=headers, timeout=30)
-        if resp.status_code == 200:
-            text = resp.text
+        stop = {"Today and tomorrow", "3 to 5 day forecast", "Long range forecast",
+                "UK weather map", "Cities", "Find a forecast"}
 
-            if HAS_BS4:
-                soup = BeautifulSoup(text, 'html.parser')
+        today_block = block_after("Today and tomorrow", stop)
+        d3_5_block = block_after("3 to 5 day forecast", stop)
+        long_block = block_after("Long range forecast", stop)
 
-                # Look for long-range text
-                meta = soup.find('meta', attrs={'name': 'description'})
-                if meta and meta.get('content'):
-                    result["long_range"] = meta['content']
+        # Parse each block - filter out noise
+        def parse_block(block: list) -> str:
+            narrative = [ln for ln in block if not ln.startswith("Updated:")]
+            # Remove date-range headings
+            narrative = [ln for ln in narrative if not re.match(r"^[A-Z][a-z]{2} \d{1,2} ", ln)]
+            # Remove short menu items
+            narrative = [ln for ln in narrative if len(ln) > 30]
+            return "\n".join(narrative).strip()
 
-                # Look for outlook sections
-                for section in soup.find_all(['section', 'div'], class_=re.compile(r'outlook|long-range|extended', re.I)):
-                    text_content = section.get_text(separator=' ', strip=True)
-                    if len(text_content) > 100:
-                        result["long_range"] = text_content[:1000]
-                        break
-            else:
-                match = re.search(r'<meta name="description" content="([^"]+)"', text)
-                if match:
-                    result["long_range"] = match.group(1)
+        result["today_tomorrow"] = parse_block(today_block) or None
+        result["days_3_5"] = parse_block(d3_5_block) or None
+        result["long_range"] = parse_block(long_block) or None
 
     except Exception as e:
-        result["longrange_error"] = str(e)
+        result["error"] = str(e)
 
     return result
 
@@ -232,20 +233,34 @@ def summarize_model_data(wxd_data: dict) -> str:
 
 
 def get_claude_comparison(metoffice: dict, model_summary: str) -> str:
-    """Use Claude CLI to summarize WXD model data."""
+    """Use Claude CLI to compare Met Office narrative vs WXD models."""
 
-    prompt = f"""You are WXD daily summary writer. Summarize the current model signals for London 850hPa.
+    # Build Met Office context
+    mo_parts = []
+    if metoffice.get("today_tomorrow"):
+        mo_parts.append(f"Today/Tomorrow: {metoffice['today_tomorrow'][:300]}")
+    if metoffice.get("days_3_5"):
+        mo_parts.append(f"Days 3-5: {metoffice['days_3_5'][:300]}")
+    if metoffice.get("long_range"):
+        mo_parts.append(f"Long range: {metoffice['long_range'][:300]}")
 
-WXD MODEL DATA (850hPa temperatures over London, next 7 days):
+    mo_text = "\n".join(mo_parts) if mo_parts else "Met Office narrative not available"
+
+    prompt = f"""You are WXD daily summary writer. Compare Met Office narrative vs our model 850hPa data.
+
+MET OFFICE SAYS:
+{mo_text}
+
+WXD MODEL DATA (850hPa temps over London, 7 days):
 {model_summary}
 
-Write a Bluesky post (max 280 chars) that:
-1. Highlights the coldest signal and which model(s) show it
-2. Notes any model agreement/disagreement
-3. Start with "Daily Summary:" to identify this post type
-4. Mention specific temperatures and dates if cold (<-5C)
+Write a Bluesky post (max 280 chars):
+1. Note if Met Office narrative aligns with or differs from model signals
+2. Highlight key cold/warm signals with temperatures
+3. Start with "Daily Summary:"
+4. Be specific about agreements/disagreements
 
-Plain text only (no emojis, hashtags, or markdown)."""
+Plain text only (no emojis, hashtags, markdown)."""
 
     try:
         result = subprocess.run(
@@ -329,14 +344,17 @@ def main():
     # Step 1: Fetch Met Office narrative
     print("Fetching Met Office narrative...")
     metoffice = fetch_metoffice_narrative()
-    if metoffice.get("uk_forecast"):
-        print(f"  UK forecast: {metoffice['uk_forecast'][:100]}...")
+    if metoffice.get("error"):
+        print(f"  Error: {metoffice['error']}")
     else:
-        print("  UK forecast: not available")
-    if metoffice.get("long_range"):
-        print(f"  Long range: {metoffice['long_range'][:100]}...")
-    else:
-        print("  Long range: not available")
+        if metoffice.get("today_tomorrow"):
+            print(f"  Today/Tomorrow: {metoffice['today_tomorrow'][:80]}...")
+        if metoffice.get("days_3_5"):
+            print(f"  Days 3-5: {metoffice['days_3_5'][:80]}...")
+        if metoffice.get("long_range"):
+            print(f"  Long range: {metoffice['long_range'][:80]}...")
+        if not any([metoffice.get("today_tomorrow"), metoffice.get("days_3_5"), metoffice.get("long_range")]):
+            print("  No narrative sections found")
 
     # Step 2: Load WXD model data
     print()
