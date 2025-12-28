@@ -99,7 +99,7 @@ FORMAT:
 
 
 def generate_chart(data: dict, chart_path: Path) -> bool:
-    """Generate UKMO chart."""
+    """Generate UKMO chart with run-to-run progression overlay."""
     try:
         import matplotlib
         matplotlib.use('Agg')
@@ -118,41 +118,74 @@ def generate_chart(data: dict, chart_path: Path) -> bool:
         if not timestamps or not values:
             return False
 
-        # Parse dates
-        dates = [datetime.fromisoformat(t.replace('Z', '+00:00')) for t in timestamps]
-
-        # Convert None to NaN for matplotlib
         import numpy as np
-        vals_arr = np.array([float(x) if x is not None else np.nan for x in values])
 
         # Create plot
         plt.style.use('dark_background')
         fig, ax = plt.subplots(figsize=(12, 6))
 
-        # Plot UKMO line (deterministic - single line, no spread)
-        ax.plot(dates, vals_arr, color='#ff6b6b', linewidth=2.5, label='UKMO Global', marker='o', markersize=4)
+        # Color palette for runs (newest to oldest)
+        # Current run is bright, older runs fade
+        run_colors = ['#ff6b6b', '#cc5555', '#994444', '#663333', '#442222', '#331111']
+        max_runs_to_show = min(len(runs), 6)
+
+        # Plot older runs first (so current is on top)
+        for i in range(max_runs_to_show - 1, -1, -1):
+            run = runs[i]
+            ts = run.get("timestamps", [])
+            vals = run.get("values", [])
+
+            if not ts or not vals:
+                continue
+
+            # Parse dates
+            dates = [datetime.fromisoformat(t.replace('Z', '+00:00')) for t in ts]
+            vals_arr = np.array([float(x) if x is not None else np.nan for x in vals])
+
+            # Get run label for legend
+            fetched_at = run.get("fetched_at", "")
+            run_label = run.get("run_label", "")
+            try:
+                dt = datetime.fromisoformat(fetched_at.replace('Z', '+00:00'))
+                label = f"{dt.strftime('%d %b')} {run_label}"
+            except:
+                label = run_label or f"Run {i+1}"
+
+            # Style: current run is prominent, older runs are faded
+            if i == 0:
+                # Current run - thick, solid, with markers
+                ax.plot(dates, vals_arr, color=run_colors[0], linewidth=2.5,
+                       label=f"{label} (latest)", marker='o', markersize=4, zorder=10)
+            else:
+                # Previous runs - thinner, faded, dashed
+                alpha = 0.7 - (i * 0.1)  # Fade older runs
+                alpha = max(alpha, 0.3)
+                color = run_colors[min(i, len(run_colors)-1)]
+                ax.plot(dates, vals_arr, color=color, linewidth=1.5,
+                       label=label, linestyle='--', alpha=alpha, zorder=5-i)
 
         # Threshold lines
         ax.axhline(y=COLD_THRESHOLD, color='blue', linestyle='--', alpha=0.5, linewidth=1)
         ax.axhline(y=0, color='white', linestyle='-', alpha=0.3, linewidth=1)
 
         # Labels
+        dates = [datetime.fromisoformat(t.replace('Z', '+00:00')) for t in timestamps]
         ax.text(dates[-1], COLD_THRESHOLD, f' {COLD_THRESHOLD}C', color='blue', alpha=0.7, va='center', fontsize=9)
 
-        # Title with date
+        # Title
         fetched_at = current.get("fetched_at", "")
         run_label = current.get("run_label", "")
         try:
             dt = datetime.fromisoformat(fetched_at.replace('Z', '+00:00'))
             date_str = dt.strftime('%d %b')
-            title = f'London 850hPa - UKMO Deterministic ({date_str} {run_label})'
+            title = f'London 850hPa - UKMO Run Progression ({date_str} {run_label} latest)'
         except:
-            title = f'London 850hPa - UKMO Deterministic ({run_label})'
+            title = f'London 850hPa - UKMO Run Progression'
 
         ax.set_title(title, fontsize=14)
         ax.set_xlabel('Date (UTC)', fontsize=12)
         ax.set_ylabel('850hPa Temperature (C)', fontsize=12)
-        ax.legend(loc='upper right', fontsize=10)
+        ax.legend(loc='upper right', fontsize=9, framealpha=0.8)
         ax.grid(True, alpha=0.3)
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
         ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
@@ -166,7 +199,7 @@ def generate_chart(data: dict, chart_path: Path) -> bool:
         plt.savefig(chart_path, dpi=150, facecolor='#1a1a2e')
         plt.close()
 
-        print(f"  Chart saved: {chart_path.name}")
+        print(f"  Chart saved: {chart_path.name} ({max_runs_to_show} runs)")
         return True
 
     except Exception as e:
