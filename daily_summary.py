@@ -269,7 +269,7 @@ Plain text only."""
 
     try:
         result = subprocess.run(
-            ['claude', '-p', prompt, '--max-tokens', '150'],
+            ['claude', '-p', prompt],
             capture_output=True,
             text=True,
             timeout=120
@@ -351,7 +351,7 @@ Plain text only."""
 
     try:
         result = subprocess.run(
-            ['claude', '-p', prompt, '--max-tokens', '100'],
+            ['claude', '-p', prompt],
             capture_output=True,
             text=True,
             timeout=120

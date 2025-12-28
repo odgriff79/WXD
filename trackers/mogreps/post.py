@@ -95,7 +95,7 @@ FORMAT:
             data_str = f.read()
 
         result = subprocess.run(
-            ['claude', '-p', prompt, '--max-tokens', '150'],
+            ['claude', '-p', prompt],
             input=data_str,
             capture_output=True,
             text=True,
