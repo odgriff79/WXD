@@ -961,11 +961,15 @@ Data shows ensemble means from GFS, ECM, AIFS, and GEM models."""
 
         if result.returncode == 0:
             text = result.stdout.strip()
-            # For significant events, allow up to 280 chars (leave room for confidence)
-            # For normal posts, keep tighter at 250
-            limit = 280 if is_significant else 250
-            if len(text) > limit:
-                text = text[:limit-3] + "..."
+            # For significant events, keep full text for multi-post
+            # For normal posts, truncate to fit single post
+            if is_significant:
+                # Allow longer - will be split into multiple posts if needed
+                if len(text) > 550:
+                    text = text[:547] + "..."
+            else:
+                if len(text) > 270:
+                    text = text[:267] + "..."
             return text, False
 
         # Check if auth error
@@ -984,9 +988,12 @@ Data shows ensemble means from GFS, ECM, AIFS, and GEM models."""
 
             if result.returncode == 0:
                 text = result.stdout.strip()
-                limit = 280 if is_significant else 250
-                if len(text) > limit:
-                    text = text[:limit-3] + "..."
+                if is_significant:
+                    if len(text) > 550:
+                        text = text[:547] + "..."
+                else:
+                    if len(text) > 270:
+                        text = text[:267] + "..."
                 return text, False
 
             # Still failing - use fallback
@@ -1496,24 +1503,69 @@ def main():
     chart_ok = generate_chart(data_path, chart_path)
     print()
 
+    # Split long text into multiple posts if needed (Bluesky limit ~300 chars)
+    def split_for_posting(text, max_chars=290):
+        """Split text into posts, breaking at sentence boundaries."""
+        if len(text) <= max_chars:
+            return [text]
+
+        posts = []
+        remaining = text
+        while remaining:
+            if len(remaining) <= max_chars:
+                posts.append(remaining)
+                break
+            # Find last sentence break within limit
+            chunk = remaining[:max_chars]
+            last_period = chunk.rfind('. ')
+            if last_period > max_chars // 2:
+                posts.append(remaining[:last_period + 1].strip())
+                remaining = remaining[last_period + 2:].strip()
+            else:
+                # No good break point - break at space
+                last_space = chunk.rfind(' ')
+                if last_space > 0:
+                    posts.append(remaining[:last_space].strip() + "...")
+                    remaining = remaining[last_space + 1:].strip()
+                else:
+                    posts.append(chunk + "...")
+                    remaining = remaining[max_chars:].strip()
+        return posts
+
+    main_posts = split_for_posting(main_text)
+
     # Post to Bluesky (or show preview in dry-run mode)
     if dry_run:
         print("=" * 50)
         print("PREVIEW - Would post the following:")
         print("=" * 50)
         print()
-        print(f"[MAIN POST] ({len(main_text)} chars):")
-        print(f"  {main_text}")
-        print(f"  Image: {chart_path if chart_ok else 'None'}")
-        print()
+        for i, post in enumerate(main_posts):
+            label = "MAIN POST" if i == 0 else f"MAIN CONT {i}"
+            print(f"[{label}] ({len(post)} chars):")
+            print(f"  {post}")
+            if i == 0:
+                print(f"  Image: {chart_path if chart_ok else 'None'}")
+            print()
         main_post_ref = {'uri': 'dry-run', 'cid': 'dry-run'}  # Fake ref for showing alerts
     elif bsky_handle and bsky_password:
-        # Post main update
-        print("Posting main update to Bluesky...")
+        # Post main update(s)
+        print(f"Posting main update to Bluesky ({len(main_posts)} part(s))...")
         image = chart_path if chart_ok else None
-        main_post_ref = post_to_bluesky(main_text, image, bsky_handle, bsky_password)
+
+        # First post with image
+        main_post_ref = post_to_bluesky(main_posts[0], image, bsky_handle, bsky_password)
         if not main_post_ref:
             return 1
+
+        # Continuation posts as thread
+        last_ref = main_post_ref
+        for i, continuation in enumerate(main_posts[1:], 1):
+            print(f"  Posting continuation {i}...")
+            last_ref = post_to_bluesky(continuation, None, bsky_handle, bsky_password, reply_to=last_ref)
+            if not last_ref:
+                print(f"  Warning: continuation {i} failed")
+                break
     else:
         print("BSKY_HANDLE and BSKY_PASSWORD not set, skipping post")
         print("Set these environment variables to enable posting")
