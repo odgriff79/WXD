@@ -43,11 +43,11 @@ Each tracker: own subfolder (`trackers/icon/`), own schedule, own cron, own Blue
 - Uses ICON-EU-EPS (European domain) not ICON-EPS (global) - smaller files
 - Only 00z and 12z runs have pressure-level 850hPa data (06z/18z only have model-level)
 - Forecast range: 0-120h (5 days) at 12-hourly intervals
-- Requires `wgrib2` for GRIB point extraction
+- Uses Python eccodes for point extraction (not wgrib2/CLI - those don't support unstructured grids)
 - Files: `trackers/icon/fetch.py`, `trackers/icon/post.py`, `trackers/icon/cron_icon.sh`
 - ntfy commands: `icon` (quick preview), `icon-fresh` (fetch new data)
 
-### ICON 850hPa Data Solution (from GPT/Gemini research)
+### ICON 850hPa Data Solution
 Open-Meteo doesn't provide ICON 850hPa, but DWD Open Data does via GRIB:
 
 **Source:** `https://opendata.dwd.de/weather/nwp/icon-eu-eps/grib/[HH]/t/`
@@ -55,25 +55,23 @@ Open-Meteo doesn't provide ICON 850hPa, but DWD Open Data does via GRIB:
 - Each file ~10MB compressed, contains all 40 ensemble members for one forecast hour
 - Only 00z and 12z runs have pressure-level data (06z/18z have model-level only)
 
-**Implementation approach (fetch.py):**
-1. Download one .bz2 file at a time (~10MB)
-2. Decompress to temp .grib2
-3. Use `wgrib2 -lon -0.1 51.5` to extract London point → tiny output
-4. Delete temp files immediately
-5. Aggregate all hours to JSON
+**Grid handling:**
+ICON uses unstructured icosahedral grid (164984 cells). CLI tools (`grib_ls -l`, `grib_get_data -l`, `cdo remapnn`) don't work because:
+- eccodes CLI doesn't support nearest-neighbor on unstructured grids
+- CDO needs grid definition files and has ecCodes packing errors
+
+**Solution: Python eccodes + grid file**
+1. Download DWD grid file `icon_grid_0037_R03B07_N02.nc` once (~55MB, cached)
+2. Load cell center coordinates (clat/clon in radians)
+3. Find nearest cell index to London (index 113327 at 51.46°N, 0.00°E)
+4. For each GRIB: read values at that index using `codes_get_values()`
 
 **Data flow per run:**
 - 11 files (0h to 120h at 12-hourly) × 10MB = ~110MB download
 - Processed sequentially, only one file in memory at a time
 - Final output: ~50KB JSON with 40-member ensemble stats
 
-**wgrib2 command:**
-```bash
-wgrib2 file.grib2 -lon -0.1 51.5
-# Output: one line per ensemble member with val=XXX (Kelvin)
-```
-
-**Requirements:** `wgrib2` must be installed on VM
+**Requirements:** `pip install eccodes netCDF4` (Python bindings, not CLI)
 
 ### Future Work
 Open-Meteo Ensemble API supports more models (but 850hPa availability varies):
