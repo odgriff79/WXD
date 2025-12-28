@@ -321,24 +321,31 @@ def generate_metoffice_longrange_post(metoffice: dict) -> str:
 
 
 def generate_ai_commentary(metoffice: dict, model_summary: str) -> str:
-    """Generate post 2: AI commentary comparing Met Office vs models."""
-    from datetime import datetime
-    today = datetime.now().strftime("%d %m %Y")
+    """Generate AI commentary - alert for significant weather in Met Office forecast."""
 
-    # Build context for Claude
-    mo_text = metoffice.get("today_tomorrow", "")[:200] if metoffice.get("today_tomorrow") else "Not available"
+    # Combine all Met Office text for analysis
+    mo_all = ""
+    if metoffice.get("today_tomorrow"):
+        mo_all += metoffice["today_tomorrow"] + " "
+    if metoffice.get("days_3_5"):
+        mo_all += metoffice["days_3_5"] + " "
+    if metoffice.get("long_range"):
+        mo_all += metoffice["long_range"]
+    mo_all = mo_all.lower()
 
-    prompt = f"""Compare Met Office forecast with model data. Write 200 chars max.
+    prompt = f"""Scan Met Office forecast for significant weather. Write 220 chars max alert.
 
-MET OFFICE: {mo_text}
+MET OFFICE TEXT:
+{mo_all[:500]}
 
-MODELS (850hPa London): {model_summary}
+WXD MODELS (850hPa): {model_summary}
 
-Write brief AI commentary:
-- Note if models agree/disagree with Met Office
-- Cold 850hPa often = frosty but settled in south
-- Be conversational, no raw numbers
-- Start with "WXD view:"
+Write brief WXD alert:
+- Start with "WXD Alert:" if significant weather mentioned (wintry, snow, frost, cold, gales, ice)
+- Start with "WXD view:" if nothing notable
+- Highlight any wintry/cold/frost signals from Met Office
+- Note if models support or contradict Met Office
+- Be direct and factual
 
 Plain text only."""
 
@@ -354,17 +361,26 @@ Plain text only."""
     except Exception as e:
         print(f"  Claude CLI error: {e}")
 
-    # Fallback
+    # Fallback - scan for significant weather keywords
+    alert_words = ['wintry', 'snow', 'sleet', 'ice', 'icy', 'frost', 'freezing', 'gale', 'severe', 'warning']
+    cold_words = ['cold', 'colder', 'chilly', 'cool']
+
+    has_alert = any(word in mo_all for word in alert_words)
+    has_cold = any(word in mo_all for word in cold_words)
+
     temps = re.findall(r'(-?\d+\.?\d*)C', model_summary)
-    if temps:
-        coldest = min(float(t) for t in temps)
-        if coldest <= -5:
-            return "WXD view: Models showing significant cold signal at 850hPa. Expect frosty conditions - often settled and sunny in the south, wintry showers more likely in the north."
-        elif coldest <= 0:
-            return "WXD view: Chilly signal in the models with 850hPa temps near freezing. Overnight frosts likely but nothing extreme."
-        else:
-            return "WXD view: Models in line with Met Office - no major cold signals. Quiet pattern continuing."
-    return "WXD view: Model data being processed - see tracker posts for details."
+    coldest = min(float(t) for t in temps) if temps else 5
+
+    if has_alert:
+        return f"WXD Alert: Met Office flagging wintry conditions. Models confirm with 850hPa temps well below freezing. Watch for frost, ice risk, and wintry showers especially in the north."
+    elif has_cold and coldest <= -5:
+        return f"WXD Alert: Met Office noting colder spell. Models strongly support - significant cold signal at 850hPa. Sharp frosts likely, settled but cold in south."
+    elif has_cold:
+        return f"WXD view: Met Office mentions cooler weather. Models show chilly conditions ahead with overnight frosts likely."
+    elif coldest <= -5:
+        return f"WXD view: Models showing significant cold signal at 850hPa - frosty conditions ahead. Often settled and sunny in south, wintry showers in north."
+    else:
+        return f"WXD view: Nothing significant flagged. Quiet weather pattern continuing."
 
 
 def generate_stats_post(model_summary: str) -> str:
