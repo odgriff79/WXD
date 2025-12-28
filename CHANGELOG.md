@@ -10,9 +10,11 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ### Fixed
 - **MOGREPS longitude bug** - Was using 0-360 convention (359.87°) but MOGREPS files use -180..180 convention. With `method='nearest'`, 359.87 snapped to 179.86° (Pacific Ocean) instead of London. Fix: use -0.1278° directly. Debug confirmed: correct selection now at -0.14°.
+- **UKMO temps too warm** - Changed from `ukmo_seamless` to `ukmo_global_deterministic_10km`. Seamless model smoothed extremes (showed -6.9°C when actual was -8°C). Deterministic model now matches theweatheroutlook.com verification.
 
 ### Changed
-- **MOGREPS cron timing** - Pushed 1 hour later (01:30, 07:30, 13:30, 19:30 UTC instead of 00:30, 06:30, 12:30, 18:30). S3 files upload progressively after model run - at original times only +000h was available. **MONITOR:** Check if new timing allows full forecast range to be available.
+- **MOGREPS cron timing** - Pushed to 03:00, 09:00, 15:00, 21:00 UTC (9 hours after each run). S3 files upload progressively - earlier times had insufficient forecast hours. **MONITOR:** Check if 9h delay allows full forecast range.
+- **MOGREPS safeguards added** - (1) Minimum 4 forecast hours required before posting. (2) Abort if run-to-run shift exceeds 10°C (indicates comparing to corrupted historical data). **MONITOR:** These safeguards could block legitimate posts during extreme pattern changes - check cron.log if posts missing.
 
 ### Known Issues (Resolved)
 - ~~**MOGREPS data completely wrong** - Chart showed inverted trend vs Meteociel reference. Root cause: longitude convention mismatch selecting Pacific instead of London.~~ **FIXED**
