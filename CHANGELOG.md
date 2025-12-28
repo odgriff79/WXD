@@ -11,6 +11,9 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 ### Fixed
 - **MOGREPS longitude bug** - Was using 0-360 convention (359.87°) but MOGREPS files use -180..180 convention. With `method='nearest'`, 359.87 snapped to 179.86° (Pacific Ocean) instead of London. Fix: use -0.1278° directly. Debug confirmed: correct selection now at -0.14°.
 
+### Changed
+- **MOGREPS cron timing** - Pushed 1 hour later (01:30, 07:30, 13:30, 19:30 UTC instead of 00:30, 06:30, 12:30, 18:30). S3 files upload progressively after model run - at original times only +000h was available. **MONITOR:** Check if new timing allows full forecast range to be available.
+
 ### Known Issues (Resolved)
 - ~~**MOGREPS data completely wrong** - Chart showed inverted trend vs Meteociel reference. Root cause: longitude convention mismatch selecting Pacific instead of London.~~ **FIXED**
 
