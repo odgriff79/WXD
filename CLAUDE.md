@@ -4,141 +4,119 @@
 
 ## Project Summary
 
-Weather ensemble data pipeline for trend comparison and model verification.
-VM fetches timestamped JSON from Open-Meteo, pushes to GitHub. Claude.ai does all analysis.
+Weather ensemble data pipeline with automated Bluesky posting. Multiple trackers fetch data from different sources, generate AI commentary via Claude CLI, and post to Bluesky.
 
-**Your role (Claude Code on VM)**: Infrastructure maintenance only.
+**Live:** [@wxd-london.bsky.social](https://bsky.app/profile/wxd-london.bsky.social)
+**Charts:** [odgriff79.github.io/WXD](https://odgriff79.github.io/WXD/)
 
-**NOT your role**: Weather analysis, data interpretation, statistics. That happens in Claude.ai browser.
+## Trackers
 
-## Key Design Decisions
+| Tracker | Model | Schedule (UTC) | Files |
+|---------|-------|----------------|-------|
+| A (Main) | GFS+ECM+AIFS+GEM | 08:30, 20:30 | `fetch.py`, `post_bluesky.py` |
+| B | ICON-EU-EPS (40 members) | 04:30, 16:30 | `trackers/icon/` |
+| C | MOGREPS-G (18 members) | TBD | `trackers/mogreps/` (planned) |
+| D | UKMO Global (deterministic) | 05:00, 17:00 | `trackers/ukmo/` |
+
+## Key Files
 
 ```
-[2025-12-27] Timestamped files for history: gfs_2025-12-27_0730Z.json format
-[2025-12-27] 7-day rolling retention: auto-cleanup of old files
-[2025-12-27] past_days=3 in API: includes previous model runs for trend comparison
-[2025-12-27] Fetch at 09:00/21:00 UTC: optimal for capturing 00z/12z runs (ECMWF ready by 08:00/20:00)
-[2025-12-27] Latest symlinks: gfs_latest.json points to most recent fetch
+wxd/
+├── fetch.py              # Main 4-model data fetch
+├── post_bluesky.py       # Main tracker posting (Tracker A)
+├── daily_summary.py      # Met Office narrative thread
+├── sync_charts.sh        # Push charts to GitHub Pages
+├── trackers/
+│   ├── shared/
+│   │   ├── __init__.py
+│   │   └── analysis.py   # Common analysis functions (trend, percentile, timing)
+│   ├── icon/
+│   │   ├── fetch.py      # DWD GRIB fetcher
+│   │   ├── post.py       # ICON posting
+│   │   └── cron_icon.sh
+│   └── ukmo/
+│       ├── fetch.py      # Open-Meteo fetcher
+│       ├── post.py       # UKMO posting
+│       └── cron_ukmo.sh
+└── docs/
+    ├── index.html        # GitHub Pages chart gallery
+    └── charts/           # Published charts
 ```
 
-## Model Schedule
+## Shared Analysis Module
 
-| Model | Members | Runs | Delay | Best Capture |
-|-------|---------|------|-------|--------------|
-| GFS | 31 | 00z, 06z, 12z, 18z | ~3.5h | 09:00, 21:00 UTC |
-| ECMWF IFS | 51 | 00z, 12z | ~8h | 09:00, 21:00 UTC |
-| ECMWF AIFS | 51 | 00z, 12z | ~8h | 09:00, 21:00 UTC |
-| GEM | 21 | 00z, 12z | ~4h | 09:00, 21:00 UTC |
+`trackers/shared/analysis.py` provides common functions for all trackers:
+- `run_full_analysis()` - Main pipeline returning all analysis + context string
+- Trend persistence tracking
+- Percentile framing (ensemble agreement)
+- Timing uncertainty analysis
+- Run-on-run shift detection
 
 ## VM Setup
 
 - **User**: ubuntu
 - **Project dir**: ~/wxd
 - **Venv**: ~/wxd/venv
-- **Cron**: 09:00 and 21:00 UTC daily (after ECMWF dissemination)
-
-## Data Structure
-
-```
-data/
-├── gfs_2025-12-27_0730Z.json         # Timestamped fetch
-├── gfs_2025-12-27_1930Z.json
-├── gfs_latest.json                   # Copy of most recent
-├── ecmwf_ifs_2025-12-27_0730Z.json
-├── ecmwf_ifs_latest.json
-├── ecmwf_aifs_2025-12-27_0730Z.json
-├── ecmwf_aifs_latest.json
-├── gem_2025-12-27_0730Z.json
-└── gem_latest.json
-```
+- **Env file**: ~/.wxd_env (Bluesky credentials)
 
 ## Commands
 
 ```bash
 # Activate environment
-cd ~/wxd && source venv/bin/activate
+cd ~/wxd && source venv/bin/activate && source ~/.wxd_env
 
-# Manual fetch (creates timestamped files, updates latest symlinks, cleans old)
-python fetch.py
+# Manual runs (dry-run first!)
+python post_bluesky.py --dry-run              # Tracker A
+python trackers/icon/post.py --dry-run        # ICON
+python trackers/ukmo/post.py --dry-run        # UKMO
 
 # Check cron
 crontab -l
 
-# View recent fetches
-ls -la data/*.json | head -20
+# View logs
+tail -100 cron.log
 
-# Check logs
-tail -50 cron.log
+# Sync charts to GitHub Pages
+./sync_charts.sh
 ```
 
-## Cron Job
+## Remote Preview (ntfy.sh)
 
-```
-0 9,21 * * * /home/ubuntu/wxd/cron_fetch.sh
-```
-
-Runs at 09:00 and 21:00 UTC to capture:
-- 00z runs (ECMWF available ~08:00, +1h buffer)
-- 12z runs (ECMWF available ~20:00, +1h buffer)
-
-## Bluesky Automation
-
-Posts are made automatically after each fetch if credentials are configured.
-
-**Setup:**
 ```bash
-# Copy template and edit with your credentials
-cp ~/.wxd_env.template ~/.wxd_env
-nano ~/.wxd_env
-
-# Add your Bluesky handle and app password:
-# export BSKY_HANDLE="your.handle.bsky.social"
-# export BSKY_PASSWORD="your-app-password"
-
-# Test manually
-cd ~/wxd && source venv/bin/activate
-python post_bluesky.py
+curl -d "preview" ntfy.sh/wxd-cmd    # Quick preview
+curl -d "fresh" ntfy.sh/wxd-cmd      # Fresh fetch + preview
+curl -d "icon" ntfy.sh/wxd-cmd       # ICON preview
+curl -d "ukmo" ntfy.sh/wxd-cmd       # UKMO preview
 ```
-
-**How it works:**
-1. Reads history_compact.json
-2. Pipes to Claude CLI for AI commentary (max 300 chars)
-3. Generates matplotlib chart (dark theme)
-4. Posts text + image to Bluesky
-
-**Get app password:** https://bsky.app/settings/app-passwords
-
-## Troubleshooting
-
-1. **Fetch fails**: Check Open-Meteo status, network connectivity
-2. **Push fails**: Verify SSH key, git remote config
-3. **Data stale**: Check `cron.log`, verify crontab
-4. **Old files not deleted**: Check cleanup logic in fetch.py
-5. **Bluesky post fails**: Check credentials in ~/.wxd_env, check cron.log
-
-## ALWAYS DO
-
-- **Update CHANGELOG.md** after any code changes (new features, bug fixes, config changes)
-- Document what changed, when, and why
-
-## DO NOT
-
-- Add analysis code
-- Parse or process the JSON
-- Create summary files
-- Interpret weather data
-
-The raw JSON goes to GitHub. Claude.ai does everything else.
 
 ## Remote Orchestration
 
-This project can be managed via VS Code Claude dispatching to VM.
-
-**IMPORTANT: Check `.vm_config` for connection details (gitignored, never committed).**
+**Check `.vm_config` for VM IP and SSH key path (gitignored).**
 
 ```bash
-# Read .vm_config first for actual IP and key path
-ssh -i "$SSH_KEY" ubuntu@$VM_IP "cd ~/wxd && source venv/bin/activate && source ~/.wxd_env && python post_bluesky.py"
+# Example from VS Code
+ssh -i "$SSH_KEY" ubuntu@$VM_IP "cd ~/wxd && source venv/bin/activate && source ~/.wxd_env && python post_bluesky.py --dry-run"
 ```
 
-The `.vm_config` file contains VM_IP, SSH_KEY path, and example commands.
+## Critical Notes
+
+1. **GitHub username is `odgriff79`** - NOT ogrisel
+2. **Claude CLI has no `--max-tokens` flag** - Don't add it, causes silent failures
+3. **Always `--dry-run` first** before live posts
+4. **Update CHANGELOG.md** after any code changes
+
+## Troubleshooting
+
+| Issue | Check |
+|-------|-------|
+| Post shows fallback text only | Claude CLI failing - check stderr |
+| Chart not updating on GitHub Pages | Run `./sync_charts.sh` |
+| Cron not running | `crontab -l`, check permissions on .sh files |
+| ICON fetch fails | DWD servers, eccodes installation |
+
+## DO NOT
+
+- Add `--max-tokens` to Claude CLI calls (doesn't exist)
+- Use `ogrisel` anywhere (wrong username)
+- Post without `--dry-run` testing first
+- Commit credentials or `.vm_config`

@@ -30,10 +30,15 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 - **MOGREPS tracker** - Now uses shared analysis module with percentile framing
 - **UKMO tracker** - Now uses shared analysis module (deterministic, no percentile framing)
 
+### Fixed
+- **Claude CLI calls** - Removed invalid `--max-tokens` flag from all trackers (ICON, MOGREPS, UKMO, daily_summary). This flag doesn't exist in Claude CLI and was causing silent failures with fallback text only.
+
 ### Technical
 - Added `sys.path.insert()` to each tracker for shared module imports
 - Separate trend state files per tracker (`trend_state.json`)
 - Analysis functions return both individual results and formatted context string
+- GitHub Pages at `odgriff79.github.io/WXD/` with chart gallery
+- `sync_charts.sh` script copies tracker charts to `docs/charts/` and pushes to GitHub
 
 ### Added
 - **Local VM config file** - `.vm_config` (gitignored) stores VM IP and SSH key path for remote orchestration

@@ -1,82 +1,102 @@
 # WXD - Weather Ensemble Data Pipeline
 
-Automated pipeline to fetch ensemble weather forecasts for trend comparison and model verification.
+Automated pipeline to fetch ensemble weather forecasts, generate AI commentary, and post to Bluesky.
+
+**Live at:** [@wxd-london.bsky.social](https://bsky.app/profile/wxd-london.bsky.social)
+
+**Charts:** [odgriff79.github.io/WXD](https://odgriff79.github.io/WXD/)
 
 ## Architecture
 
 ```
-Open-Meteo API → Oracle VM (cron 09:00/21:00 UTC) → GitHub (timestamped JSON) → Claude.ai (analysis)
+Open-Meteo/DWD APIs → Oracle VM (cron) → Claude CLI (commentary) → Bluesky (posts)
+                                       → GitHub Pages (charts)
 ```
 
-**VM Role**: Dumb data pipe. Fetch JSON, timestamp, commit, push. No analysis.
+## Trackers
 
-**Claude.ai Role**: Reads JSON from GitHub, performs all interpretation live in chat.
+| Tracker | Model | Members | Source | Schedule (UTC) | Status |
+|---------|-------|---------|--------|----------------|--------|
+| A | GFS + ECM + AIFS + GEM | 31+51+51+21 | Open-Meteo | 08:30, 20:30 | LIVE |
+| B | ICON-EU-EPS | 40 | DWD GRIB | 04:30, 16:30 | LIVE |
+| C | MOGREPS-G | 18 | AWS S3 | TBD | Planned |
+| D | UKMO Global | 1 (deterministic) | Open-Meteo | 05:00, 17:00 | LIVE |
 
-## Data Structure
+Each tracker has its own subfolder, schedule, and Bluesky posts prefixed with model name (e.g., "ICON:", "UKMO:").
 
-### Timestamped Files (for trend comparison)
-```
-data/gfs_2025-12-27_0900Z.json      # GFS fetch at 09:00 UTC
-data/gfs_2025-12-27_2100Z.json      # GFS fetch at 21:00 UTC
-data/ecmwf_ifs_2025-12-27_0900Z.json    # ECMWF IFS fetch at 09:00 UTC
-...
-```
+## Features
 
-### Latest Symlinks (for quick access)
-```
-data/gfs_latest.json    → gfs_2025-12-27_1930Z.json
-data/ecmwf_latest.json  → ecmwf_2025-12-27_1930Z.json
-data/gem_latest.json    → gem_2025-12-27_1930Z.json
-```
+- **AI Commentary** - Claude CLI generates weather analysis from ensemble data
+- **Trend Persistence** - Tracks consecutive runs with same cold/warm signal
+- **Percentile Framing** - Reports ensemble agreement level and spread
+- **Timing Uncertainty** - Analyzes cold window duration and confidence
+- **Multi-model Alerts** - Cold/warm/divergence/swing alerts posted as thread replies
+- **Dark Theme Charts** - Matplotlib charts with ensemble spread visualization
 
-## Models
+## Data
 
-| Model | Members | Runs | Typical Delay | Best Fetch Time |
-|-------|---------|------|---------------|-----------------|
-| GFS (GEFS) | 31 | 00z, 06z, 12z, 18z | ~3.5h | 09:00, 21:00 UTC |
-| ECMWF IFS | 51 | 00z, 12z | ~8h | 09:00, 21:00 UTC |
-| ECMWF AIFS | 51 | 00z, 12z | ~8h | 09:00, 21:00 UTC |
-| GEM (GEPS) | 21 | 00z, 12z | ~4h | 09:00, 21:00 UTC |
+- **Variable:** 850hPa temperature (London: 51.5074, -0.1278)
+- **Horizon:** 14 days (Tracker A), 5 days (ICON/UKMO)
+- **Retention:** 7-day rolling cleanup
 
-## Data Content
-
-Each JSON contains:
-- **14-day forecast** for 850hPa temperature
-- **3 days of past model data** (for run-to-run comparison)
-- **All ensemble members** (control + perturbed)
-- **Metadata** including fetch time, likely model run, location
-
-Variable: `temperature_850hPa` at London (51.5074, -0.1278)
-
-## Retention
-
-- Files kept for **7 days** (rolling)
-- Older files automatically deleted by cleanup
-- ~2 fetches/day × 3 models × 7 days = ~42 files max
-
-## Usage
+## Quick Start
 
 ```bash
-# Manual fetch
-cd ~/wxd && source venv/bin/activate
-python fetch.py
+# On VM
+cd ~/wxd && source venv/bin/activate && source ~/.wxd_env
 
-# Data is auto-fetched by VM cron at 09:00 and 21:00 UTC
+# Manual post (Tracker A)
+python post_bluesky.py --dry-run
+
+# Manual post (ICON)
+python trackers/icon/post.py --dry-run
+
+# Manual post (UKMO)
+python trackers/ukmo/post.py --dry-run
 ```
 
-## For Claude.ai Analysis
+## Remote Preview
 
-Latest data always available at:
-- https://raw.githubusercontent.com/odgriff79/WXD/main/data/gfs_latest.json
-- https://raw.githubusercontent.com/odgriff79/WXD/main/data/ecmwf_ifs_latest.json
-- https://raw.githubusercontent.com/odgriff79/WXD/main/data/ecmwf_aifs_latest.json
-- https://raw.githubusercontent.com/odgriff79/WXD/main/data/gem_latest.json
+Send commands via ntfy.sh:
+```bash
+curl -d "preview" ntfy.sh/wxd-cmd    # Quick preview with current data
+curl -d "fresh" ntfy.sh/wxd-cmd      # Fetch new data, then preview
+```
 
-For historical comparison, browse timestamped files in `data/` directory.
+## Project Structure
 
-## Analysis Use Cases
+```
+wxd/
+├── fetch.py              # Main 4-model data fetch
+├── post_bluesky.py       # Main tracker posting
+├── daily_summary.py      # Met Office narrative + WXD comparison
+├── sync_charts.sh        # Push charts to GitHub Pages
+├── trackers/
+│   ├── shared/
+│   │   └── analysis.py   # Common analysis functions
+│   ├── icon/
+│   │   ├── fetch.py      # DWD GRIB fetcher
+│   │   └── post.py       # ICON posting
+│   ├── ukmo/
+│   │   ├── fetch.py      # Open-Meteo fetcher
+│   │   └── post.py       # UKMO posting
+│   └── mogreps/          # Future
+└── docs/
+    └── index.html        # GitHub Pages chart gallery
+```
 
-1. **Run-to-run trend**: Compare today's 00z vs yesterday's 00z - is forecast shifting warmer/cooler?
-2. **Model agreement**: Do GFS/ECMWF/GEM agree on T+120h temperature?
-3. **Ensemble spread**: Is spread narrowing (confidence) or widening (uncertainty)?
-4. **Outlier detection**: Any ensemble members showing extreme values?
+## Requirements
+
+```
+atproto        # Bluesky API
+matplotlib     # Chart generation
+requests       # API calls
+eccodes        # GRIB handling (ICON)
+netCDF4        # Grid file handling (ICON)
+```
+
+## Links
+
+- [Bluesky Profile](https://bsky.app/profile/wxd-london.bsky.social)
+- [Chart Gallery](https://odgriff79.github.io/WXD/)
+- [CHANGELOG](CHANGELOG.md)
