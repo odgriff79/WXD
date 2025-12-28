@@ -4,6 +4,9 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ## [Unreleased]
 
+### TODO
+- **Anytime preview/testing mode** - Allow fresh data fetch for preview/testing without polluting or contaminating the production data files or history. Must ensure complete isolation from scheduled runs.
+
 ### Added
 - **Local VM config file** - `.vm_config` (gitignored) stores VM IP and SSH key path for remote orchestration
 - **Reply threading for alerts** - Cold/warm/divergence/swing alerts now post as replies to main post, creating a tidy thread instead of separate posts
@@ -24,6 +27,49 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ### Investigated
 - **Previous Runs API** - Not suitable for backfill (no 850hPa data, no ensemble members)
+- **ICON & UKMO expansion** - Initial investigation found deterministic-only via Open-Meteo Forecast API
+
+### Future Work (from Gemini/ChatGPT research)
+Open-Meteo Ensemble API actually supports more ensemble models than initially realized:
+- **ICON EPS Seamless** - 40 members (`models=icon_seamless` on Ensemble API)
+- **BOM ACCESS-GE** - 18 members (independent Australian global ensemble)
+- **UKMO MOGREPS-G** - 18 members (UK Met Office global ensemble)
+- **UKMO MOGREPS-UK** - 3 members (UK high-res ensemble, small N but probabilistic)
+
+This would expand from 4 → 8 ensemble sources without adding new providers.
+
+**Implementation notes:**
+- Use `https://ensemble-api.open-meteo.com/v1/ensemble` (not forecast API) for ensembles
+- UKMO deterministic (forecast API) has 4-hour delay due to Met Office licensing
+- Horizon mismatch between models - may need to clip to shared max or allow early endings
+- UKMO MOGREPS ensembles are separate from UKMO deterministic feed
+- Consider UKMO deterministic as "benchmark line" alongside ensemble spread
+
+## [2025-12-28] - Multi-model Alerts & Remote Preview
+
+### Added
+- **Multi-model cold alerts** - Now reports ALL models crossing -5°C threshold, not just coldest (e.g., "ECM -7.2°C, AIFS -7.0°C, GFS -6.9°C, GEM -5.8°C")
+- **Percentile threshold alerts** - Triggers when >80% of ensemble members cross cold threshold on any date
+- **Dry-run mode** - `--dry-run` flag previews analysis without posting to Bluesky
+- **ntfy remote preview** - Send "preview" to `ntfy.sh/wxd-cmd` topic, results sent to `wxd-alerts`
+- **ntfy_listener.py** - Python-based listener for remote preview commands
+- **wxd-ntfy.service** - systemd service for persistent ntfy listener
+- **Multi-post support** - Significant events can span multiple threaded posts (up to 550 chars, split at sentence boundaries)
+- **Explicit cold ranking** - Analysis context now shows "COLD RANKING (coldest first)" so Claude doesn't misread JSON
+- **Data provenance logging** - Prints fetched timestamp, run label (00z/12z), and first data timestamp for audit
+
+### Fixed
+- **Threading bug** - atproto requires proper model classes (`ComAtprotoRepoStrongRef.Main`, `AppBskyFeedPost.ReplyRef`) not plain dicts
+- **Percentile alert wording** - Now says "below -5°C" instead of "below cold"
+
+### Changed
+- **Cron schedule** - Changed from 09:00/21:00 UTC to 08:30/20:30 UTC for better model availability
+- **Claude prompt overhaul**:
+  - NO PREFIX rule - Don't waste characters on "London 850hPa temperatures:"
+  - Commentary-first style - Lead with story/analysis, not data dump
+  - Plain language - No jargon ("conviction", "regime", "synoptic")
+  - No markdown - Bluesky is plain text only
+  - Factual tone - Not tabloid headlines
 
 ## [2025-12-27] - Initial Bluesky Automation
 
