@@ -232,30 +232,18 @@ def summarize_model_data(wxd_data: dict) -> str:
 
 
 def get_claude_comparison(metoffice: dict, model_summary: str) -> str:
-    """Use Claude CLI to compare Met Office narrative vs model data."""
+    """Use Claude CLI to summarize WXD model data."""
 
-    mo_text = ""
-    if metoffice.get("uk_forecast"):
-        mo_text += f"UK Forecast: {metoffice['uk_forecast']}\n"
-    if metoffice.get("long_range"):
-        mo_text += f"Long Range: {metoffice['long_range']}\n"
-
-    if not mo_text:
-        mo_text = "Met Office narrative not available"
-
-    prompt = f"""You are WXD daily summary writer. Compare the Met Office narrative forecast with our model data.
-
-MET OFFICE SAYS:
-{mo_text}
+    prompt = f"""You are WXD daily summary writer. Summarize the current model signals for London 850hPa.
 
 WXD MODEL DATA (850hPa temperatures over London, next 7 days):
 {model_summary}
 
 Write a Bluesky post (max 280 chars) that:
-1. Notes if Met Office narrative aligns with or differs from model signals
-2. Highlights any significant cold/warm signals
+1. Highlights the coldest signal and which model(s) show it
+2. Notes any model agreement/disagreement
 3. Start with "Daily Summary:" to identify this post type
-4. Keep it factual and brief
+4. Mention specific temperatures and dates if cold (<-5C)
 
 Plain text only (no emojis, hashtags, or markdown)."""
 
