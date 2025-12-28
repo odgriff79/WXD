@@ -5,7 +5,7 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 ## [Unreleased]
 
 ### TODO
-- **Anytime preview/testing mode** - Allow fresh data fetch for preview/testing without polluting or contaminating the production data files or history. Must ensure complete isolation from scheduled runs.
+- ~~**Anytime preview/testing mode** - Allow fresh data fetch for preview/testing without polluting or contaminating the production data files or history. Must ensure complete isolation from scheduled runs.~~ **DONE**
 
 ### Added
 - **Local VM config file** - `.vm_config` (gitignored) stores VM IP and SSH key path for remote orchestration
@@ -51,7 +51,10 @@ This would expand from 4 → 8 ensemble sources without adding new providers.
 - **Multi-model cold alerts** - Now reports ALL models crossing -5°C threshold, not just coldest (e.g., "ECM -7.2°C, AIFS -7.0°C, GFS -6.9°C, GEM -5.8°C")
 - **Percentile threshold alerts** - Triggers when >80% of ensemble members cross cold threshold on any date
 - **Dry-run mode** - `--dry-run` flag previews analysis without posting to Bluesky
-- **ntfy remote preview** - Send "preview" to `ntfy.sh/wxd-cmd` topic, results sent to `wxd-alerts`
+- **Isolated fresh preview** - `fetch.py --preview` + `post_bluesky.py --preview` for anytime testing without contaminating production data
+- **ntfy remote commands** - Two commands via `ntfy.sh/wxd-cmd`:
+  - `preview`: Quick preview using current/stale data
+  - `fresh`: Fetch new data first (isolated), then preview - no contamination of production files
 - **ntfy_listener.py** - Python-based listener for remote preview commands
 - **wxd-ntfy.service** - systemd service for persistent ntfy listener
 - **Multi-post support** - Significant events can span multiple threaded posts (up to 550 chars, split at sentence boundaries)
@@ -61,6 +64,7 @@ This would expand from 4 → 8 ensemble sources without adding new providers.
 ### Fixed
 - **Threading bug** - atproto requires proper model classes (`ComAtprotoRepoStrongRef.Main`, `AppBskyFeedPost.ReplyRef`) not plain dicts
 - **Percentile alert wording** - Now says "below -5°C" instead of "below cold"
+- **Chart title** - Now includes date (e.g., "28 Dec 00z") not just run time
 
 ### Changed
 - **Cron schedule** - Changed from 09:00/21:00 UTC to 08:30/20:30 UTC for better model availability

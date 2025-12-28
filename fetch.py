@@ -8,6 +8,7 @@ Files are timestamped and retained for rolling 7-day period.
 The VM runs this on a schedule; Claude Web reads the JSON from GitHub.
 """
 
+import argparse
 import json
 import requests
 import subprocess
@@ -187,7 +188,7 @@ def calculate_ensemble_stats(data: dict) -> dict:
     return stats
 
 
-def generate_summary(all_model_data: dict, data_dir: Path, timestamp: datetime) -> None:
+def generate_summary(all_model_data: dict, data_dir: Path, timestamp: datetime, preview: bool = False) -> None:
     """Generate summary JSON with ensemble means for all models."""
     summary = {
         "fetched_at": timestamp.isoformat().replace("+00:00", "Z"),
@@ -228,24 +229,32 @@ def generate_summary(all_model_data: dict, data_dir: Path, timestamp: datetime) 
                 multi_model_mean.append(None)
         summary["multi_model_mean"] = multi_model_mean
 
-    # Save timestamped summary
-    time_str = timestamp.strftime("%Y-%m-%d_%H%MZ")
-    summary_filename = f"summary_{time_str}.json"
-    summary_path = data_dir / summary_filename
-    with open(summary_path, "w") as f:
-        json.dump(summary, f, indent=2)
-    print(f"  Summary saved: {summary_filename}")
+    # Save summary file
+    if preview:
+        # Preview mode: save to isolated file, don't update latest or history
+        summary_path = data_dir / "preview_summary.json"
+        with open(summary_path, "w") as f:
+            json.dump(summary, f, indent=2)
+        print(f"  Preview summary saved: preview_summary.json (isolated)")
+    else:
+        # Production mode: timestamped file + latest + history
+        time_str = timestamp.strftime("%Y-%m-%d_%H%MZ")
+        summary_filename = f"summary_{time_str}.json"
+        summary_path = data_dir / summary_filename
+        with open(summary_path, "w") as f:
+            json.dump(summary, f, indent=2)
+        print(f"  Summary saved: {summary_filename}")
 
-    # Save latest copy
-    latest_path = data_dir / "summary_latest.json"
-    if latest_path.exists():
-        latest_path.unlink()
-    import shutil
-    shutil.copy(summary_path, latest_path)
-    print(f"  Summary latest: summary_latest.json")
+        # Save latest copy
+        latest_path = data_dir / "summary_latest.json"
+        if latest_path.exists():
+            latest_path.unlink()
+        import shutil
+        shutil.copy(summary_path, latest_path)
+        print(f"  Summary latest: summary_latest.json")
 
-    # Update rolling history
-    update_history(summary, data_dir)
+        # Update rolling history
+        update_history(summary, data_dir)
 
 
 def update_history(current_summary: dict, data_dir: Path) -> None:
@@ -384,12 +393,20 @@ def cleanup_old_files(data_dir: Path, retention_days: int) -> int:
 
 def main():
     """Fetch all models and save timestamped files."""
+    parser = argparse.ArgumentParser(description='WXD Fetch - Retrieve ensemble weather data')
+    parser.add_argument('--preview', '-p', action='store_true',
+                       help='Preview mode: fetch to isolated files, no history update')
+    args = parser.parse_args()
+
+    preview = args.preview
+
     script_dir = Path(__file__).parent
     data_dir = script_dir / "data"
     data_dir.mkdir(exist_ok=True)
 
     now = utcnow()
-    print(f"WXD Fetch - {now.isoformat().replace('+00:00', 'Z')}")
+    mode_str = "PREVIEW MODE (isolated)" if preview else "Production"
+    print(f"WXD Fetch - {now.isoformat().replace('+00:00', 'Z')} [{mode_str}]")
     print(f"Target: {LATITUDE}, {LONGITUDE} (London)")
     print(f"Variable: {HOURLY_VARIABLE}")
     print(f"Forecast days: {FORECAST_DAYS}, Past days: {PAST_DAYS}")
@@ -403,9 +420,18 @@ def main():
         print(f"Fetching {model_config['description']}...")
         try:
             data = fetch_model(model_key, model_config)
-            filename = get_filename(model_key, now)
-            save_json(data, filename, data_dir)
-            save_latest_copy(model_key, filename, data_dir)
+            if preview:
+                # Preview mode: save to preview file only, no latest copy
+                preview_filename = f"preview_{model_key}.json"
+                preview_path = data_dir / preview_filename
+                with open(preview_path, "w") as f:
+                    json.dump(data, f)
+                print(f"  Saved: {preview_filename} (isolated)")
+            else:
+                # Production mode: timestamped file + latest copy
+                filename = get_filename(model_key, now)
+                save_json(data, filename, data_dir)
+                save_latest_copy(model_key, filename, data_dir)
             all_model_data[model_key] = data
             success_count += 1
         except requests.RequestException as e:
@@ -417,8 +443,8 @@ def main():
 
     print()
 
-    # Send alert if any models failed
-    if failed_models:
+    # Send alert if any models failed (only in production mode)
+    if failed_models and not preview:
         if len(failed_models) == len(MODELS):
             send_ntfy_alert(f"WXD: All {len(MODELS)} model fetches FAILED. Open-Meteo may be down.")
         else:
@@ -428,19 +454,22 @@ def main():
     if all_model_data:
         print("Generating ensemble summary...")
         try:
-            generate_summary(all_model_data, data_dir, now)
+            generate_summary(all_model_data, data_dir, now, preview=preview)
         except Exception as e:
             print(f"  ERROR generating summary: {e}")
 
     print()
 
-    # Cleanup old files
-    print(f"Cleaning up files older than {RETENTION_DAYS} days...")
-    deleted = cleanup_old_files(data_dir, RETENTION_DAYS)
-    print(f"  Removed {deleted} old files")
+    # Cleanup old files (skip in preview mode)
+    if not preview:
+        print(f"Cleaning up files older than {RETENTION_DAYS} days...")
+        deleted = cleanup_old_files(data_dir, RETENTION_DAYS)
+        print(f"  Removed {deleted} old files")
+        print()
 
-    print()
     print(f"Complete: {success_count}/{len(MODELS)} models fetched")
+    if preview:
+        print("Preview data saved to preview_*.json (production files unchanged)")
 
     return 0 if success_count == len(MODELS) else 1
 

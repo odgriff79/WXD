@@ -1107,10 +1107,17 @@ def generate_chart(data_path: Path, output_path: Path) -> bool:
         fetched_at = run.get("fetched_at", "Unknown")
         run_label = get_run_label(fetched_at)
 
-        # Title shows run clearly (e.g., "00z run" or "12z run")
+        # Title shows run clearly with date (e.g., "28 Dec 00z")
         if run_label:
-            ax.set_title(f'London 850hPa Ensemble Forecast ({run_label})',
-                        fontsize=14)
+            try:
+                dt = datetime.fromisoformat(fetched_at.replace('Z', '+00:00'))
+                date_str = dt.strftime('%d %b')  # e.g., "28 Dec"
+                run_time = run_label.replace(' run', '')  # "00z" or "12z"
+                ax.set_title(f'London 850hPa Ensemble Forecast ({date_str} {run_time})',
+                            fontsize=14)
+            except:
+                ax.set_title(f'London 850hPa Ensemble Forecast ({run_label})',
+                            fontsize=14)
         else:
             ax.set_title(f'London 850hPa Ensemble Forecast\nFetched: {fetched_at}',
                         fontsize=14)
@@ -1309,19 +1316,30 @@ def main():
     parser.add_argument('--changelog', '-c', type=str, help='Post a changelog/update message')
     parser.add_argument('--weekly', '-w', action='store_true', help='Post weekly summary')
     parser.add_argument('--dry-run', '-n', action='store_true', help='Preview mode - run analysis but do not post to Bluesky')
+    parser.add_argument('--preview', '-p', action='store_true', help='Use preview data (from fetch.py --preview) instead of production data')
     args = parser.parse_args()
 
     dry_run = args.dry_run
-    if dry_run:
+    use_preview_data = args.preview
+
+    # Preview mode implies dry-run (never post with preview data)
+    if use_preview_data:
+        dry_run = True
+
+    if dry_run or use_preview_data:
         print("=" * 50)
-        print("DRY RUN MODE - will NOT post to Bluesky")
+        if use_preview_data:
+            print("FRESH PREVIEW MODE - using isolated preview data, will NOT post")
+        else:
+            print("DRY RUN MODE - will NOT post to Bluesky")
         print("=" * 50)
         print()
 
     script_dir = Path(__file__).parent
     data_dir = script_dir / "data"
     data_path = data_dir / "history_compact.json"
-    chart_path = data_dir / "chart_latest.png"
+    preview_summary_path = data_dir / "preview_summary.json"
+    chart_path = data_dir / "chart_latest.png" if not use_preview_data else data_dir / "preview_chart.png"
     state_path = data_dir / "alert_state.json"
 
     # Check for credentials in environment
@@ -1340,13 +1358,52 @@ def main():
     print()
 
     # Check data exists
-    if not data_path.exists():
-        print(f"ERROR: {data_path} not found. Run fetch.py first.")
-        return 1
+    if use_preview_data:
+        if not preview_summary_path.exists():
+            print(f"ERROR: {preview_summary_path} not found. Run fetch.py --preview first.")
+            return 1
+    else:
+        if not data_path.exists():
+            print(f"ERROR: {data_path} not found. Run fetch.py first.")
+            return 1
 
     # Load data
-    with open(data_path, 'r') as f:
-        data = json.load(f)
+    if use_preview_data:
+        # Load fresh preview data and merge with existing history for trend analysis
+        with open(preview_summary_path, 'r') as f:
+            preview_summary = json.load(f)
+
+        # Convert preview summary to run format
+        preview_run = {
+            "fetched_at": preview_summary.get("fetched_at"),
+            "timestamps": preview_summary.get("timestamps", []),
+            "models": preview_summary.get("models", {})
+        }
+
+        # Load existing history for trend comparison
+        if data_path.exists():
+            with open(data_path, 'r') as f:
+                history_data = json.load(f)
+            existing_runs = history_data.get("runs", [])
+        else:
+            existing_runs = []
+
+        # Create data structure with preview as current run
+        data = {
+            "location": preview_summary.get("location", {}),
+            "variable": preview_summary.get("variable", ""),
+            "runs": [preview_run] + existing_runs
+        }
+        print(f"Using PREVIEW data (fresh fetch) + {len(existing_runs)} historical runs for trends")
+
+        # Write combined data for Claude CLI to read
+        preview_data_path = data_dir / "preview_combined.json"
+        with open(preview_data_path, 'w') as f:
+            json.dump(data, f, indent=2)
+        data_path = preview_data_path  # Use this for Claude CLI
+    else:
+        with open(data_path, 'r') as f:
+            data = json.load(f)
 
     # Log data provenance for audit
     runs = data.get('runs', [])
@@ -1479,8 +1536,11 @@ def main():
     else:
         print("  No significant timing spread")
 
-    # Save alert state (includes trend persistence)
-    save_alert_state(state_path, alert_state)
+    # Save alert state (includes trend persistence) - skip in preview mode
+    if not use_preview_data:
+        save_alert_state(state_path, alert_state)
+    else:
+        print("  (skipping state save in preview mode)")
     print()
 
     # Generate main commentary with all analysis context
