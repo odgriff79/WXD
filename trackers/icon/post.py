@@ -352,13 +352,11 @@ def main():
 
     # Handle intro message
     if args.intro and not alert_state.get("intro_posted"):
-        intro_msg = """Introducing WXD ICON Tracker!
+        intro_msg = """Introducing WXD ICON Tracker
 
-Now tracking the German ICON ensemble (40 members) separately from our main 4-model ensemble.
+Now tracking the German ICON ensemble (40 members) for London 850hPa.
 
-ICON updates 4x daily (00z/06z/12z/18z) - more frequent snapshots of how this model sees London's 850hPa temperatures evolving.
-
-Posts tagged with "ICON:" to distinguish from main ensemble analysis."""
+ICON runs 2x daily (00z/12z). Posts tagged "ICON:" to distinguish from main 4-model ensemble."""
 
         print("Posting introduction message...")
         if not dry_run:
