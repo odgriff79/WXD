@@ -286,24 +286,38 @@ Plain text only."""
 
 
 def generate_metoffice_post(metoffice: dict) -> str:
-    """Generate post 1: Met Office summary."""
+    """Generate post 1: Met Office summary - today/tomorrow."""
     from datetime import datetime
     today = datetime.now().strftime("%d %m %Y")
 
-    # Get the today/tomorrow narrative
-    narrative = metoffice.get("today_tomorrow", "")
-    if not narrative:
-        narrative = metoffice.get("days_3_5", "")
-    if not narrative:
-        narrative = "Forecast unavailable"
+    narrative = metoffice.get("today_tomorrow", "") or "Forecast unavailable"
 
-    # Truncate to fit with header
     header = f"UK Daily {today} - Met Office says:\n\n"
     max_narrative = 280 - len(header)
     if len(narrative) > max_narrative:
         narrative = narrative[:max_narrative-3] + "..."
 
     return header + narrative
+
+
+def generate_metoffice_longrange_post(metoffice: dict) -> str:
+    """Generate post for long range outlook."""
+    parts = []
+
+    if metoffice.get("days_3_5"):
+        parts.append(f"Days 3-5: {metoffice['days_3_5']}")
+
+    if metoffice.get("long_range"):
+        parts.append(f"Long range: {metoffice['long_range']}")
+
+    if not parts:
+        return None
+
+    text = "\n".join(parts)
+    if len(text) > 280:
+        text = text[:277] + "..."
+
+    return text
 
 
 def generate_ai_commentary(metoffice: dict, model_summary: str) -> str:
@@ -439,30 +453,41 @@ def main():
     print("Generating thread posts...")
 
     post1 = generate_metoffice_post(metoffice)
-    print(f"  Post 1 - Met Office ({len(post1)} chars):")
+    print(f"  Post 1 - Met Office Today ({len(post1)} chars):")
     print(f"    {post1[:80]}...")
 
-    post2 = generate_ai_commentary(metoffice, model_summary)
-    print(f"  Post 2 - AI Commentary ({len(post2)} chars):")
-    print(f"    {post2[:80]}...")
+    post2 = generate_metoffice_longrange_post(metoffice)
+    if post2:
+        print(f"  Post 2 - Met Office Long Range ({len(post2)} chars):")
+        print(f"    {post2[:80]}...")
+    else:
+        print("  Post 2 - Met Office Long Range: (skipped - no data)")
 
-    post3 = generate_stats_post(model_summary)
-    print(f"  Post 3 - Stats ({len(post3)} chars):")
+    post3 = generate_ai_commentary(metoffice, model_summary)
+    print(f"  Post 3 - AI Commentary ({len(post3)} chars):")
     print(f"    {post3[:80]}...")
+
+    post4 = generate_stats_post(model_summary)
+    print(f"  Post 4 - Stats ({len(post4)} chars):")
+    print(f"    {post4[:80]}...")
 
     if dry_run:
         print()
         print("=" * 50)
         print("PREVIEW (not posting):")
         print()
-        print("POST 1 (Met Office):")
+        print("POST 1 (Met Office Today):")
         print(post1)
         print()
-        print("POST 2 (AI Commentary) - reply to post 1:")
-        print(post2)
-        print()
-        print("POST 3 (Stats) - reply to post 2:")
+        if post2:
+            print("POST 2 (Met Office Long Range) - reply:")
+            print(post2)
+            print()
+        print("POST 3 (AI Commentary) - reply:")
         print(post3)
+        print()
+        print("POST 4 (Stats) - reply:")
+        print(post4)
         print("=" * 50)
         print()
         print("(Attribution in pinned post)")
@@ -472,26 +497,36 @@ def main():
     print()
     print("Posting thread to Bluesky...")
 
-    # Post 1: Met Office summary
+    # Post 1: Met Office today
     result1 = post_to_bluesky(post1, handle=bsky_handle, password=bsky_password)
     if not result1:
-        print("  Failed to post Met Office summary")
+        print("  Failed to post Met Office today")
         return 1
     print(f"  Post 1: {result1['uri']}")
+    last_result = result1
 
-    # Post 2: AI Commentary (reply to post 1)
-    result2 = post_to_bluesky(post2, reply_to=result1, handle=bsky_handle, password=bsky_password)
-    if not result2:
+    # Post 2: Met Office long range (if available)
+    if post2:
+        result2 = post_to_bluesky(post2, reply_to=last_result, handle=bsky_handle, password=bsky_password)
+        if not result2:
+            print("  Failed to post Met Office long range")
+            return 1
+        print(f"  Post 2: {result2['uri']}")
+        last_result = result2
+
+    # Post 3: AI Commentary
+    result3 = post_to_bluesky(post3, reply_to=last_result, handle=bsky_handle, password=bsky_password)
+    if not result3:
         print("  Failed to post AI commentary")
         return 1
-    print(f"  Post 2: {result2['uri']}")
+    print(f"  Post 3: {result3['uri']}")
 
-    # Post 3: Stats (reply to post 2)
-    result3 = post_to_bluesky(post3, reply_to=result2, handle=bsky_handle, password=bsky_password)
-    if not result3:
+    # Post 4: Stats
+    result4 = post_to_bluesky(post4, reply_to=result3, handle=bsky_handle, password=bsky_password)
+    if not result4:
         print("  Failed to post stats")
         return 1
-    print(f"  Post 3: {result3['uri']}")
+    print(f"  Post 4: {result4['uri']}")
 
     print()
     print("Daily summary thread posted successfully")
