@@ -29,8 +29,6 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 - **ICON tracker** - Now uses shared analysis module with percentile framing
 - **MOGREPS tracker** - Now uses shared analysis module with percentile framing
 - **UKMO tracker** - Now uses shared analysis module (deterministic, no percentile framing)
-- **Chart x-axis** - All trackers now use consistent 16-day horizon
-- **Chart tick interval** - Changed from daily to every 2 days for cleaner display
 
 ### Technical
 - Added `sys.path.insert()` to each tracker for shared module imports

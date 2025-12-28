@@ -142,11 +142,6 @@ def generate_chart(data: dict, chart_path: Path) -> bool:
         # Parse dates
         dates = [datetime.fromisoformat(t.replace('Z', '+00:00')) for t in timestamps]
 
-        # Calculate consistent x-axis range (16 days from first timestamp)
-        from datetime import timedelta
-        x_start = dates[0]
-        x_end = x_start + timedelta(days=16)
-
         # Convert None to NaN for matplotlib
         import numpy as np
         mean_arr = np.array([float(x) if x is not None else np.nan for x in mean_temps])
@@ -186,9 +181,8 @@ def generate_chart(data: dict, chart_path: Path) -> bool:
         ax.set_ylabel('850hPa Temperature (°C)', fontsize=12)
         ax.legend(loc='upper right', fontsize=10)
         ax.grid(True, alpha=0.3)
-        ax.set_xlim(x_start, x_end)
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
-        ax.xaxis.set_major_locator(mdates.DayLocator(interval=2))
+        ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
         fig.autofmt_xdate()
 
         # Watermark
