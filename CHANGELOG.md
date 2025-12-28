@@ -10,6 +10,19 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ## [2025-12-28] - Shared Analysis Module & Enhanced Trackers
 
+### Code Audit (Claude Web)
+Full codebase audit completed - **all calculations verified correct**:
+- Data retrieval: All 4 models (GFS, ECM, AIFS, GEM) fetching correctly from Open-Meteo
+- Statistical calculations: Mean/min/max/spread computed correctly
+- Chart generation: Axes labeled, units correct, ensemble spread rendered properly
+- Alert logic: Threshold checks, hysteresis, and multi-model detection all correct
+- Minor notes: ICON `get_run_label()` has unreachable 06z/18z branches (harmless)
+
+### Fixed
+- **MOGREPS 4x daily** - Updated `get_latest_run()` to target all 4 runs (00z, 06z, 12z, 18z), not just 00z/12z
+- **MOGREPS fallback** - Added `get_fallback_run()` to try previous run if target unavailable on S3
+- **MOGREPS delay** - Corrected delay from 4h to 6h based on actual S3 availability testing
+
 ### Added
 - **Shared analysis module** (`trackers/shared/analysis.py`) - Common analysis functions across all trackers:
   - Trend persistence tracking (consecutive runs with same signal)
