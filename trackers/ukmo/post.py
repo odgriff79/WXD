@@ -259,14 +259,47 @@ def generate_chart(data: dict, chart_path: Path) -> bool:
         return False
 
 
-def post_to_bluesky(text: str, image_path: Path = None, handle: str = None, password: str = None) -> dict:
-    """Post to Bluesky."""
+def post_to_bluesky(text: str, image_path: Path = None, reply_to: dict = None,
+                    root_post: dict = None, handle: str = None, password: str = None) -> dict:
+    """Post to Bluesky with optional threading support.
+
+    Args:
+        text: Post text
+        image_path: Optional image to attach
+        reply_to: Optional dict with 'uri' and 'cid' to reply to (for threading)
+        root_post: Optional dict with 'uri' and 'cid' of thread root (for multi-level threads)
+        handle: Bluesky handle
+        password: App password
+
+    Returns:
+        dict with 'uri' and 'cid' of posted message, or None on failure
+    """
     if not HAS_ATPROTO or not handle or not password:
         return None
 
     try:
         client = Client()
         client.login(handle, password)
+
+        # Build reply reference if threading
+        reply_ref = None
+        if reply_to and reply_to.get('uri') and reply_to.get('cid'):
+            # Use root_post if provided, otherwise reply_to is both parent and root
+            root = root_post if root_post else reply_to
+
+            # Create StrongRef objects manually for robust threading
+            parent_ref = atproto_models.ComAtprotoRepoStrongRef.Main(
+                uri=reply_to['uri'],
+                cid=reply_to['cid']
+            )
+            root_ref = atproto_models.ComAtprotoRepoStrongRef.Main(
+                uri=root['uri'],
+                cid=root['cid']
+            )
+            reply_ref = atproto_models.AppBskyFeedPost.ReplyRef(
+                parent=parent_ref,
+                root=root_ref
+            )
 
         if image_path and image_path.exists():
             with open(image_path, 'rb') as f:
@@ -278,9 +311,9 @@ def post_to_bluesky(text: str, image_path: Path = None, handle: str = None, pass
                     image=upload.blob
                 )]
             )
-            response = client.send_post(text=text, embed=embed)
+            response = client.send_post(text=text, embed=embed, reply_to=reply_ref)
         else:
-            response = client.send_post(text=text)
+            response = client.send_post(text=text, reply_to=reply_ref)
 
         return {"uri": response.uri, "cid": response.cid}
 

@@ -1148,7 +1148,7 @@ def generate_chart(data_path: Path, output_path: Path) -> bool:
 
 
 def post_to_bluesky(text: str, image_path: Path = None, handle: str = None, password: str = None,
-                    reply_to: dict = None) -> dict:
+                    reply_to: dict = None, root_post: dict = None) -> dict:
     """Post to Bluesky with optional image. Returns post reference for threading.
 
     Args:
@@ -1157,6 +1157,7 @@ def post_to_bluesky(text: str, image_path: Path = None, handle: str = None, pass
         handle: Bluesky handle
         password: App password
         reply_to: Optional dict with 'uri' and 'cid' to reply to (for threading)
+        root_post: Optional dict with 'uri' and 'cid' of thread root (for multi-level threads)
 
     Returns:
         dict with 'uri' and 'cid' of posted message, or None on failure
@@ -1176,13 +1177,21 @@ def post_to_bluesky(text: str, image_path: Path = None, handle: str = None, pass
         # Build reply reference if threading (must use proper atproto models)
         reply_ref = None
         if reply_to and reply_to.get('uri') and reply_to.get('cid'):
-            strong_ref = atproto_models.ComAtprotoRepoStrongRef.Main(
+            # Use root_post if provided, otherwise reply_to is both parent and root
+            root = root_post if root_post else reply_to
+
+            # Create StrongRef objects manually for robust threading
+            parent_ref = atproto_models.ComAtprotoRepoStrongRef.Main(
                 uri=reply_to['uri'],
                 cid=reply_to['cid']
             )
+            root_ref = atproto_models.ComAtprotoRepoStrongRef.Main(
+                uri=root['uri'],
+                cid=root['cid']
+            )
             reply_ref = atproto_models.AppBskyFeedPost.ReplyRef(
-                root=strong_ref,
-                parent=strong_ref
+                parent=parent_ref,
+                root=root_ref
             )
 
         if image_path and image_path.exists():
@@ -1623,16 +1632,18 @@ def main():
         print(f"Posting main update to Bluesky ({len(main_posts)} part(s))...")
         image = chart_path if chart_ok else None
 
-        # First post with image
+        # First post with image (root of thread)
         main_post_ref = post_to_bluesky(main_posts[0], image, bsky_handle, bsky_password)
         if not main_post_ref:
             return 1
+        root_post = main_post_ref  # All replies point to this as root
 
         # Continuation posts as thread
         last_ref = main_post_ref
         for i, continuation in enumerate(main_posts[1:], 1):
             print(f"  Posting continuation {i}...")
-            last_ref = post_to_bluesky(continuation, None, bsky_handle, bsky_password, reply_to=last_ref)
+            last_ref = post_to_bluesky(continuation, None, bsky_handle, bsky_password,
+                                       reply_to=last_ref, root_post=root_post)
             if not last_ref:
                 print(f"  Warning: continuation {i} failed")
                 break
@@ -1642,6 +1653,10 @@ def main():
         main_post_ref = None
 
     # Generate alert texts and post/preview them
+    # For dry-run mode, we need a fake root_post
+    if dry_run:
+        root_post = {'uri': 'dry-run', 'cid': 'dry-run'}
+
     if main_post_ref:
         # Cold alert - now with multi-model support
         if cold_alert:
@@ -1668,7 +1683,8 @@ def main():
             else:
                 print(f"Posting cold alert as reply ({len(alert_text)} chars):")
                 print(f"  {alert_text}")
-                post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
+                post_to_bluesky(alert_text, None, bsky_handle, bsky_password,
+                               reply_to=main_post_ref, root_post=root_post)
 
         # Warm alert (summer only)
         if warm_alert:
@@ -1684,7 +1700,8 @@ def main():
             else:
                 print(f"Posting warm alert as reply ({len(alert_text)} chars):")
                 print(f"  {alert_text}")
-                post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
+                post_to_bluesky(alert_text, None, bsky_handle, bsky_password,
+                               reply_to=main_post_ref, root_post=root_post)
 
         # Divergence alert
         if divergence_info and divergence_info['diff'] > 6.0:
@@ -1697,7 +1714,8 @@ def main():
             else:
                 print(f"Posting divergence alert as reply ({len(alert_text)} chars):")
                 print(f"  {alert_text}")
-                post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
+                post_to_bluesky(alert_text, None, bsky_handle, bsky_password,
+                               reply_to=main_post_ref, root_post=root_post)
 
         # Swing alert
         if swing_info and abs(swing_info['swing']) >= 8.0:
@@ -1710,7 +1728,8 @@ def main():
             else:
                 print(f"Posting swing alert as reply ({len(alert_text)} chars):")
                 print(f"  {alert_text}")
-                post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
+                post_to_bluesky(alert_text, None, bsky_handle, bsky_password,
+                               reply_to=main_post_ref, root_post=root_post)
 
         # Percentile alert
         if percentile_info and percentile_info.get('pct', 0) >= 80:
@@ -1729,7 +1748,8 @@ def main():
             else:
                 print(f"Posting percentile alert as reply ({len(alert_text)} chars):")
                 print(f"  {alert_text}")
-                post_to_bluesky(alert_text, None, bsky_handle, bsky_password, reply_to=main_post_ref)
+                post_to_bluesky(alert_text, None, bsky_handle, bsky_password,
+                               reply_to=main_post_ref, root_post=root_post)
 
     print()
     print("Complete")
