@@ -11,6 +11,10 @@ Tracker B (ICON):
 - 'icon': Run ICON analysis on current data (quick)
 - 'icon-fresh': Fetch new ICON data first, then analyze (isolated)
 
+Tracker D (UKMO):
+- 'ukmo': Run UKMO analysis on current data (quick)
+- 'ukmo-fresh': Fetch new UKMO data first, then analyze (isolated)
+
 Results sent to wxd-alerts topic.
 """
 import subprocess
@@ -26,6 +30,7 @@ print('WXD ntfy listener started')
 print('Commands:')
 print('  Tracker A: "preview" (quick) or "fresh" (fetch new)')
 print('  Tracker B: "icon" (quick) or "icon-fresh" (fetch new)')
+print('  Tracker D: "ukmo" (quick) or "ukmo-fresh" (fetch new)')
 print('Send to: https://ntfy.sh/wxd-cmd')
 
 # Use ntfy JSON stream API
@@ -91,6 +96,28 @@ def handle_icon_fresh():
     return f"=== ICON FRESH FETCH ===\n{fetch_output}\n\n=== ICON ANALYSIS ===\n{analysis_output}"
 
 
+def handle_ukmo():
+    """Quick UKMO preview using existing data."""
+    print(f'UKMO preview requested at {time.strftime("%H:%M:%S")}')
+    output = run_command(['/home/ubuntu/wxd/venv/bin/python', 'trackers/ukmo/post.py', '--dry-run'])
+    return output
+
+
+def handle_ukmo_fresh():
+    """Fetch fresh UKMO data (isolated) then preview."""
+    print(f'Fresh UKMO preview requested at {time.strftime("%H:%M:%S")}')
+
+    # Step 1: Fetch fresh UKMO data in preview mode (isolated)
+    print('  Fetching fresh UKMO data...')
+    fetch_output = run_command(['/home/ubuntu/wxd/venv/bin/python', 'trackers/ukmo/fetch.py', '--preview'])
+
+    # Step 2: Run UKMO analysis on preview data
+    print('  Running UKMO analysis...')
+    analysis_output = run_command(['/home/ubuntu/wxd/venv/bin/python', 'trackers/ukmo/post.py', '--preview'])
+
+    return f"=== UKMO FRESH FETCH ===\n{fetch_output}\n\n=== UKMO ANALYSIS ===\n{analysis_output}"
+
+
 while True:
     try:
         # Stream messages with timeout
@@ -113,12 +140,17 @@ while True:
                             output = handle_icon()
                         elif cmd == 'icon-fresh':
                             output = handle_icon_fresh()
+                        elif cmd == 'ukmo':
+                            output = handle_ukmo()
+                        elif cmd == 'ukmo-fresh':
+                            output = handle_ukmo_fresh()
 
                         if output:
                             # Clean up output for ntfy
-                            if 'PREVIEW' in output or 'DRY RUN' in output or 'FRESH' in output or 'ICON' in output:
-                                # Find the header - check ICON markers first
-                                for marker in ['ICON FRESH FETCH', 'ICON ANALYSIS', 'ICON-EU-EPS',
+                            if 'PREVIEW' in output or 'DRY RUN' in output or 'FRESH' in output or 'ICON' in output or 'UKMO' in output:
+                                # Find the header - check model-specific markers first
+                                for marker in ['UKMO FRESH FETCH', 'UKMO ANALYSIS', 'UKMO Fetch',
+                                              'ICON FRESH FETCH', 'ICON ANALYSIS', 'ICON-EU-EPS',
                                               'FRESH PREVIEW', 'FRESH FETCH', 'DRY RUN', 'PREVIEW']:
                                     if marker in output:
                                         idx = output.index(marker)
