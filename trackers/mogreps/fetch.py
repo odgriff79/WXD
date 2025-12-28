@@ -29,9 +29,10 @@ LONGITUDE = -0.1278
 # MOGREPS uses 0-360 longitude convention
 LONGITUDE_360 = 360 + LONGITUDE  # = 359.87
 
-# Forecast configuration - 12-hourly intervals to match other trackers
-# MOGREPS-G goes to 7 days (168h)
-FORECAST_HOURS = list(range(0, 169, 12))  # 0, 12, 24, ..., 168 (15 files)
+# Forecast configuration - 24-hourly intervals to reduce S3 download time
+# MOGREPS-G goes to 7 days (168h), but S3 access is slow (~2-3 min/file)
+# Using 24h intervals: 0, 24, 48, 72, 96, 120, 144, 168 (8 files, ~15-20 min)
+FORECAST_HOURS = list(range(0, 169, 24))  # 0, 24, 48, ..., 168 (8 files)
 HISTORY_RUNS = 8   # 2 runs/day * 4 days (using 2 of the 4 daily runs)
 RETENTION_DAYS = 7
 
