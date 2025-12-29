@@ -250,25 +250,32 @@ def generate_engagement_post(category: str, topic: str) -> str:
 
     prompt = f"""You are WXD, a weather tracking project that monitors 850hPa temperatures for London using multiple weather models (GFS, ECMWF, AIFS, GEM, ICON, MOGREPS, UKMO).
 
-Write an engaging educational post for Bluesky about:
+Write an engaging educational Bluesky thread about:
 CATEGORY: {cat_name}
 TOPIC: {topic}
 
 TARGET AUDIENCE: General public and weather enthusiasts with basic knowledge (not experts).
 
-Write a thread of 2-3 posts (each max 280 chars, separated by ---).
+CRITICAL FORMAT:
+- Write 2-3 posts, each max 280 characters
+- Separate posts with --- on its own line
+- Output ONLY the post text, nothing else
+- NO labels like "Post 1:" or "**Post 1:**"
+- NO markdown formatting (no **, no #, no *)
+- Plain text only
 
-RULES:
+CONTENT RULES:
 - Be friendly, informative, not condescending
 - Use simple language, explain jargon
 - Relate to WXD project where natural
-- No emojis unless absolutely necessary
+- No emojis
 - End with something that invites engagement (question, thought)
 - Be factually accurate about meteorology and technology
 
-Post 1: Hook/intro to the topic
-Post 2: Main explanation
-Post 3 (optional): How it relates to WXD or invitation to engage"""
+Structure:
+- First post: Hook/intro to the topic
+- Second post: Main explanation
+- Third post (optional): How it relates to WXD or invitation to engage"""
 
     try:
         result = subprocess.run(
