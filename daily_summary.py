@@ -269,8 +269,8 @@ Plain text only."""
 
     try:
         result = subprocess.run(
-            ['claude', '-p', '--dangerously-skip-permissions', '--tools', '', '--model', 'haiku'],
-            input=prompt,
+            ['claude', '--dangerously-skip-permissions', '--model', 'sonnet', '-p', prompt],
+            input=None,
             capture_output=True,
             text=True,
             timeout=180
@@ -352,8 +352,8 @@ Plain text only."""
 
     try:
         result = subprocess.run(
-            ['claude', '-p', '--dangerously-skip-permissions', '--tools', '', '--model', 'haiku'],
-            input=prompt,
+            ['claude', '--dangerously-skip-permissions', '--model', 'sonnet', '-p', prompt],
+            input=None,
             capture_output=True,
             text=True,
             timeout=180
