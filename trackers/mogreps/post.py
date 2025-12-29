@@ -69,7 +69,7 @@ def save_alert_state(state_path: Path, state: dict) -> None:
         json.dump(state, f, indent=2)
 
 
-def get_claude_commentary(data_path: Path, full_context: str, run_diff: dict, cold_info: dict) -> tuple:
+def get_claude_commentary(full_context: str, run_diff: dict, cold_info: dict) -> tuple:
     """Get Claude CLI commentary for MOGREPS data with enriched context."""
     prompt = f"""You are WXD MOGREPS tracker. Write brief commentary on UK Met Office ensemble (18 members) 850hPa temperature data for London.
 
@@ -91,15 +91,12 @@ FORMAT:
 - Use C for temperatures"""
 
     try:
-        with open(data_path, 'r') as f:
-            data_str = f.read()
-
         result = subprocess.run(
-            ['claude', '-p', prompt],
-            input=data_str,
+            ['claude', '--dangerously-skip-permissions', '--model', 'sonnet', '-p', prompt],
+            input=None,
             capture_output=True,
             text=True,
-            timeout=120
+            timeout=300
         )
 
         if result.returncode == 0 and result.stdout.strip():
@@ -383,7 +380,7 @@ MOGREPS runs 4x daily. Posts tagged "MOGREPS:" as UK ensemble benchmark."""
 
     # Get commentary with enriched context
     print("Generating commentary...")
-    text, is_fallback = get_claude_commentary(history_path, full_context, run_diff, cold_info)
+    text, is_fallback = get_claude_commentary(full_context, run_diff, cold_info)
     print(f"  Commentary ({len(text)} chars):")
     print(f"  {text}")
 

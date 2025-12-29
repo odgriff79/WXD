@@ -269,10 +269,11 @@ Plain text only."""
 
     try:
         result = subprocess.run(
-            ['claude', '-p', prompt],
+            ['claude', '-p', '--dangerously-skip-permissions', '--tools', '', '--model', 'haiku'],
+            input=prompt,
             capture_output=True,
             text=True,
-            timeout=120
+            timeout=180
         )
 
         if result.returncode == 0 and result.stdout.strip():
@@ -351,10 +352,11 @@ Plain text only."""
 
     try:
         result = subprocess.run(
-            ['claude', '-p', prompt],
+            ['claude', '-p', '--dangerously-skip-permissions', '--tools', '', '--model', 'haiku'],
+            input=prompt,
             capture_output=True,
             text=True,
-            timeout=120
+            timeout=180
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()[:250]

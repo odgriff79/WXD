@@ -952,11 +952,11 @@ Data shows ensemble means from GFS, ECM, AIFS, and GEM models."""
 
         # First attempt
         result = subprocess.run(
-            ['claude', '-p', prompt],
-            input=data_str,
+            ['claude', '-p', '--dangerously-skip-permissions', '--tools', '', '--model', 'haiku'],
+            input=prompt,
             capture_output=True,
             text=True,
-            timeout=120
+            timeout=180
         )
 
         if result.returncode == 0:
@@ -979,11 +979,11 @@ Data shows ensemble means from GFS, ECM, AIFS, and GEM models."""
 
             # Retry once
             result = subprocess.run(
-                ['claude', '-p', prompt],
-                input=data_str,
+                ['claude', '-p', '--dangerously-skip-permissions', '--tools', '', '--model', 'haiku'],
+                input=prompt,
                 capture_output=True,
                 text=True,
-                timeout=120
+                timeout=180
             )
 
             if result.returncode == 0:
