@@ -154,8 +154,11 @@ def fetch_metoffice_narrative() -> dict:
                 # Look for forecast content (mentions weather terms and is long enough)
                 if len(p_text) > 100 and any(word in p_text.lower() for word in
                     ['winds', 'temperatures', 'pressure', 'cold', 'mild', 'rain', 'snow', 'frost', 'showers', 'settled']):
-                    # Skip navigation/menu text
-                    if not any(skip in p_text.lower() for skip in ['search site', 'skip to', 'menu', 'back weather']):
+                    # Skip navigation/menu text and site headers
+                    skip_phrases = ['search site', 'skip to', 'menu', 'back weather',
+                                   'weather & climate', 'everything you need', 'cookies',
+                                   'sign up', 'subscribe', 'footer', 'header']
+                    if not any(skip in p_text.lower() for skip in skip_phrases):
                         paragraphs.append(p_text)
 
             # Deduplicate and take first 2 unique paragraphs
