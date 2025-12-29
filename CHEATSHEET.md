@@ -7,12 +7,45 @@ Quick reference for ntfy commands, cron schedules, and common operations.
 ```powershell
 # Send notification
 powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'your message'"
+```
 
-# Common triggers
+### Available Triggers
+
+| Trigger | Description |
+|---------|-------------|
+| `preview` | Tracker A - quick preview (existing data) |
+| `fresh` | Tracker A - fetch new data + preview |
+| `icon` | ICON - quick preview |
+| `icon-fresh` | ICON - fetch new data + preview |
+| `ukmo` | UKMO - quick preview |
+| `ukmo-fresh` | UKMO - fetch new data + preview |
+| `mogreps` | MOGREPS - quick preview |
+| `mogreps-fresh` | MOGREPS - fetch new data + preview |
+| `summary` | Daily Met Office summary preview |
+| `engagement` | Engagement post preview |
+
+```powershell
+# Tracker A
 powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'preview'"
-powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'fetch_icon'"
-powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'fetch_ukmo'"
-powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'fetch_mogreps'"
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'fresh'"
+
+# ICON
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'icon'"
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'icon-fresh'"
+
+# UKMO
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'ukmo'"
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'ukmo-fresh'"
+
+# MOGREPS
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'mogreps'"
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'mogreps-fresh'"
+
+# Daily Summary
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'summary'"
+
+# Engagement
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'engagement'"
 ```
 
 ## VM Cron Schedule

@@ -19,6 +19,12 @@ Tracker C (MOGREPS):
 - 'mogreps': Run MOGREPS analysis on current data (quick)
 - 'mogreps-fresh': Fetch new MOGREPS data first, then analyze (isolated)
 
+Daily Summary:
+- 'summary': Preview daily Met Office summary thread (dry-run)
+
+Engagement:
+- 'engagement': Preview engagement post (dry-run)
+
 Results sent to wxd-alerts topic.
 """
 import subprocess
@@ -36,6 +42,8 @@ print('  Tracker A: "preview" (quick) or "fresh" (fetch new)')
 print('  Tracker B: "icon" (quick) or "icon-fresh" (fetch new)')
 print('  Tracker C: "mogreps" (quick) or "mogreps-fresh" (fetch new)')
 print('  Tracker D: "ukmo" (quick) or "ukmo-fresh" (fetch new)')
+print('  Daily: "summary" (Met Office summary preview)')
+print('  Engagement: "engagement" (preview)')
 print('Send to: https://ntfy.sh/wxd-cmd')
 
 # Use ntfy JSON stream API
@@ -150,6 +158,20 @@ def handle_mogreps_fresh():
     return f"=== MOGREPS FRESH FETCH ===\n{fetch_output}\n\n=== MOGREPS ANALYSIS ===\n{analysis_output}"
 
 
+def handle_summary():
+    """Preview daily Met Office summary thread."""
+    print(f'Daily summary preview requested at {time.strftime("%H:%M:%S")}')
+    output = run_command(['/home/ubuntu/wxd/venv/bin/python', 'daily_summary.py', '--dry-run'])
+    return output
+
+
+def handle_engagement():
+    """Preview engagement post."""
+    print(f'Engagement preview requested at {time.strftime("%H:%M:%S")}')
+    output = run_command(['/home/ubuntu/wxd/venv/bin/python', 'engagement/engagement_post.py', '--dry-run'])
+    return output
+
+
 while True:
     try:
         # Stream messages with timeout
@@ -180,6 +202,10 @@ while True:
                             output = handle_mogreps()
                         elif cmd == 'mogreps-fresh':
                             output = handle_mogreps_fresh()
+                        elif cmd == 'summary':
+                            output = handle_summary()
+                        elif cmd == 'engagement':
+                            output = handle_engagement()
 
                         if output:
                             # Clean up output for ntfy
