@@ -7,6 +7,7 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 ### TODO
 - ~~**Anytime preview/testing mode** - Allow fresh data fetch for preview/testing without polluting or contaminating the production data files or history. Must ensure complete isolation from scheduled runs.~~ **DONE**
 - ~~**ICON/UKMO/MOGREPS commentary enhancement** - Ported Tracker A's rich analysis features to all trackers.~~ **DONE**
+- **Break down workflows into smaller tasks** - Current cron jobs run fetch + analysis + chart + Claude commentary + post as one heavy process. Causes memory issues and VM overload (load avg 20+). Need to split into smaller sequential steps or add delays between stages. MOGREPS S3 fetches + Claude CLI commentary together overwhelm the VM.
 
 ### Fixed
 - **MOGREPS longitude bug** - Was using 0-360 convention (359.87°) but MOGREPS files use -180..180 convention. With `method='nearest'`, 359.87 snapped to 179.86° (Pacific Ocean) instead of London. Fix: use -0.1278° directly. Debug confirmed: correct selection now at -0.14°.
