@@ -532,67 +532,66 @@ def generate_warnings_post(metoffice: dict) -> str:
 
     Returns None if no significant warnings to report.
     """
-    warnings_info = []
+    # Check if we have any warning info
+    has_warning = (metoffice.get("long_range_warning") or
+                   (metoffice.get("uk_warnings") and "No warnings" not in metoffice.get("uk_warnings", "")))
 
-    # Get warning from long-range page (date range)
-    if metoffice.get("long_range_warning"):
-        warnings_info.append(metoffice["long_range_warning"])
-
-    # Get day-by-day warnings from uk-warnings page
-    if metoffice.get("uk_warnings") and "No warnings" not in metoffice["uk_warnings"]:
-        warnings_info.append(metoffice["uk_warnings"])
-
-    if not warnings_info:
+    if not has_warning:
         return None
 
-    # Extract key details for a concise post
-    # Look for date range pattern
+    # Determine warning level
+    warning_level = "Yellow"
+    all_text = (metoffice.get("long_range_warning", "") + " " +
+                metoffice.get("uk_warnings", "") + " " +
+                metoffice.get("long_range_detail", ""))
+
+    if "Amber" in all_text:
+        warning_level = "Amber"
+    if "Red" in all_text:
+        warning_level = "Red"
+
+    # Extract date range from long_range_warning or long_range_detail
     date_range = None
-    warning_level = "Yellow"  # Default
-    affected_text = ""
-
-    for info in warnings_info:
-        # Check for higher severity
-        if "Amber" in info:
-            warning_level = "Amber"
-        if "Red" in info:
-            warning_level = "Red"
-
-        # Extract date range
-        import re
+    for text in [metoffice.get("long_range_warning", ""), metoffice.get("long_range_detail", "")]:
         range_match = re.search(
-            r'(Saturday|Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Sat|Sun|Mon|Tue|Wed|Thu|Fri)\s+\d{1,2}\s+\w+\s*[-–]\s*(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+\d{1,2}\s+\w+',
-            info
+            r'(Sat(?:urday)?|Sun(?:day)?|Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?)\s+\d{1,2}\s+\w{3,9}\s*[-–]\s*(Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)\s+\d{1,2}\s+\w{3,9}',
+            text
         )
         if range_match:
             date_range = range_match.group(0)
+            break
 
-        # Look for affected nations
-        if "Affected:" in info:
-            affected_text = info.split("Affected:")[1].strip()
+    # Get affected nations - check all UK nations
+    nations_affected = []
+    for nation in ['Scotland', 'England', 'Wales', 'Northern Ireland']:
+        if nation.lower() in all_text.lower():
+            nations_affected.append(nation)
 
-    # Build the post
-    header = f"Met Office {warning_level} Warning\n\n"
+    # If no specific nations mentioned, it's likely UK-wide
+    if not nations_affected and ("UK" in all_text or "widespread" in all_text.lower()):
+        nations_affected = ["UK-wide"]
 
-    body_parts = []
+    # Build concise post
+    lines = [f"Met Office {warning_level} Warning"]
+
     if date_range:
-        body_parts.append(f"Active: {date_range}")
-    if affected_text:
-        body_parts.append(f"Areas: {affected_text[:80]}")
+        lines.append(f"{date_range}")
 
-    # Add context from long-range detail if available
+    if nations_affected:
+        lines.append(f"Affects: {', '.join(nations_affected)}")
+
+    # Add brief context - just the hazard type
     detail = metoffice.get("long_range_detail", "")
-    if detail and len(detail) > 50:
-        # Extract first sentence or two
-        sentences = detail.split('.')
-        context = '. '.join(sentences[:2]) + '.'
-        if len(context) > 120:
-            context = context[:117] + "..."
-        body_parts.append(context)
+    hazards = []
+    for hazard in ['snow', 'ice', 'icy', 'frost', 'cold', 'wind', 'rain', 'fog']:
+        if hazard in detail.lower():
+            hazards.append(hazard)
+    if hazards:
+        lines.append(f"Hazards: {', '.join(hazards[:3])}")
 
-    body = "\n".join(body_parts)
+    post = "\n".join(lines)
 
-    post = header + body
+    # Should easily fit in 280 chars now
     if len(post) > 280:
         post = post[:277] + "..."
 
