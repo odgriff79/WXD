@@ -83,10 +83,10 @@ tail -100 cron.log
 ## Remote Preview (ntfy.sh)
 
 ```bash
-curl -d "preview" ntfy.sh/wxd-cmd    # Quick preview
-curl -d "fresh" ntfy.sh/wxd-cmd      # Fresh fetch + preview
-curl -d "icon" ntfy.sh/wxd-cmd       # ICON preview
-curl -d "ukmo" ntfy.sh/wxd-cmd       # UKMO preview
+curl -d "preview" ntfy.sh/YOUR_CHANNEL    # Quick preview
+curl -d "fresh" ntfy.sh/YOUR_CHANNEL      # Fresh fetch + preview
+curl -d "icon" ntfy.sh/YOUR_CHANNEL       # ICON preview
+curl -d "ukmo" ntfy.sh/YOUR_CHANNEL       # UKMO preview
 ```
 
 ## Remote Orchestration
@@ -114,9 +114,30 @@ ssh -i "$SSH_KEY" ubuntu@$VM_IP "cd ~/wxd && source venv/bin/activate && source 
 | Cron not running | `crontab -l`, check permissions on .sh files |
 | ICON fetch fails | DWD servers, eccodes installation |
 
+## SECURITY - READ CAREFULLY
+
+**NEVER include in any file committed to git:**
+- SSH key paths or filenames (e.g., `ssh-key-*.key`)
+- VM IP addresses
+- ntfy channel names (use `YOUR_CHANNEL` placeholder)
+- Any file paths containing usernames or personal directories
+- Bluesky credentials or API keys
+- Any personally identifiable information
+
+**Before creating/editing public files:**
+1. Check if the file will be committed to git
+2. Replace all sensitive values with placeholders like `YOUR_VM_IP`, `YOUR_CHANNEL`, `PATH_TO_KEY`
+3. Review the content for any personal paths or credentials
+
+**If you accidentally commit sensitive info:**
+- The git history retains it even after deletion
+- Rotating the exposed secret (e.g., change ntfy channel) is safer than history rewrite
+
 ## DO NOT
 
 - Add `--max-tokens` to Claude CLI calls (doesn't exist)
 - Use `ogrisel` anywhere (wrong username)
 - Post without `--dry-run` testing first
 - Commit credentials or `.vm_config`
+- Include SSH key paths, VM IPs, or ntfy channels in committed files
+- Create cheatsheets or docs with real infrastructure details in public repos
