@@ -15,12 +15,6 @@ powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_C
 powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'fetch_mogreps'"
 ```
 
-## SSH to VM
-
-```bash
-ssh -i "PATH_TO_YOUR_SSH_KEY" ubuntu@YOUR_VM_IP
-```
-
 ## VM Cron Schedule
 
 View current cron:
