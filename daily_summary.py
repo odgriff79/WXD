@@ -50,7 +50,7 @@ except ImportError:
 # Met Office URLs
 METOFFICE_UK_URL = "https://weather.metoffice.gov.uk/forecast/uk"
 METOFFICE_LONGRANGE_URL = "https://weather.metoffice.gov.uk/long-range-forecast"
-METOFFICE_WARNINGS_URL = "https://weather.metoffice.gov.uk/warnings-and-advice/accessible-uk-warnings"
+METOFFICE_WARNINGS_URL = "https://weather.metoffice.gov.uk/warnings-and-advice/uk-warnings"
 
 # OGL Attribution (required)
 OGL_ATTRIBUTION = "Contains public sector information licensed under the Open Government Licence v3.0"
@@ -178,52 +178,67 @@ def fetch_metoffice_narrative() -> dict:
         else:
             result["error"] = f"Long-range page: {e}"
 
-    # Fetch accessible warnings page for nation-level summary
+    # Fetch UK warnings page for day-by-day warning status
     try:
         resp = requests.get(METOFFICE_WARNINGS_URL, headers=headers, timeout=30)
         if resp.status_code == 200:
             soup = BeautifulSoup(resp.text, 'html.parser')
             text = soup.get_text(" ", strip=True)
 
+            # Look for day-by-day warning patterns like:
+            # "Thu 1 Jan Yellow weather warning" or "Mon 29 Dec No warnings"
+            day_pattern = r'(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(No warnings|Yellow|Amber|Red)\s*(weather warning)?'
+            day_matches = re.findall(day_pattern, text, re.IGNORECASE)
+
+            warning_days = []
+            no_warning_days = []
+            for match in day_matches:
+                day_name, day_num, month, status = match[0], match[1], match[2], match[3]
+                date_str = f"{day_name} {day_num} {month}"
+                if status.lower() == 'no warnings':
+                    no_warning_days.append(date_str)
+                else:
+                    warning_days.append(f"{date_str}: {status}")
+
             # Look for nations with warnings
             nations = ['England', 'Scotland', 'Wales', 'Northern Ireland']
             nation_warnings = {}
 
             for nation in nations:
-                # Check if nation appears near warning terms
                 pattern = rf'{nation}[^.]*?(Yellow|Amber|Red)\s+warning|' \
                          rf'(Yellow|Amber|Red)\s+warning[^.]*?{nation}'
                 match = re.search(pattern, text, re.IGNORECASE)
                 if match:
-                    # Find warning type
                     warning_type = match.group(1) or match.group(2)
                     nation_warnings[nation] = warning_type.capitalize()
 
-            # Also look for date ranges
-            date_match = re.search(
-                r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}\s+\w+\s*[-–]\s*(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}\s+\w+',
-                text
-            )
-            date_range = date_match.group(0) if date_match else None
+            # Build summary
+            parts = []
 
+            # Add warning days
+            if warning_days:
+                parts.append("Warnings: " + ", ".join(warning_days[:4]))  # Limit to 4 days
+
+            # Add nations affected
             if nation_warnings:
-                # Format: "Yellow: England, Scotland (Sat 3 - Mon 12 Jan)"
                 by_level = {}
                 for nation, level in nation_warnings.items():
                     if level not in by_level:
                         by_level[level] = []
                     by_level[level].append(nation)
 
-                parts = []
+                nation_parts = []
                 for level in ['Red', 'Amber', 'Yellow']:
                     if level in by_level:
                         nations_str = ', '.join(by_level[level])
-                        parts.append(f"{level}: {nations_str}")
+                        nation_parts.append(f"{level}: {nations_str}")
+                if nation_parts:
+                    parts.append("Affected: " + "; ".join(nation_parts))
 
-                summary = '; '.join(parts)
-                if date_range:
-                    summary += f" ({date_range})"
-                result["uk_warnings"] = summary
+            if parts:
+                result["uk_warnings"] = " | ".join(parts)
+            elif no_warning_days and not warning_days:
+                result["uk_warnings"] = "No warnings in force"
 
     except Exception as e:
         pass  # Warnings are optional, don't fail if this doesn't work
