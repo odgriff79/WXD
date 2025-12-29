@@ -527,6 +527,78 @@ def generate_stats_post(model_summary: str) -> str:
     return header + stats
 
 
+def generate_warnings_post(metoffice: dict) -> str:
+    """Generate standalone warnings post if active warnings exist.
+
+    Returns None if no significant warnings to report.
+    """
+    warnings_info = []
+
+    # Get warning from long-range page (date range)
+    if metoffice.get("long_range_warning"):
+        warnings_info.append(metoffice["long_range_warning"])
+
+    # Get day-by-day warnings from uk-warnings page
+    if metoffice.get("uk_warnings") and "No warnings" not in metoffice["uk_warnings"]:
+        warnings_info.append(metoffice["uk_warnings"])
+
+    if not warnings_info:
+        return None
+
+    # Extract key details for a concise post
+    # Look for date range pattern
+    date_range = None
+    warning_level = "Yellow"  # Default
+    affected_text = ""
+
+    for info in warnings_info:
+        # Check for higher severity
+        if "Amber" in info:
+            warning_level = "Amber"
+        if "Red" in info:
+            warning_level = "Red"
+
+        # Extract date range
+        import re
+        range_match = re.search(
+            r'(Saturday|Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Sat|Sun|Mon|Tue|Wed|Thu|Fri)\s+\d{1,2}\s+\w+\s*[-–]\s*(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+\d{1,2}\s+\w+',
+            info
+        )
+        if range_match:
+            date_range = range_match.group(0)
+
+        # Look for affected nations
+        if "Affected:" in info:
+            affected_text = info.split("Affected:")[1].strip()
+
+    # Build the post
+    header = f"Met Office {warning_level} Warning\n\n"
+
+    body_parts = []
+    if date_range:
+        body_parts.append(f"Active: {date_range}")
+    if affected_text:
+        body_parts.append(f"Areas: {affected_text[:80]}")
+
+    # Add context from long-range detail if available
+    detail = metoffice.get("long_range_detail", "")
+    if detail and len(detail) > 50:
+        # Extract first sentence or two
+        sentences = detail.split('.')
+        context = '. '.join(sentences[:2]) + '.'
+        if len(context) > 120:
+            context = context[:117] + "..."
+        body_parts.append(context)
+
+    body = "\n".join(body_parts)
+
+    post = header + body
+    if len(post) > 280:
+        post = post[:277] + "..."
+
+    return post
+
+
 def post_to_bluesky(text: str, reply_to: dict = None, root_post: dict = None,
                     handle: str = None, password: str = None) -> dict:
     """Post to Bluesky, optionally as reply (for threading)."""
@@ -634,6 +706,14 @@ def main():
     print(f"  Post 4 - Stats ({len(post4)} chars):")
     print(f"    {post4[:80]}...")
 
+    # Separate standalone warnings post (if active warnings)
+    warnings_post = generate_warnings_post(metoffice)
+    if warnings_post:
+        print(f"  Warnings Post - STANDALONE ({len(warnings_post)} chars):")
+        print(f"    {warnings_post[:80]}...")
+    else:
+        print("  Warnings Post: (none - no active warnings)")
+
     if dry_run:
         print()
         print("=" * 50)
@@ -651,6 +731,11 @@ def main():
         print()
         print("POST 4 (Stats) - reply:")
         print(post4)
+        if warnings_post:
+            print()
+            print("=" * 50)
+            print("SEPARATE WARNINGS POST (standalone, not in thread):")
+            print(warnings_post)
         print("=" * 50)
         print()
         print("(Attribution in pinned post)")
@@ -697,6 +782,17 @@ def main():
 
     print()
     print("Daily summary thread posted successfully")
+
+    # Post standalone warnings alert if active warnings
+    if warnings_post:
+        print()
+        print("Posting standalone warnings alert...")
+        warnings_result = post_to_bluesky(warnings_post, handle=bsky_handle, password=bsky_password)
+        if warnings_result:
+            print(f"  Warnings: {warnings_result['uri']}")
+        else:
+            print("  Failed to post warnings (non-critical)")
+
     return 0
 
 
