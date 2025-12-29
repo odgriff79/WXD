@@ -53,23 +53,21 @@ def save_alert_state(state_path: Path, state: dict) -> None:
 
 def get_claude_commentary(full_context: str, run_diff: dict, cold_info: dict) -> tuple:
     """Get Claude CLI commentary for UKMO data with enriched context."""
-    prompt = f"""You are WXD UKMO tracker. Write brief commentary on UK Met Office deterministic (~10km) 850hPa temperature data for London.
+    prompt = f"""You are WXD UKMO tracker. Write brief factual commentary on UK Met Office deterministic (~10km) 850hPa temperature for London.
 
-Write a Bluesky post (max 250 chars). This is the official UK weather service's global model.
+Write a Bluesky post (max 250 chars).
 
-STYLE:
-- Start with "UKMO:" to identify this tracker
-- Note any significant changes from last run
-- If trend is persisting across multiple runs, mention it
-- Mention timing if confidence is relevant
-- Keep it brief and factual
+CRITICAL RULES:
+- Start with "UKMO:"
+- If analysis says "No significant shift" - DO NOT say "weakening", "strengthening", or imply change. Just state current forecast.
+- Only mention changes if SHIFT section shows actual shift value
+- Report what the data shows, not what sounds dramatic
+- State the coldest value and date, persistence if shown
 
-ANALYSIS CONTEXT:
+ANALYSIS:
 {full_context}
 
-FORMAT:
-- Plain text only (no markdown, emojis, hashtags)
-- Use C for temperatures"""
+FORMAT: Plain text, no emojis, use C for temps"""
 
     try:
         result = subprocess.run(

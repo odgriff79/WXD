@@ -112,13 +112,14 @@ FORMAT: Plain text, no emojis, use C for temps"""
 
 
 def generate_chart(data: dict, chart_path: Path) -> bool:
-    """Generate MOGREPS ensemble chart."""
+    """Generate MOGREPS ensemble chart with run-to-run progression overlay."""
     try:
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
         import matplotlib.dates as mdates
         from datetime import datetime
+        import numpy as np
 
         runs = data.get("runs", [])
         if not runs:
@@ -127,55 +128,81 @@ def generate_chart(data: dict, chart_path: Path) -> bool:
         current = runs[0]
         timestamps = current.get("timestamps", [])
         mean_temps = current.get("mean", [])
-        min_temps = current.get("min", [])
-        max_temps = current.get("max", [])
 
         if not timestamps or not mean_temps:
             return False
-
-        # Parse dates
-        dates = [datetime.fromisoformat(t.replace('Z', '+00:00')) for t in timestamps]
-
-        # Convert None to NaN for matplotlib
-        import numpy as np
-        mean_arr = np.array([float(x) if x is not None else np.nan for x in mean_temps])
-        min_arr = np.array([float(x) if x is not None else np.nan for x in min_temps]) if min_temps else None
-        max_arr = np.array([float(x) if x is not None else np.nan for x in max_temps]) if max_temps else None
 
         # Create plot
         plt.style.use('dark_background')
         fig, ax = plt.subplots(figsize=(12, 6))
 
-        # Plot spread
-        if min_arr is not None and max_arr is not None:
-            ax.fill_between(dates, min_arr, max_arr, alpha=0.3, color='#ff9f43', label='MOGREPS spread')
+        # Color palette for runs (newest to oldest) - orange theme
+        run_colors = ['#ff9f43', '#e08a3a', '#c07530', '#a06027', '#804b1e', '#603615']
+        max_runs_to_show = min(len(runs), 6)
 
-        # Plot mean
-        ax.plot(dates, mean_arr, color='#ff9f43', linewidth=2, label='MOGREPS mean')
+        # Plot older runs first (so current is on top)
+        for i in range(max_runs_to_show - 1, -1, -1):
+            run = runs[i]
+            ts = run.get("timestamps", [])
+            mean_vals = run.get("mean", [])
+            min_vals = run.get("min", [])
+            max_vals = run.get("max", [])
+
+            if not ts or not mean_vals:
+                continue
+
+            # Parse dates
+            dates = [datetime.fromisoformat(t.replace('Z', '+00:00')) for t in ts]
+            mean_arr = np.array([float(x) if x is not None else np.nan for x in mean_vals])
+
+            # Get run label for legend
+            fetched_at = run.get("fetched_at", "")
+            run_hour = run.get("run_hour", "")
+            try:
+                dt = datetime.fromisoformat(fetched_at.replace('Z', '+00:00'))
+                label = f"{dt.strftime('%d %b')} {run_hour}z"
+            except:
+                label = f"{run_hour}z" if run_hour else f"Run {i+1}"
+
+            color = run_colors[min(i, len(run_colors)-1)]
+
+            if i == 0:
+                # Current run - show spread and mean prominently
+                if min_vals and max_vals:
+                    min_arr = np.array([float(x) if x is not None else np.nan for x in min_vals])
+                    max_arr = np.array([float(x) if x is not None else np.nan for x in max_vals])
+                    ax.fill_between(dates, min_arr, max_arr, alpha=0.3, color=color, label='MOGREPS spread')
+                ax.plot(dates, mean_arr, color=color, linewidth=2.5,
+                       label=f"{label} (latest)", marker='o', markersize=4, zorder=10)
+            else:
+                # Previous runs - thinner, faded, dashed
+                alpha = 0.7 - (i * 0.1)
+                alpha = max(alpha, 0.3)
+                ax.plot(dates, mean_arr, color=color, linewidth=1.5,
+                       label=label, linestyle='--', alpha=alpha, zorder=5-i)
 
         # Threshold lines
         ax.axhline(y=COLD_THRESHOLD, color='blue', linestyle='--', alpha=0.5, linewidth=1)
         ax.axhline(y=0, color='white', linestyle='-', alpha=0.3, linewidth=1)
 
         # Labels
+        dates = [datetime.fromisoformat(t.replace('Z', '+00:00')) for t in timestamps]
         ax.text(dates[-1], COLD_THRESHOLD, f' {COLD_THRESHOLD}C', color='blue', alpha=0.7, va='center', fontsize=9)
 
-        # Title with date
-        fetched_at = current.get("fetched_at", runs[0].get("fetched_at", ""))
-        run_label = current.get("run_hour", "")
-        if run_label:
-            run_label = f"{run_label}z"
+        # Title
+        fetched_at = current.get("fetched_at", "")
+        run_hour = current.get("run_hour", "")
         try:
             dt = datetime.fromisoformat(fetched_at.replace('Z', '+00:00'))
             date_str = dt.strftime('%d %b')
-            title = f'London 850hPa - MOGREPS-G Ensemble ({date_str} {run_label})'
+            title = f'London 850hPa - MOGREPS Run Progression ({date_str} {run_hour}z latest)'
         except:
-            title = f'London 850hPa - MOGREPS-G Ensemble ({run_label})'
+            title = f'London 850hPa - MOGREPS Run Progression'
 
         ax.set_title(title, fontsize=14)
         ax.set_xlabel('Date (UTC)', fontsize=12)
         ax.set_ylabel('850hPa Temperature (C)', fontsize=12)
-        ax.legend(loc='upper right', fontsize=10)
+        ax.legend(loc='upper right', fontsize=9, framealpha=0.8)
         ax.grid(True, alpha=0.3)
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
         ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
@@ -189,7 +216,7 @@ def generate_chart(data: dict, chart_path: Path) -> bool:
         plt.savefig(chart_path, dpi=150, facecolor='#1a1a2e')
         plt.close()
 
-        print(f"  Chart saved: {chart_path.name}")
+        print(f"  Chart saved: {chart_path.name} ({max_runs_to_show} runs)")
         return True
 
     except Exception as e:

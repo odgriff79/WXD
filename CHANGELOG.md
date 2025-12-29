@@ -6,7 +6,7 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ### TODO
 - ~~**Anytime preview/testing mode** - Allow fresh data fetch for preview/testing without polluting or contaminating the production data files or history. Must ensure complete isolation from scheduled runs.~~ **DONE**
-- ~~**ICON/UKMO/MOGREPS commentary enhancement** - Ported Tracker A's rich analysis features to all trackers.~~ **DONE**
+- **ICON/UKMO/MOGREPS commentary enhancement** - Need to port Tracker A's rich features: story-first prompts (no prefix), split/thread for longer posts (290 char), threshold warnings (-5°C/-8°C), 450 char for significant events. Currently have basic "ICON:" prefix style with 250 char single post.
 - **Break down workflows into smaller tasks** - Current cron jobs run fetch + analysis + chart + Claude commentary + post as one heavy process. Causes memory issues and VM overload (load avg 20+). Need to split into smaller sequential steps or add delays between stages. MOGREPS S3 fetches + Claude CLI commentary together overwhelm the VM.
 
 ### Fixed
