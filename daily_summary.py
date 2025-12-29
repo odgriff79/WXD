@@ -157,7 +157,9 @@ def fetch_metoffice_narrative() -> dict:
                     # Skip navigation/menu text and site headers
                     skip_phrases = ['search site', 'skip to', 'menu', 'back weather',
                                    'weather & climate', 'everything you need', 'cookies',
-                                   'sign up', 'subscribe', 'footer', 'header']
+                                   'sign up', 'subscribe', 'footer', 'header', 'maps & charts',
+                                   'uk forecast', 'weather map', 'cloud cover map', 'precipitation map',
+                                   'light pollution', 'pollen', 'uv index', 'find a forecast']
                     if not any(skip in p_text.lower() for skip in skip_phrases):
                         paragraphs.append(p_text)
 
