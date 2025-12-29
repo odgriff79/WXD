@@ -3,6 +3,26 @@
 All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ## [Unreleased]
+
+## [2025-12-29] - Daily Summary Enhancements & ntfy Triggers
+
+### Added
+- **ntfy triggers for summary and engagement** - Can now preview daily summary and engagement posts via ntfy commands
+- **Met Office long-range scraping** - daily_summary.py now fetches from long-range forecast page
+- **Met Office warnings scraping** - Fetches day-by-day warning status from uk-warnings page
+- **Standalone warnings post** - Active warnings now posted as separate post (not in thread) with:
+  - Warning level (Yellow/Amber/Red)
+  - Date range
+  - Affected nations
+  - Hazard types
+
+### Fixed
+- **Warnings post truncation** - Rewrote to be concise (<280 chars) with affected areas included
+- **Navigation noise in scraping** - Added skip phrases to filter out menu/header text
+
+### Known Issues
+- **Engagement cron has --dry-run** - Needs removal to enable live Sunday/Wednesday posts
+
 ## [2025-12-29] - Period-Based Analysis & Commentary Improvements
 
 ### Added
