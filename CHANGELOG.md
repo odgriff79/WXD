@@ -3,6 +3,26 @@
 All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ## [Unreleased]
+## [2025-12-29] - Period-Based Analysis & Commentary Improvements
+
+### Added
+- **Period-based analysis** - Forecasts now analyzed in three periods:
+  - Short-term (0-72h): Days 1-3, highest confidence
+  - Mid-range (72-144h): Days 4-6, medium confidence
+  - Extended (144h+): Day 7+, lower confidence
+- Commentary now covers full forecast range, not just first few days
+- If pattern is uniform (cold/mild throughout), says that; if divergent, breaks down by period
+
+### Changed
+- **All trackers use Sonnet model** - Upgraded from haiku to sonnet for better commentary quality
+- **Claude CLI syntax fixed** - Corrected '-p prompt' flag position (was causing 300s timeouts)
+- **Prompt improvements** - All trackers now explicitly forbidden from dramatizing when analysis shows "no significant shift"
+- **Chart overlays** - ICON and MOGREPS now show run-to-run progression (matching UKMO style)
+
+### Fixed
+- **Commentary contradiction** - Fixed issue where Claude wrote "signal weakening" when analysis said "no significant shift"
+- **Input parameter** - Changed input=prompt to input=None since prompt now passed via -p flag
+
 
 ### TODO
 - ~~**Anytime preview/testing mode** - Allow fresh data fetch for preview/testing without polluting or contaminating the production data files or history. Must ensure complete isolation from scheduled runs.~~ **DONE**

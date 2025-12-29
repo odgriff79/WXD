@@ -526,7 +526,7 @@ def run_full_analysis(
     data: dict,
     trend_state_path: Path,
     is_ensemble: bool = True
-) -> Tuple[dict, dict, dict, dict, dict, str]:
+) -> Tuple[dict, dict, dict, dict, dict, dict, str]:
     """Run full analysis pipeline and return all results.
 
     Args:
@@ -540,6 +540,7 @@ def run_full_analysis(
         trend_analysis: Trend persistence
         percentile_analysis: Percentile framing (ensemble only)
         timing_analysis: Timing uncertainty
+        period_analysis: Period breakdown (short/mid/extended)
         full_context: Formatted context string for Claude
     """
     # Load trend state
@@ -562,6 +563,9 @@ def run_full_analysis(
     # Timing uncertainty
     timing_analysis = analyze_timing_uncertainty(data)
 
+    # Period-based analysis
+    period_analysis = analyze_by_period(data, is_ensemble)
+
     # Build full context for Claude
     context_parts = []
 
@@ -572,6 +576,11 @@ def run_full_analysis(
         context_parts.append(f"COLD: Mean hits {cold_info['temp']}C on {cold_info['date']}")
         if cold_info.get('min_temp'):
             context_parts.append(f"COLDEST MEMBER: {cold_info['min_temp']}C")
+
+    # Add period breakdown - KEY for commentary
+    period_ctx = format_period_context(period_analysis)
+    if period_ctx:
+        context_parts.append(period_ctx)
 
     trend_ctx = format_trend_context(trend_analysis)
     if trend_ctx:
@@ -587,4 +596,175 @@ def run_full_analysis(
 
     full_context = "\n".join(context_parts) if context_parts else "No significant changes"
 
-    return run_diff, cold_info, trend_analysis, percentile_analysis, timing_analysis, full_context
+    return run_diff, cold_info, trend_analysis, percentile_analysis, timing_analysis, period_analysis, full_context
+
+
+# ============================================================================
+# PERIOD-BASED ANALYSIS
+# ============================================================================
+
+def analyze_by_period(data: dict, is_ensemble: bool = True) -> dict:
+    """Analyze forecast by time period.
+    
+    Periods:
+    - short_term: 0-72h (days 1-3) - highest confidence
+    - mid_range: 72-144h (days 4-6) - medium confidence  
+    - extended: 144h+ (day 7+) - lower confidence
+    
+    Returns dict with:
+        short_term: {mean, min, max, cold_signal}
+        mid_range: {mean, min, max, cold_signal}
+        extended: {mean, min, max, cold_signal}
+        uniform: bool - True if all periods show same pattern
+        summary: str - 'cold_throughout', 'warming_late', 'cold_delayed', etc.
+    """
+    runs = data.get("runs", [])
+    if not runs:
+        return {}
+    
+    current = runs[0]
+    timestamps = current.get("timestamps", [])
+    
+    # Use mean for ensemble, values for deterministic
+    temps = current.get("mean", current.get("values", []))
+    min_temps = current.get("min", []) if is_ensemble else []
+    max_temps = current.get("max", []) if is_ensemble else []
+    
+    if not temps or not timestamps:
+        return {}
+    
+    # Parse timestamps and categorize by period
+    from datetime import datetime, timedelta
+    
+    try:
+        first_ts = datetime.fromisoformat(timestamps[0].replace('Z', '+00:00'))
+    except:
+        return {}
+    
+    short_term = {"temps": [], "mins": [], "maxs": []}  # 0-72h
+    mid_range = {"temps": [], "mins": [], "maxs": []}   # 72-144h
+    extended = {"temps": [], "mins": [], "maxs": []}    # 144h+
+    
+    for i, ts_str in enumerate(timestamps):
+        if i >= len(temps) or temps[i] is None:
+            continue
+        try:
+            ts = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
+            hours_from_start = (ts - first_ts).total_seconds() / 3600
+            
+            temp = temps[i]
+            min_t = min_temps[i] if i < len(min_temps) else None
+            max_t = max_temps[i] if i < len(max_temps) else None
+            
+            if hours_from_start <= 72:
+                short_term["temps"].append(temp)
+                if min_t: short_term["mins"].append(min_t)
+                if max_t: short_term["maxs"].append(max_t)
+            elif hours_from_start <= 144:
+                mid_range["temps"].append(temp)
+                if min_t: mid_range["mins"].append(min_t)
+                if max_t: mid_range["maxs"].append(max_t)
+            else:
+                extended["temps"].append(temp)
+                if min_t: extended["mins"].append(min_t)
+                if max_t: extended["maxs"].append(max_t)
+        except:
+            continue
+    
+    # Calculate stats for each period
+    def period_stats(period_data):
+        temps = period_data["temps"]
+        if not temps:
+            return None
+        return {
+            "mean": round(sum(temps) / len(temps), 1),
+            "min": round(min(temps), 1),
+            "max": round(max(temps), 1),
+            "cold_signal": min(temps) < COLD_THRESHOLD,
+            "extreme_cold": min(temps) < EXTREME_COLD,
+            "ensemble_min": round(min(period_data["mins"]), 1) if period_data["mins"] else None,
+            "ensemble_max": round(max(period_data["maxs"]), 1) if period_data["maxs"] else None,
+        }
+    
+    result = {
+        "short_term": period_stats(short_term),
+        "mid_range": period_stats(mid_range),
+        "extended": period_stats(extended),
+    }
+    
+    # Determine if pattern is uniform or divergent
+    patterns = []
+    for period_name in ["short_term", "mid_range", "extended"]:
+        stats = result.get(period_name)
+        if stats:
+            if stats["cold_signal"]:
+                patterns.append("cold")
+            elif stats["mean"] > 5:
+                patterns.append("mild")
+            else:
+                patterns.append("neutral")
+    
+    # Check uniformity
+    if len(set(patterns)) <= 1:
+        result["uniform"] = True
+        if patterns and patterns[0] == "cold":
+            result["summary"] = "cold_throughout"
+        elif patterns and patterns[0] == "mild":
+            result["summary"] = "mild_throughout"
+        else:
+            result["summary"] = "neutral_throughout"
+    else:
+        result["uniform"] = False
+        # Determine pattern type
+        if patterns[0] == "cold" and patterns[-1] != "cold":
+            result["summary"] = "cold_early_recovering"
+        elif patterns[0] != "cold" and patterns[-1] == "cold":
+            result["summary"] = "cold_delayed"
+        elif patterns[0] == "cold" and patterns[1] != "cold" and len(patterns) > 2 and patterns[2] == "cold":
+            result["summary"] = "cold_interrupted"
+        else:
+            result["summary"] = "mixed_pattern"
+    
+    return result
+
+
+def format_period_context(period_analysis: dict) -> str:
+    """Format period analysis for Claude prompt context."""
+    if not period_analysis:
+        return ""
+    
+    parts = []
+    summary = period_analysis.get("summary", "")
+    
+    if period_analysis.get("uniform"):
+        # Simple summary for uniform patterns
+        if summary == "cold_throughout":
+            st = period_analysis.get("short_term", {})
+            ext = period_analysis.get("extended", {})
+            st_min = st.get("min", "?") if st else "?"
+            ext_min = ext.get("min", "?") if ext else "?"
+            parts.append(f"PERIODS: Cold throughout forecast - short-term min {st_min}C, extended min {ext_min}C")
+        elif summary == "mild_throughout":
+            parts.append("PERIODS: Mild throughout forecast")
+        else:
+            parts.append("PERIODS: Near-normal throughout")
+    else:
+        # Detailed breakdown for divergent patterns
+        parts.append(f"PERIOD BREAKDOWN ({summary.replace('_', ' ')}):")
+        
+        st = period_analysis.get("short_term")
+        if st:
+            signal = "COLD" if st.get("cold_signal") else "OK"
+            parts.append(f"  Days 1-3: mean {st['mean']}C, min {st['min']}C [{signal}]")
+        
+        mr = period_analysis.get("mid_range")
+        if mr:
+            signal = "COLD" if mr.get("cold_signal") else "OK"
+            parts.append(f"  Days 4-6: mean {mr['mean']}C, min {mr['min']}C [{signal}]")
+        
+        ext = period_analysis.get("extended")
+        if ext:
+            signal = "COLD" if ext.get("cold_signal") else "OK"
+            parts.append(f"  Day 7+: mean {ext['mean']}C, min {ext['min']}C [{signal}]")
+    
+    return "\n".join(parts)

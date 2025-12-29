@@ -80,7 +80,9 @@ CRITICAL RULES:
 - If analysis says "No significant shift" - DO NOT say "weakening", "strengthening", or imply change. Just state current forecast.
 - Only mention changes if SHIFT section shows actual shift value
 - Report what the data shows, not what sounds dramatic
-- State the coldest value and date, spread range, persistence if shown
+- State the coldest value and date
+- If PERIODS shows uniform pattern (cold/mild throughout), say that
+- If PERIODS shows divergent pattern, mention short-term vs mid/extended outlook, spread range, persistence if shown
 
 ANALYSIS:
 {full_context}
@@ -362,7 +364,7 @@ ICON runs 2x daily (00z/12z). Posts tagged "ICON:" to distinguish from main 4-mo
     # Run full analysis with shared module
     print("Running full analysis...")
     trend_state_path = data_dir / "trend_state.json"
-    run_diff, cold_info, trend_analysis, percentile_analysis, timing_analysis, full_context = \
+    run_diff, cold_info, trend_analysis, percentile_analysis, timing_analysis, period_analysis, full_context = \
         run_full_analysis(data, trend_state_path, is_ensemble=True)
 
     if run_diff:

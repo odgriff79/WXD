@@ -21,6 +21,11 @@ from pathlib import Path
 from statistics import mean, stdev
 from collections import defaultdict
 
+# Import period analysis from shared module
+import sys
+sys.path.insert(0, 'trackers')
+from shared.analysis import analyze_by_period, format_period_context
+
 # Try imports - will fail gracefully if not installed
 try:
     import matplotlib
@@ -828,7 +833,7 @@ def generate_fallback_post(data: dict) -> str:
 def format_analysis_context(run_diff_text: str, confidence: str,
                            percentile_info: dict, bimodal_info: dict,
                            persistence_info: dict, timing_info: dict,
-                           cold_info: dict = None) -> str:
+                           cold_info: dict = None, period_info: dict = None) -> str:
     """Format all analysis results into context for Claude CLI prompt."""
     context_parts = []
 
@@ -887,6 +892,12 @@ def format_analysis_context(run_diff_text: str, confidence: str,
         )
 
     # Confidence
+    # Period breakdown
+    if period_info:
+        period_ctx = format_period_context(period_info)
+        if period_ctx:
+            context_parts.append(period_ctx)
+
     context_parts.append(f"CONFIDENCE: {confidence}")
 
     return "\n".join(context_parts)
@@ -899,12 +910,20 @@ def get_claude_commentary(data_path: Path, run_diff_text: str, confidence: str,
     """Pipe JSON to Claude CLI and get commentary. Returns (text, is_fallback)."""
     import time
 
+    # Calculate period analysis from data
+    try:
+        with open(data_path, 'r' ) as f:
+            data = json.load(f)
+        period_info = analyze_by_period(data, is_ensemble=True)
+    except:
+        period_info = None
     # Build analysis context
     analysis_context = format_analysis_context(
         run_diff_text, confidence,
         percentile_info, bimodal_info,
         persistence_info, timing_info,
-        cold_info=cold_info
+        cold_info=cold_info,
+        period_info=period_info
     )
 
     # Determine if this is a significant event (multi-model agreement, high percentile)
