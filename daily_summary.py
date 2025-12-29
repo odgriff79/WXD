@@ -50,6 +50,7 @@ except ImportError:
 # Met Office URLs
 METOFFICE_UK_URL = "https://weather.metoffice.gov.uk/forecast/uk"
 METOFFICE_LONGRANGE_URL = "https://weather.metoffice.gov.uk/long-range-forecast"
+METOFFICE_WARNINGS_URL = "https://weather.metoffice.gov.uk/warnings-and-advice/accessible-uk-warnings"
 
 # OGL Attribution (required)
 OGL_ATTRIBUTION = "Contains public sector information licensed under the Open Government Licence v3.0"
@@ -73,6 +74,9 @@ def fetch_metoffice_narrative() -> dict:
         "today_tomorrow": None,
         "days_3_5": None,
         "long_range": None,
+        "long_range_detail": None,  # From dedicated long-range page
+        "long_range_warning": None,  # Any warnings from long-range page
+        "uk_warnings": None,  # Summary of active warnings by nation
         "fetched_at": utcnow().isoformat()
     }
 
@@ -80,59 +84,149 @@ def fetch_metoffice_narrative() -> dict:
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
     }
 
+    if not HAS_BS4:
+        result["error"] = "beautifulsoup4 not installed"
+        return result
+
+    # Helper functions
+    def block_after(lines: list, header: str, stop_headers: set) -> list:
+        out = []
+        in_block = False
+        for ln in lines:
+            if ln == header:
+                in_block = True
+                continue
+            if in_block and ln in stop_headers:
+                break
+            if in_block:
+                out.append(ln)
+        return out
+
+    def parse_block(block: list) -> str:
+        narrative = [ln for ln in block if not ln.startswith("Updated:")]
+        # Remove date-range headings
+        narrative = [ln for ln in narrative if not re.match(r"^[A-Z][a-z]{2} \d{1,2} ", ln)]
+        # Remove short menu items
+        narrative = [ln for ln in narrative if len(ln) > 30]
+        return "\n".join(narrative).strip()
+
+    # Fetch main UK forecast page
     try:
         resp = requests.get(METOFFICE_UK_URL, headers=headers, timeout=30)
-        if resp.status_code != 200:
-            result["error"] = f"HTTP {resp.status_code}"
-            return result
+        if resp.status_code == 200:
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            text = soup.get_text("\n")
+            lines = [clean_text(x) for x in text.split("\n")]
+            lines = [x for x in lines if x]
 
-        if not HAS_BS4:
-            result["error"] = "beautifulsoup4 not installed"
-            return result
+            stop = {"Today and tomorrow", "3 to 5 day forecast", "Long range forecast",
+                    "UK weather map", "Cities", "Find a forecast"}
 
-        soup = BeautifulSoup(resp.text, 'html.parser')
+            today_block = block_after(lines, "Today and tomorrow", stop)
+            d3_5_block = block_after(lines, "3 to 5 day forecast", stop)
+            long_block = block_after(lines, "Long range forecast", stop)
 
-        # Get all text lines
-        text = soup.get_text("\n")
-        lines = [clean_text(x) for x in text.split("\n")]
-        lines = [x for x in lines if x]
+            result["today_tomorrow"] = parse_block(today_block) or None
+            result["days_3_5"] = parse_block(d3_5_block) or None
+            result["long_range"] = parse_block(long_block) or None
+    except Exception as e:
+        result["error"] = f"UK page: {e}"
 
-        # Extract blocks between section headers
-        def block_after(header: str, stop_headers: set) -> list:
-            out = []
-            in_block = False
-            for ln in lines:
-                if ln == header:
-                    in_block = True
-                    continue
-                if in_block and ln in stop_headers:
+    # Fetch dedicated long-range forecast page for more detail
+    try:
+        resp = requests.get(METOFFICE_LONGRANGE_URL, headers=headers, timeout=30)
+        if resp.status_code == 200:
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            text = soup.get_text(" ", strip=True)
+
+            # Extract warning info (Yellow/Amber/Red warning)
+            warning_match = re.search(
+                r'(Yellow|Amber|Red)\s+warning[^.]*in force[^.]*\.?\s*([A-Z][a-z]{2,8}\s+\d{1,2}\s+[A-Z][a-z]{2}\s*-\s*[A-Z][a-z]{2,8}\s+\d{1,2}\s+[A-Z][a-z]{2})',
+                text, re.IGNORECASE
+            )
+            if warning_match:
+                result["long_range_warning"] = f"{warning_match.group(1)} warning: {warning_match.group(2)}"
+
+            # Extract forecast paragraphs (look for substantive content)
+            paragraphs = []
+            for tag in soup.find_all(['p', 'div']):
+                p_text = tag.get_text(' ', strip=True)
+                # Look for forecast content (mentions weather terms and is long enough)
+                if len(p_text) > 100 and any(word in p_text.lower() for word in
+                    ['winds', 'temperatures', 'pressure', 'cold', 'mild', 'rain', 'snow', 'frost', 'showers', 'settled']):
+                    # Skip navigation/menu text
+                    if not any(skip in p_text.lower() for skip in ['search site', 'skip to', 'menu', 'back weather']):
+                        paragraphs.append(p_text)
+
+            # Deduplicate and take first 2 unique paragraphs
+            seen = set()
+            unique = []
+            for p in paragraphs:
+                p_key = p[:100]  # Use first 100 chars as key
+                if p_key not in seen:
+                    seen.add(p_key)
+                    unique.append(p)
+                if len(unique) >= 2:
                     break
-                if in_block:
-                    out.append(ln)
-            return out
 
-        stop = {"Today and tomorrow", "3 to 5 day forecast", "Long range forecast",
-                "UK weather map", "Cities", "Find a forecast"}
-
-        today_block = block_after("Today and tomorrow", stop)
-        d3_5_block = block_after("3 to 5 day forecast", stop)
-        long_block = block_after("Long range forecast", stop)
-
-        # Parse each block - filter out noise
-        def parse_block(block: list) -> str:
-            narrative = [ln for ln in block if not ln.startswith("Updated:")]
-            # Remove date-range headings
-            narrative = [ln for ln in narrative if not re.match(r"^[A-Z][a-z]{2} \d{1,2} ", ln)]
-            # Remove short menu items
-            narrative = [ln for ln in narrative if len(ln) > 30]
-            return "\n".join(narrative).strip()
-
-        result["today_tomorrow"] = parse_block(today_block) or None
-        result["days_3_5"] = parse_block(d3_5_block) or None
-        result["long_range"] = parse_block(long_block) or None
+            if unique:
+                result["long_range_detail"] = "\n\n".join(unique)
 
     except Exception as e:
-        result["error"] = str(e)
+        if "error" in result:
+            result["error"] += f"; Long-range page: {e}"
+        else:
+            result["error"] = f"Long-range page: {e}"
+
+    # Fetch accessible warnings page for nation-level summary
+    try:
+        resp = requests.get(METOFFICE_WARNINGS_URL, headers=headers, timeout=30)
+        if resp.status_code == 200:
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            text = soup.get_text(" ", strip=True)
+
+            # Look for nations with warnings
+            nations = ['England', 'Scotland', 'Wales', 'Northern Ireland']
+            nation_warnings = {}
+
+            for nation in nations:
+                # Check if nation appears near warning terms
+                pattern = rf'{nation}[^.]*?(Yellow|Amber|Red)\s+warning|' \
+                         rf'(Yellow|Amber|Red)\s+warning[^.]*?{nation}'
+                match = re.search(pattern, text, re.IGNORECASE)
+                if match:
+                    # Find warning type
+                    warning_type = match.group(1) or match.group(2)
+                    nation_warnings[nation] = warning_type.capitalize()
+
+            # Also look for date ranges
+            date_match = re.search(
+                r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}\s+\w+\s*[-–]\s*(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}\s+\w+',
+                text
+            )
+            date_range = date_match.group(0) if date_match else None
+
+            if nation_warnings:
+                # Format: "Yellow: England, Scotland (Sat 3 - Mon 12 Jan)"
+                by_level = {}
+                for nation, level in nation_warnings.items():
+                    if level not in by_level:
+                        by_level[level] = []
+                    by_level[level].append(nation)
+
+                parts = []
+                for level in ['Red', 'Amber', 'Yellow']:
+                    if level in by_level:
+                        nations_str = ', '.join(by_level[level])
+                        parts.append(f"{level}: {nations_str}")
+
+                summary = '; '.join(parts)
+                if date_range:
+                    summary += f" ({date_range})"
+                result["uk_warnings"] = summary
+
+    except Exception as e:
+        pass  # Warnings are optional, don't fail if this doesn't work
 
     return result
 
@@ -331,19 +425,31 @@ def generate_ai_commentary(metoffice: dict, model_summary: str) -> str:
     if metoffice.get("days_3_5"):
         mo_all += metoffice["days_3_5"] + " "
     if metoffice.get("long_range"):
-        mo_all += metoffice["long_range"]
-    mo_all = mo_all.lower()
+        mo_all += metoffice["long_range"] + " "
+    if metoffice.get("long_range_detail"):
+        mo_all += metoffice["long_range_detail"] + " "
+
+    # Add any warnings
+    warnings_text = ""
+    if metoffice.get("long_range_warning"):
+        warnings_text = f"\nACTIVE WARNING: {metoffice['long_range_warning']}"
+    if metoffice.get("uk_warnings"):
+        warnings_text += f"\nUK WARNINGS: {metoffice['uk_warnings']}"
+
+    mo_all_lower = mo_all.lower()
 
     prompt = f"""Scan Met Office forecast for significant weather. Write 220 chars max alert.
 
 MET OFFICE TEXT:
-{mo_all[:500]}
+{mo_all[:600]}
+{warnings_text}
 
 WXD MODELS (850hPa): {model_summary}
 
 Write brief WXD alert:
-- Start with "WXD Alert:" if significant weather mentioned (wintry, snow, frost, cold, gales, ice)
+- Start with "WXD Alert:" if significant weather mentioned (wintry, snow, frost, cold, gales, ice, warning)
 - Start with "WXD view:" if nothing notable
+- IMPORTANT: If there's an ACTIVE WARNING, mention it with dates
 - Highlight any wintry/cold/frost signals from Met Office
 - Note if models support or contradict Met Office
 - Be direct and factual
@@ -367,8 +473,9 @@ Plain text only."""
     alert_words = ['wintry', 'snow', 'sleet', 'ice', 'icy', 'frost', 'freezing', 'gale', 'severe', 'warning']
     cold_words = ['cold', 'colder', 'chilly', 'cool']
 
-    has_alert = any(word in mo_all for word in alert_words)
-    has_cold = any(word in mo_all for word in cold_words)
+    has_alert = any(word in mo_all_lower for word in alert_words)
+    has_cold = any(word in mo_all_lower for word in cold_words)
+    has_warning = bool(metoffice.get("long_range_warning"))
 
     temps = re.findall(r'(-?\d+\.?\d*)C', model_summary)
     coldest = min(float(t) for t in temps) if temps else 5
@@ -468,6 +575,12 @@ def main():
             print(f"  Days 3-5: {metoffice['days_3_5'][:80]}...")
         if metoffice.get("long_range"):
             print(f"  Long range: {metoffice['long_range'][:80]}...")
+        if metoffice.get("long_range_warning"):
+            print(f"  WARNING: {metoffice['long_range_warning']}")
+        if metoffice.get("long_range_detail"):
+            print(f"  Long range detail: {metoffice['long_range_detail'][:80]}...")
+        if metoffice.get("uk_warnings"):
+            print(f"  UK Warnings: {metoffice['uk_warnings']}")
         if not any([metoffice.get("today_tomorrow"), metoffice.get("days_3_5"), metoffice.get("long_range")]):
             print("  No narrative sections found")
 
