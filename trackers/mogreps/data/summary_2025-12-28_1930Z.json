@@ -1,0 +1,46 @@
+{
+  "fetched_at": "2025-12-28T19:45:25.140717Z",
+  "run_date": "2025/12/28",
+  "run_hour": "12",
+  "run_label": "12z",
+  "location": {
+    "latitude": 51.5074,
+    "longitude": -0.1278,
+    "name": "London"
+  },
+  "variable": "temperature_850hPa",
+  "units": "C",
+  "model": "mogreps-g",
+  "description": "MOGREPS-G (18 members)",
+  "members": 18,
+  "timestamps": [
+    "2025-12-28T12:00:00Z",
+    "2025-12-29T12:00:00Z",
+    "2025-12-30T12:00:00Z"
+  ],
+  "mean": [
+    7.76,
+    3.89,
+    -7.18
+  ],
+  "min": [
+    7.35,
+    2.98,
+    -8.15
+  ],
+  "max": [
+    8.1,
+    4.6,
+    -4.4
+  ],
+  "spread": [
+    0.75,
+    1.62,
+    3.75
+  ],
+  "forecast_hours": [
+    0,
+    24,
+    48
+  ]
+}

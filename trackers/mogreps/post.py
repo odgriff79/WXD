@@ -341,7 +341,7 @@ MOGREPS runs 4x daily. Posts tagged "MOGREPS:" as UK ensemble benchmark."""
     # SAFEGUARD: Check minimum forecast hours
     MIN_FORECAST_HOURS = 4
     if runs:
-        values = runs[0].get("values", [])
+        values = runs[0].get("mean", [])  # Use 'mean' key, not 'values'
         if len(values) < MIN_FORECAST_HOURS:
             print(f"ERROR: Only {len(values)} forecast hours available (minimum {MIN_FORECAST_HOURS} required)")
             print("Aborting to prevent posting incomplete data")

@@ -14,9 +14,18 @@ Thumbs.db
 
 # Logs (keep locally, don't push)
 cron.log
+cron_daily_summary.log
+cron_sync.log
+trackers/*/cron.log
 
 # Alert state (hysteresis tracking, local to VM)
 data/alert_state.json
+trackers/*/data/alert_state.json
+
+# Large data files (downloaded, not tracked)
+*.nc
+*.grib
+*.grib2
 
 # Local secrets (VM connection, credentials - never commit)
 .vm_config
