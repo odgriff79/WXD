@@ -6,19 +6,19 @@ Quick reference for ntfy commands, cron schedules, and common operations.
 
 ```powershell
 # Send notification
-powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/wxd-cmd' -Body 'your message'"
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'your message'"
 
 # Common triggers
-powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/wxd-cmd' -Body 'preview'"
-powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/wxd-cmd' -Body 'fetch_icon'"
-powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/wxd-cmd' -Body 'fetch_ukmo'"
-powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/wxd-cmd' -Body 'fetch_mogreps'"
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'preview'"
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'fetch_icon'"
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'fetch_ukmo'"
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'fetch_mogreps'"
 ```
 
 ## SSH to VM
 
 ```bash
-ssh -i "C:\Users\o_gri\OneDrive\Documents\ssh-key-2025-12-12.key" ubuntu@132.145.50.77
+ssh -i "PATH_TO_YOUR_SSH_KEY" ubuntu@YOUR_VM_IP
 ```
 
 ## VM Cron Schedule
