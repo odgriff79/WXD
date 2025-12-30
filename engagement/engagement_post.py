@@ -468,6 +468,28 @@ It's one of the key concepts behind how WXD tracks cold air for London.
 More on this topic coming soon. Questions? Reply and we'll cover them in our next Q&A post."""
 
 
+def add_thread_indicators(posts: list) -> list:
+    """Add thread indicators (1/3, 2/3, etc) to posts when there are multiple.
+
+    Only adds indicators if there are 2+ posts and the first post is short
+    (under 200 chars), suggesting it's a headline that needs context.
+    """
+    if len(posts) < 2:
+        return posts
+
+    # Add indicators to all posts
+    result = []
+    total = len(posts)
+    for i, post in enumerate(posts):
+        indicator = f" [{i+1}/{total}]"
+        # Only add if it fits within 300 char limit
+        if len(post) + len(indicator) <= 300:
+            result.append(post + indicator)
+        else:
+            result.append(post)
+    return result
+
+
 def post_thread(posts: list, handle: str, password: str) -> bool:
     """Post a thread to Bluesky.
 
@@ -564,15 +586,17 @@ def main():
             print(f"  {post[:200]}{'...' if len(post) > 200 else ''}")
 
         if args.dry_run:
+            preview_posts = add_thread_indicators(posts)
             print("\n" + "=" * 50)
             print("PREVIEW (not posting):")
-            for i, post in enumerate(posts):
+            for i, post in enumerate(preview_posts):
                 print(f"\n--- Post {i+1} ---")
                 print(post)
             print("=" * 50)
             return 0
 
         print("\nPosting to Bluesky...")
+        posts = add_thread_indicators(posts)
         success = post_thread(posts, bsky_handle, bsky_password)
         if success:
             print("  Community request posted!")
@@ -642,9 +666,10 @@ def main():
         print(f"  {post[:200]}{'...' if len(post) > 200 else ''}")
 
     if args.dry_run:
+        preview_posts = add_thread_indicators(posts)
         print("\n" + "=" * 50)
         print("PREVIEW (not posting):")
-        for i, post in enumerate(posts):
+        for i, post in enumerate(preview_posts):
             print(f"\n--- Post {i+1} ---")
             print(post)
         print("=" * 50)
@@ -652,6 +677,7 @@ def main():
 
     # Post thread
     print("\nPosting to Bluesky...")
+    posts = add_thread_indicators(posts)
     success = post_thread(posts, bsky_handle, bsky_password)
 
     if success:
