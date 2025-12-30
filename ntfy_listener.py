@@ -172,6 +172,22 @@ def handle_engagement():
     return output
 
 
+def handle_oracle():
+    """Check Oracle A1 grabber status."""
+    import subprocess
+    print(f'Oracle grabber status at {time.strftime("%H:%M:%S")}')
+    ps_result = subprocess.run(['pgrep', '-f', 'grab_a1_instance'], capture_output=True, text=True)
+    running = bool(ps_result.stdout.strip())
+    try:
+        with open('/home/ubuntu/grab_a1.log', 'r') as f:
+            lines = f.readlines()
+            last_lines = ''.join(lines[-10:])
+    except:
+        last_lines = 'No log found'
+    status = 'RUNNING' if running else 'STOPPED'
+    return f'ORACLE GRABBER: {status}\n\n{last_lines}'
+
+
 while True:
     try:
         # Stream messages with timeout
@@ -206,6 +222,8 @@ while True:
                             output = handle_summary()
                         elif cmd == 'engagement':
                             output = handle_engagement()
+                        elif cmd == 'oracle':
+                            output = handle_oracle()
 
                         if output:
                             # Clean up output for ntfy
