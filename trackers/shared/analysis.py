@@ -519,6 +519,98 @@ def check_cold_threshold_deterministic(data: dict) -> Optional[dict]:
 
 
 # ============================================================================
+# SIGNAL STRENGTH AND TIMING FRAMEWORK
+# ============================================================================
+
+def calculate_signal_strength(cold_info: dict, trend_analysis: dict) -> dict:
+    """
+    Calculate signal strength based on cold presence + run persistence.
+
+    For single-model trackers, we consider:
+    - Cold info present = signal exists
+    - Persistence from trend_analysis
+
+    Returns dict with:
+        - level: 'locked' | 'strong' | 'emerging' | 'weak'
+        - run_count: int
+        - label: str
+    """
+    run_count = trend_analysis.get('cold_persistence', 0) if trend_analysis else 0
+    has_cold = cold_info is not None and cold_info.get('temp') is not None
+
+    if has_cold and run_count >= 5:
+        level = 'locked'
+        label = f"Signal locked (run {run_count})"
+    elif has_cold and run_count >= 3:
+        level = 'strong'
+        label = f"Strong signal (run {run_count})"
+    elif has_cold:
+        level = 'emerging'
+        label = "Emerging signal"
+    else:
+        level = 'weak'
+        label = "No significant signal"
+
+    return {
+        'level': level,
+        'run_count': run_count,
+        'label': label
+    }
+
+
+def format_timing_window(cold_info: dict, timing_analysis: dict) -> dict:
+    """
+    Format timing as window with spread indicator.
+
+    Returns dict with:
+        - spread_label: 'tight' | 'moderate' | 'broad'
+        - window: str (date or range)
+        - label: str
+    """
+    if not cold_info:
+        return None
+
+    coldest_date = cold_info.get('date', '')
+
+    # Check timing analysis for spread
+    if timing_analysis and timing_analysis.get('spread_days'):
+        spread_days = timing_analysis['spread_days']
+        if spread_days <= 1:
+            spread_label = 'tight'
+        elif spread_days <= 2:
+            spread_label = 'moderate'
+        else:
+            spread_label = 'broad'
+
+        # Build window from timing analysis
+        earliest = timing_analysis.get('earliest_date', coldest_date)
+        latest = timing_analysis.get('latest_date', coldest_date)
+
+        try:
+            from datetime import datetime
+            start_dt = datetime.fromisoformat(earliest[:10])
+            end_dt = datetime.fromisoformat(latest[:10])
+            window = f"{start_dt.strftime('%b %d')}-{end_dt.strftime('%b %d')}"
+        except:
+            window = coldest_date
+
+        return {
+            'spread_label': spread_label,
+            'spread_days': round(spread_days, 1),
+            'window': window,
+            'label': f"Coldest period: {window} (±{round(spread_days)} days)"
+        }
+
+    # No spread info - just use the date
+    return {
+        'spread_label': 'tight',
+        'spread_days': 0,
+        'window': coldest_date,
+        'label': f"Coldest around {coldest_date}"
+    }
+
+
+# ============================================================================
 # FULL ANALYSIS PIPELINE
 # ============================================================================
 
@@ -569,6 +661,16 @@ def run_full_analysis(
     # Build full context for Claude
     context_parts = []
 
+    # NEW: Signal strength (replaces vague confidence)
+    signal_strength = calculate_signal_strength(cold_info, trend_analysis)
+    if signal_strength and signal_strength['level'] != 'weak':
+        context_parts.append(f"SIGNAL: {signal_strength['label']}")
+
+    # NEW: Timing window
+    timing_window = format_timing_window(cold_info, timing_analysis)
+    if timing_window:
+        context_parts.append(f"TIMING: {timing_window['label']}")
+
     if run_diff:
         context_parts.append(f"SHIFT: Model moved {abs(run_diff['shift'])}C {run_diff['direction']} since last run around {run_diff['date']}")
 
@@ -590,6 +692,7 @@ def run_full_analysis(
     if percentile_ctx:
         context_parts.append(percentile_ctx)
 
+    # Note: Old timing context kept for compatibility but TIMING window above is preferred
     timing_ctx = format_timing_context(timing_analysis)
     if timing_ctx:
         context_parts.append(timing_ctx)

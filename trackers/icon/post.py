@@ -80,9 +80,14 @@ CRITICAL RULES:
 - If analysis says "No significant shift" - DO NOT say "weakening", "strengthening", or imply change. Just state current forecast.
 - Only mention changes if SHIFT section shows actual shift value
 - Report what the data shows, not what sounds dramatic
-- State the coldest value and date
+- State the coldest value and date window (not single day)
 - If PERIODS shows uniform pattern (cold/mild throughout), say that
 - If PERIODS shows divergent pattern, mention short-term vs mid/extended outlook, spread range, persistence if shown
+
+SIGNAL AND TIMING:
+- SIGNAL tells you event confidence: "locked" = certain, "strong" = very likely
+- TIMING tells you the date window - use this range, not a single day
+- NEVER say "low confidence" when SIGNAL is locked/strong - the event IS happening
 
 ANALYSIS:
 {full_context}

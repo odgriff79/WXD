@@ -701,61 +701,137 @@ def calculate_timing_uncertainty(data: dict) -> dict:
     }
 
 
-def calculate_confidence(data: dict) -> str:
-    """Calculate confidence indicator based on model agreement and spread."""
-    runs = data.get('runs', [])
-    if not runs:
-        return '⚠️ Confidence: medium'
+def calculate_signal_strength(cold_info: dict, persistence_info: dict) -> dict:
+    """
+    Calculate signal strength based on model agreement + run persistence.
 
-    current = runs[0]
-    models = current.get('models', {})
+    Returns dict with:
+        - level: 'locked' | 'strong' | 'emerging' | 'weak'
+        - models_agreeing: int (how many models show cold signal)
+        - run_count: int (consecutive runs with signal)
+        - label: str (human-readable label for context)
 
-    if len(models) < 2:
-        return '⚠️ Confidence: medium'
+    Framework:
+        - Locked: 4/4 models AND 5+ runs persistent
+        - Strong: 3-4/4 models OR 3+ runs persistent
+        - Emerging: 2/4 models, <3 runs
+        - Weak: 1/4 models or no persistence
+    """
+    models_agreeing = 0
+    run_count = 0
 
-    # Calculate inter-model disagreement at each timestep
-    max_disagreements = []
-    max_spreads = []
+    if cold_info and cold_info.get('models'):
+        models_agreeing = len(cold_info['models'])
 
-    timestamps = current.get('timestamps', [])
-    num_ts = len(timestamps)
+    if persistence_info:
+        run_count = persistence_info.get('run_count', 0)
 
-    for i in range(num_ts):
-        model_means = []
-        spreads = []
-
-        for model_data in models.values():
-            means = model_data.get('mean', [])
-            spread = model_data.get('spread', [])
-
-            if i < len(means) and means[i] is not None:
-                model_means.append(means[i])
-            if i < len(spread) and spread[i] is not None:
-                spreads.append(spread[i])
-
-        if len(model_means) >= 2:
-            max_disagreements.append(max(model_means) - min(model_means))
-        if spreads:
-            max_spreads.append(max(spreads))
-
-    if not max_disagreements:
-        return '⚠️ Confidence: medium'
-
-    # Use 75th percentile of disagreement and spread
-    max_disagreements.sort()
-    max_spreads.sort()
-
-    p75_disagree = max_disagreements[int(len(max_disagreements) * 0.75)] if max_disagreements else 0
-    p75_spread = max_spreads[int(len(max_spreads) * 0.75)] if max_spreads else 0
-
-    # High confidence: models agree within 2C, low spread
-    if p75_disagree <= 2.0 and p75_spread <= 8.0:
-        return '✅ Confidence: high'
-    # Low confidence: major disagreement or very high spread
-    elif p75_disagree > MODEL_DIVERGENCE_THRESHOLD or p75_spread > 15.0:
-        return '❓ Confidence: low'
+    # Determine signal level
+    if models_agreeing >= 4 and run_count >= 5:
+        level = 'locked'
+        label = f"Signal locked ({models_agreeing}/4 models, run {run_count})"
+    elif models_agreeing >= 3 or run_count >= 3:
+        level = 'strong'
+        label = f"Strong signal ({models_agreeing}/4 models, run {run_count})"
+    elif models_agreeing >= 2:
+        level = 'emerging'
+        label = f"Emerging signal ({models_agreeing}/4 models)"
     else:
-        return '⚠️ Confidence: medium'
+        level = 'weak'
+        label = "Weak/uncertain signal"
+
+    return {
+        'level': level,
+        'models_agreeing': models_agreeing,
+        'run_count': run_count,
+        'label': label
+    }
+
+
+def format_timing_window(timing_info: dict, cold_info: dict) -> dict:
+    """
+    Format timing as a date window rather than single point with ±.
+
+    Returns dict with:
+        - spread_label: 'tight' | 'moderate' | 'broad'
+        - spread_days: float
+        - window: str (e.g., "Jan 3-5")
+        - label: str (human-readable for context)
+    """
+    if not timing_info:
+        # Fall back to cold_info dates if no timing spread calculated
+        if cold_info and cold_info.get('models'):
+            dates = [m['date'] for m in cold_info['models']]
+            unique_dates = sorted(set(dates))
+            if len(unique_dates) == 1:
+                return {
+                    'spread_label': 'tight',
+                    'spread_days': 0,
+                    'window': unique_dates[0],
+                    'label': f"Coldest period: {unique_dates[0]}"
+                }
+            else:
+                # Format as range
+                from datetime import datetime
+                try:
+                    dts = [datetime.fromisoformat(d) for d in unique_dates]
+                    start = min(dts).strftime('%b %d')
+                    end = max(dts).strftime('%b %d')
+                    spread = (max(dts) - min(dts)).days
+                except:
+                    start = unique_dates[0]
+                    end = unique_dates[-1]
+                    spread = len(unique_dates)
+
+                if spread <= 1:
+                    spread_label = 'tight'
+                elif spread <= 2:
+                    spread_label = 'moderate'
+                else:
+                    spread_label = 'broad'
+
+                return {
+                    'spread_label': spread_label,
+                    'spread_days': spread,
+                    'window': f"{start}-{end}",
+                    'label': f"Coldest period: {start}-{end} (±{spread} days)"
+                }
+        return None
+
+    spread_days = timing_info.get('spread_days', 0)
+
+    # Determine spread label
+    if spread_days <= 1:
+        spread_label = 'tight'
+    elif spread_days <= 2:
+        spread_label = 'moderate'
+    else:
+        spread_label = 'broad'
+
+    # Build window string from earliest/latest
+    earliest = timing_info.get('earliest_date', '')[:10]
+    latest = timing_info.get('latest_date', '')[:10]
+
+    try:
+        from datetime import datetime
+        start_dt = datetime.fromisoformat(earliest)
+        end_dt = datetime.fromisoformat(latest)
+        window = f"{start_dt.strftime('%b %d')}-{end_dt.strftime('%b %d')}"
+    except:
+        window = f"{earliest} to {latest}"
+
+    return {
+        'spread_label': spread_label,
+        'spread_days': round(spread_days, 1),
+        'window': window,
+        'label': f"Coldest period: {window} (±{round(spread_days)} days)"
+    }
+
+
+def calculate_confidence(data: dict) -> str:
+    """DEPRECATED - kept for backwards compatibility. Use calculate_signal_strength instead."""
+    # Return empty string - we use the new signal/timing system now
+    return ""
 
 
 def format_run_diff_text(diffs: list) -> str:
@@ -837,6 +913,16 @@ def format_analysis_context(run_diff_text: str, confidence: str,
     """Format all analysis results into context for Claude CLI prompt."""
     context_parts = []
 
+    # NEW: Signal strength (replaces old confidence)
+    signal_strength = calculate_signal_strength(cold_info, persistence_info)
+    if signal_strength and signal_strength['level'] != 'weak':
+        context_parts.append(f"SIGNAL: {signal_strength['label']}")
+
+    # NEW: Timing window (replaces old timing uncertainty)
+    timing_window = format_timing_window(timing_info, cold_info)
+    if timing_window:
+        context_parts.append(f"TIMING: {timing_window['label']}")
+
     # Cold threshold - EXPLICIT ranked list so Claude doesn't misread JSON
     if cold_info and cold_info.get('models'):
         models = cold_info['models']
@@ -864,41 +950,27 @@ def format_analysis_context(run_diff_text: str, confidence: str,
             )
             break  # Just report first/most significant
 
-    # Trend persistence
+    # Trend persistence (additional detail)
     if persistence_info:
         signal = persistence_info.get('signal')
-        run_count = persistence_info.get('run_count', 0)
         trend = persistence_info.get('trend', '')
 
         if signal == 'neutral' and trend == 'cleared':
             prev = persistence_info.get('prev_signal', 'signal')
             context_parts.append(f"TREND: {prev.title()} signal has cleared")
-        elif signal and run_count >= 2:
+        elif signal and trend:
             if trend == 'strengthening':
-                # Plain language: getting colder/warmer
-                direction = "getting colder" if signal == 'cold' else "getting warmer"
-                context_parts.append(f"TREND: {signal.title()} signal for {run_count} consecutive runs and {direction}")
+                context_parts.append(f"TREND: Signal strengthening (getting {'colder' if signal == 'cold' else 'warmer'})")
             elif trend == 'weakening':
-                # Plain language: easing, less extreme than before
-                direction = "less cold than previous runs" if signal == 'cold' else "less warm than previous runs"
-                context_parts.append(f"TREND: {signal.title()} signal for {run_count} runs but {direction}")
-            else:
-                context_parts.append(f"TREND: {signal.title()} signal now in {run_count} consecutive runs")
+                context_parts.append(f"TREND: Signal weakening (less {'cold' if signal == 'cold' else 'warm'} than previous runs)")
 
-    # Timing uncertainty
-    if timing_info:
-        context_parts.append(
-            f"TIMING: Cold arrives ~{timing_info['mid_date']} ±{timing_info['spread_days']} days ({timing_info['models_crossing']}/{timing_info['models_total']} models crossing threshold)"
-        )
-
-    # Confidence
     # Period breakdown
     if period_info:
         period_ctx = format_period_context(period_info)
         if period_ctx:
             context_parts.append(period_ctx)
 
-    context_parts.append(f"CONFIDENCE: {confidence}")
+    # NOTE: Old CONFIDENCE line removed - replaced by SIGNAL above
 
     return "\n".join(context_parts)
 
@@ -949,12 +1021,19 @@ STYLE:
 - Mention model agreement/disagreement and what changed since last run
 - Can mention ONE key temperature to anchor the story
 
+SIGNAL AND TIMING FRAMEWORK:
+- SIGNAL tells you event confidence: "locked" = certain it's happening, "strong" = very likely, "emerging" = developing
+- TIMING tells you the date window and spread (e.g., "Jan 3-5, ±2 days")
+- NEVER say "confidence low" when SIGNAL is "locked" - the event IS happening, only timing varies
+- When signal is locked/strong, lead with certainty: "Cold locked in for next week" not "Cold possible"
+- Use the TIMING window as a range: "coldest period Jan 3-5" not "coldest on Jan 4"
+- If models agree on event but differ on exact day, that's NORMAL for 5+ day forecasts - not low confidence
+
 CLARITY ON TIMEFRAMES:
 - COLD RANKING shows which model forecasts the coldest FUTURE temperature (minimum in forecast period)
 - You CAN mention both current temps AND forecast minimums - but BE EXPLICIT about timeframes
 - BAD: "GFS coldest... ECM coldest right now" (confusing - which is coldest?)
 - GOOD: "ECM showing -8°C today, but GFS dips coldest to -9°C by Jan 4th" (clear timeframes)
-- Always make it obvious whether you're talking about NOW vs the forecast minimum
 
 FORMAT:
 - NO markdown (no **, no #, no _) - Bluesky is plain text only
