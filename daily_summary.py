@@ -713,16 +713,60 @@ def main():
     else:
         print("  Warnings Post: (none - no active warnings)")
 
-    # Build list of posts and add [X/Y] numbering
-    # Lead with AI alert (most impactful), then Met Office detail, then stats
-    thread_posts = [post3]  # AI commentary/alert first
-    thread_posts.append(post1)  # Met Office today
-    if post2:
-        thread_posts.append(post2)  # Met Office long range
-    thread_posts.append(post4)  # Stats last
+    # Combine all content into one flow, then split at char limit
+    # This keeps engagement content visible in first message
+    from datetime import datetime
+    today = datetime.now().strftime("%d %m %Y")
 
-    total = len(thread_posts)
-    numbered_posts = [f"[{i+1}/{total}] {post}" for i, post in enumerate(thread_posts)]
+    # Build continuous content stream
+    content_parts = [f"UK Daily {today}"]
+
+    # Add Met Office today content
+    if metoffice.get("today_tomorrow"):
+        content_parts.append(metoffice["today_tomorrow"])
+
+    # Add AI alert/commentary (the hook)
+    content_parts.append(post3)
+
+    # Add long range if available
+    if post2:
+        content_parts.append(post2.replace("Days 3-5: ", ""))  # Remove redundant prefix
+
+    # Add stats
+    content_parts.append(post4)
+
+    # Join with double newlines
+    full_content = "\n\n".join(content_parts)
+
+    # Split into posts at 300 char limit (reserve 9 chars for [XX/XX] prefix)
+    def split_content(text, max_chars=291):
+        if len(text) <= max_chars:
+            return [text]
+        chunks = []
+        remaining = text
+        while remaining:
+            if len(remaining) <= max_chars:
+                chunks.append(remaining)
+                break
+            # Find break point - prefer paragraph, then sentence, then space
+            break_point = remaining[:max_chars].rfind('\n\n')
+            if break_point < max_chars // 3:
+                break_point = remaining[:max_chars].rfind('\n')
+            if break_point < max_chars // 3:
+                break_point = remaining[:max_chars].rfind('. ')
+                if break_point > 0:
+                    break_point += 1
+            if break_point < max_chars // 3:
+                break_point = remaining[:max_chars].rfind(' ')
+            if break_point < 0:
+                break_point = max_chars
+            chunks.append(remaining[:break_point].strip())
+            remaining = remaining[break_point:].strip()
+        return chunks
+
+    split_posts = split_content(full_content)
+    total = len(split_posts)
+    numbered_posts = [f"[{i+1}/{total}] {post}" for i, post in enumerate(split_posts)]
 
     if dry_run:
         print()
