@@ -121,6 +121,70 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def get_weather_context() -> dict:
+    """Read current weather state from summary_latest.json.
+
+    Returns dict with:
+        cold_signal: bool - is there an active cold signal?
+        min_temp: float - coldest 850hPa temp in forecast
+        model_agreement: str - 'high', 'medium', 'low'
+        warnings_active: bool - Met Office warnings in effect
+    """
+    context = {
+        "cold_signal": False,
+        "min_temp": None,
+        "model_agreement": "medium",
+        "warnings_active": False,
+    }
+
+    # Try to read summary_latest.json
+    summary_path = Path(__file__).parent.parent / "data" / "summary_latest.json"
+    if not summary_path.exists():
+        return context
+
+    try:
+        with open(summary_path, 'r') as f:
+            data = json.load(f)
+
+        # Check for cold signal (any model below -5C)
+        runs = data.get('runs', [])
+        if runs:
+            current = runs[0]
+            models = current.get('models', {})
+            min_temps = []
+            for model_data in models.values():
+                if 'min' in model_data:
+                    min_temps.append(model_data['min'])
+
+            if min_temps:
+                coldest = min(min_temps)
+                context["min_temp"] = coldest
+                context["cold_signal"] = coldest < -5.0
+
+                # Check model agreement (spread of minimums)
+                if len(min_temps) >= 2:
+                    spread = max(min_temps) - min(min_temps)
+                    if spread < 3.0:
+                        context["model_agreement"] = "high"
+                    elif spread > 6.0:
+                        context["model_agreement"] = "low"
+    except Exception as e:
+        print(f"  Warning: Could not read weather context: {e}")
+
+    return context
+
+
+def generate_community_request() -> str:
+    """Generate Sunday community request post asking for topic suggestions."""
+    return """What weather or forecasting topics would you like WXD to explain?
+
+Reply with your questions - we'll cover the most popular ones in our Tuesday and Friday posts.
+
+---
+
+Whether it's how models work, why forecasts change, or cutting through tabloid hype - we're here to make weather data accessible."""
+
+
 def load_state(state_path: Path) -> dict:
     """Load engagement state (topic history, collected questions)."""
     if state_path.exists():
@@ -191,8 +255,8 @@ def get_recent_replies(handle: str, password: str, since_hours: int = 96) -> lis
         return []
 
 
-def select_topic(state: dict) -> tuple:
-    """Select next topic, avoiding recent repeats.
+def select_topic(state: dict, weather_context: dict = None) -> tuple:
+    """Select next topic, using weather context for relevance.
 
     Returns (category_key, topic_text)
     """
@@ -202,16 +266,34 @@ def select_topic(state: dict) -> tuple:
     if state.get("collected_questions") and len(state["collected_questions"]) >= 2:
         return "qa", "Community Q&A"
 
-    # Rotate through categories, avoiding recent ones
-    available_categories = [
-        cat for cat in TOPIC_CATEGORIES.keys()
-        if cat not in recent_categories[-2:]  # Avoid last 2 categories
-    ]
+    # Build weighted category list based on weather context
+    if weather_context is None:
+        weather_context = get_weather_context()
 
-    if not available_categories:
-        available_categories = list(TOPIC_CATEGORIES.keys())
+    # Weight categories based on current conditions
+    weighted_categories = []
+    for cat in TOPIC_CATEGORIES.keys():
+        if cat in recent_categories[-2:]:
+            continue  # Skip recently used
 
-    category = random.choice(available_categories)
+        weight = 1  # Base weight
+
+        # Cold signal active = boost cold_relevant and myth_busting
+        if weather_context.get("cold_signal"):
+            if cat == "cold_relevant":
+                weight = 4
+            elif cat == "myth_busting":
+                weight = 3
+            elif cat == "weather_education":
+                weight = 2
+
+        # Add category with its weight
+        weighted_categories.extend([cat] * weight)
+
+    if not weighted_categories:
+        weighted_categories = list(TOPIC_CATEGORIES.keys())
+
+    category = random.choice(weighted_categories)
     cat_info = TOPIC_CATEGORIES[category]
 
     # Select a topic we haven't used recently
@@ -387,11 +469,13 @@ def main():
     parser.add_argument('--dry-run', '-n', action='store_true',
                        help='Preview without posting')
     parser.add_argument('--category', '-c', type=str,
-                       help='Force specific category (weather_education, ai_tech, project_updates, weather_news)')
+                       help='Force specific category (weather_education, ai_tech, project_updates, weather_news, cold_relevant, myth_busting)')
     parser.add_argument('--collect-questions', action='store_true',
                        help='Only collect questions from replies, do not post')
     parser.add_argument('--qa', action='store_true',
                        help='Force Q&A post using collected questions')
+    parser.add_argument('--community-request', action='store_true',
+                       help='Post Sunday community request asking for topic suggestions')
     args = parser.parse_args()
 
     script_dir = Path(__file__).parent
@@ -405,10 +489,45 @@ def main():
     print(f"WXD Engagement System - {utcnow().isoformat()}")
     if args.dry_run:
         print("DRY RUN MODE - will NOT post")
+
+    # Get weather context for relevant topic selection
+    weather_context = get_weather_context()
+    print(f"Weather context: cold_signal={weather_context['cold_signal']}, min_temp={weather_context['min_temp']}, agreement={weather_context['model_agreement']}")
     print()
 
     # Load state
     state = load_state(state_path)
+
+    # Community request mode (Sunday post)
+    if args.community_request:
+        print("Generating community request post...")
+        content = generate_community_request()
+        posts = [p.strip() for p in content.split('---') if p.strip()]
+
+        print(f"Generated {len(posts)} posts:")
+        for i, post in enumerate(posts):
+            print(f"\n  [{i+1}] ({len(post)} chars):")
+            print(f"  {post[:200]}{'...' if len(post) > 200 else ''}")
+
+        if args.dry_run:
+            print("\n" + "=" * 50)
+            print("PREVIEW (not posting):")
+            for i, post in enumerate(posts):
+                print(f"\n--- Post {i+1} ---")
+                print(post)
+            print("=" * 50)
+            return 0
+
+        print("\nPosting to Bluesky...")
+        success = post_thread(posts, bsky_handle, bsky_password)
+        if success:
+            print("  Community request posted!")
+            state["last_community_request"] = utcnow().isoformat()
+            save_state(state_path, state)
+        else:
+            print("  Failed to post")
+            return 1
+        return 0
 
     # Collect questions mode
     if args.collect_questions:
@@ -440,7 +559,7 @@ def main():
             print(f"Unknown category: {category}")
             return 1
     else:
-        category, topic = select_topic(state)
+        category, topic = select_topic(state, weather_context)
 
     print(f"Category: {category}")
     print(f"Topic: {topic}")
