@@ -133,6 +133,16 @@ ssh -i "$SSH_KEY" ubuntu@$VM_IP "cd ~/wxd && source venv/bin/activate && source 
 - The git history retains it even after deletion
 - Rotating the exposed secret (e.g., change ntfy channel) is safer than history rewrite
 
+## Background Tasks (Check at session start)
+
+**Oracle A1 Grabber** - Started 2024-12-30
+- Script: `~/grab_a1_instance.sh` on VM
+- Log: `/home/ubuntu/grab_a1.log`
+- Purpose: Grab Oracle A1.Flex free tier (2 OCPU, 12GB RAM, uk-london-1)
+- Check status: Send `oracle` to ntfy.sh/wxd-cmd
+- On success: Alerts wxd-alerts with instance IP
+- Remove this section once instance is acquired
+
 ## DO NOT
 
 - Add `--max-tokens` to Claude CLI calls (doesn't exist)
