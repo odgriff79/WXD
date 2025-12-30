@@ -317,6 +317,13 @@ def select_topic(state: dict, weather_context: dict = None) -> tuple:
             continue  # Skip recently used
 
         weight = 1  # Base weight
+        season = weather_context.get("season", "shoulder")
+
+        # Skip seasonal categories when not relevant
+        if cat == "cold_relevant" and season == "summer":
+            continue  # Don't suggest cold topics in summer
+        if cat == "warm_relevant" and season == "winter":
+            continue  # Don't suggest warm topics in winter
 
         # Cold signal active (winter) = boost cold_relevant and myth_busting
         if weather_context.get("cold_signal"):
