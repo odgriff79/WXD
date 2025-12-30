@@ -54,10 +54,12 @@ wxd/
 
 ## VM Setup
 
+- **VM**: Oracle ARM A1.Flex (4 OCPU, 24GB RAM) - migrated 2025-12-30
 - **User**: ubuntu
 - **Project dir**: ~/wxd
 - **Venv**: ~/wxd/venv
 - **Env file**: ~/.wxd_env (Bluesky credentials)
+- **Old VM**: evohome-monitor (AMD micro, 1GB) - Evo_mon only, WXD cron disabled
 
 ## Commands
 
@@ -133,19 +135,6 @@ ssh -i "$SSH_KEY" ubuntu@$VM_IP "cd ~/wxd && source venv/bin/activate && source 
 **If you accidentally commit sensitive info:**
 - The git history retains it even after deletion
 - Rotating the exposed secret (e.g., change ntfy channel) is safer than history rewrite
-
-## Background Tasks (Check at session start)
-
-**Oracle A1 Grabber** - Started 2024-12-30
-- Script: `~/grab_a1_instance.sh` on VM
-- Log: `/home/ubuntu/grab_a1.log`
-- Purpose: Grab Oracle A1.Flex free tier (4 OCPU, 24GB RAM, uk-london-1)
-- PAYG upgrade initiated 2024-12-30 (improves capacity access)
-- Budget alert: £1/month safety limit set
-- Check status: Send `oracle` to ntfy.sh/wxd-cmd
-- On success: Alerts wxd-alerts with instance IP
-- **Migration plan**: See `MIGRATION_PLAN.md` for full setup checklist
-- Remove this section once instance is acquired and migrated
 
 ## DO NOT
 
