@@ -139,10 +139,13 @@ ssh -i "$SSH_KEY" ubuntu@$VM_IP "cd ~/wxd && source venv/bin/activate && source 
 **Oracle A1 Grabber** - Started 2024-12-30
 - Script: `~/grab_a1_instance.sh` on VM
 - Log: `/home/ubuntu/grab_a1.log`
-- Purpose: Grab Oracle A1.Flex free tier (2 OCPU, 12GB RAM, uk-london-1)
+- Purpose: Grab Oracle A1.Flex free tier (4 OCPU, 24GB RAM, uk-london-1)
+- PAYG upgrade initiated 2024-12-30 (improves capacity access)
+- Budget alert: £1/month safety limit set
 - Check status: Send `oracle` to ntfy.sh/wxd-cmd
 - On success: Alerts wxd-alerts with instance IP
-- Remove this section once instance is acquired
+- **Migration plan**: See `MIGRATION_PLAN.md` for full setup checklist
+- Remove this section once instance is acquired and migrated
 
 ## DO NOT
 
