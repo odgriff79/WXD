@@ -259,9 +259,11 @@ TARGET AUDIENCE: General public and weather enthusiasts with basic knowledge (no
 CRITICAL FORMAT:
 - Write 2-3 posts, each max 280 characters
 - Separate posts with --- on its own line
-- Output ONLY the post text, nothing else
+- Start IMMEDIATELY with the first post text
+- NO preamble like "Let me..." or "Here is..." or "I will..."
 - NO labels like "Post 1:" or "**Post 1:**"
 - NO markdown formatting (no **, no #, no *)
+- NO thinking out loud - just the post content
 - Plain text only
 
 CONTENT RULES:
