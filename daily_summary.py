@@ -356,7 +356,7 @@ def get_claude_comparison(metoffice: dict, model_summary: str) -> str:
     if metoffice.get("days_3_5"):
         mo_parts.append(f"Days 3-5: {metoffice['days_3_5'][:300]}")
     if metoffice.get("long_range"):
-        mo_parts.append(f"Long range: {metoffice['long_range'][:300]}")
+        mo_parts.append(f"Long range: {metoffice['long_range']}")
 
     mo_text = "\n".join(mo_parts) if mo_parts else "Met Office narrative not available"
 
@@ -429,7 +429,7 @@ def generate_metoffice_longrange_post(metoffice: dict) -> str:
         return None
 
     text = "\n".join(parts)
-    if len(text) > 280:
+    if False:  # Removed truncation - let split_content handle it
         text = text[:277] + "..."
 
     return text
@@ -739,7 +739,7 @@ def main():
     full_content = "\n\n".join(content_parts)
 
     # Split into posts at 300 char limit (reserve 12 chars for [XX/XX] prefix + safety)
-    def split_content(text, max_chars=280):
+    def split_content(text, max_chars=260):
         if len(text) <= max_chars:
             return [text]
         chunks = []
