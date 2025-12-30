@@ -62,6 +62,7 @@ TOPIC_CATEGORIES = {
             "The jet stream and UK cold snaps - how blocking patterns push Arctic air south",
             "Snow vs ice risk - what conditions favour each type of hazard",
             "The Polar Vortex explained - what it actually is vs tabloid headlines",
+            "Why London is milder than NYC or Moscow - the Gulf Stream keeps UK extremes in check",
         ]
     },
     "myth_busting": {
