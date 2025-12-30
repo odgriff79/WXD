@@ -65,6 +65,20 @@ TOPIC_CATEGORIES = {
             "Why London is milder than NYC or Moscow - the Gulf Stream keeps UK extremes in check",
         ]
     },
+    "warm_relevant": {
+        "name": "Warm Weather Topics",
+        "topics": [
+            "What 15C at 850hPa means for heatwave potential at ground level",
+            "How WXD tracks summer heat the same way it tracks winter cold",
+            "Why UK heatwaves are becoming more common and intense",
+            "The Azores High and summer blocking patterns",
+            "Heat health alerts - how the Met Office warns for dangerous temperatures",
+            "Why humid heat feels worse than dry heat - the role of dewpoint",
+            "Urban heat islands - why London can be 5C warmer than the countryside",
+            "Night-time temperatures - why they matter for health during heatwaves",
+            "Thunderstorm risk - when hot air becomes unstable",
+        ]
+    },
     "myth_busting": {
         "name": "Cutting Through Hype",
         "topics": [
@@ -125,15 +139,30 @@ def get_weather_context() -> dict:
     """Read current weather state from summary_latest.json.
 
     Returns dict with:
-        cold_signal: bool - is there an active cold signal?
+        cold_signal: bool - is there an active cold signal? (winter)
+        warm_signal: bool - is there an active warm signal? (summer)
         min_temp: float - coldest 850hPa temp in forecast
+        max_temp: float - warmest 850hPa temp in forecast
         model_agreement: str - 'high', 'medium', 'low'
+        season: str - 'winter', 'summer', 'shoulder'
         warnings_active: bool - Met Office warnings in effect
     """
+    # Determine season based on month
+    month = utcnow().month
+    if month in [12, 1, 2]:
+        season = "winter"
+    elif month in [6, 7, 8]:
+        season = "summer"
+    else:
+        season = "shoulder"  # Spring/Autumn
+
     context = {
         "cold_signal": False,
+        "warm_signal": False,
         "min_temp": None,
+        "max_temp": None,
         "model_agreement": "medium",
+        "season": season,
         "warnings_active": False,
     }
 
@@ -146,19 +175,23 @@ def get_weather_context() -> dict:
         with open(summary_path, 'r') as f:
             data = json.load(f)
 
-        # Check for cold signal (any model below -5C)
+        # Get min and max temps from all models
         # Structure: data['models']['gfs']['min'] = array of temps
         models = data.get('models', {})
         min_temps = []
+        max_temps = []
         for model_name, model_data in models.items():
             if 'min' in model_data and isinstance(model_data['min'], list):
-                # Get the minimum value from the min array (coldest point in forecast)
                 model_min = min(model_data['min'])
                 min_temps.append(model_min)
+            if 'max' in model_data and isinstance(model_data['max'], list):
+                model_max = max(model_data['max'])
+                max_temps.append(model_max)
 
         if min_temps:
             coldest = min(min_temps)
             context["min_temp"] = round(coldest, 1)
+            # Cold signal: below -5C at 850hPa (winter focus)
             context["cold_signal"] = coldest < -5.0
 
             # Check model agreement (spread of minimums)
@@ -168,6 +201,13 @@ def get_weather_context() -> dict:
                     context["model_agreement"] = "high"
                 elif spread > 6.0:
                     context["model_agreement"] = "low"
+
+        if max_temps:
+            warmest = max(max_temps)
+            context["max_temp"] = round(warmest, 1)
+            # Warm signal: above 15C at 850hPa (summer heat focus)
+            context["warm_signal"] = warmest > 15.0
+
     except Exception as e:
         print(f"  Warning: Could not read weather context: {e}")
 
@@ -278,12 +318,19 @@ def select_topic(state: dict, weather_context: dict = None) -> tuple:
 
         weight = 1  # Base weight
 
-        # Cold signal active = boost cold_relevant and myth_busting
+        # Cold signal active (winter) = boost cold_relevant and myth_busting
         if weather_context.get("cold_signal"):
             if cat == "cold_relevant":
                 weight = 4
             elif cat == "myth_busting":
                 weight = 3
+            elif cat == "weather_education":
+                weight = 2
+
+        # Warm signal active (summer) = boost warm_relevant
+        if weather_context.get("warm_signal"):
+            if cat == "warm_relevant":
+                weight = 4
             elif cat == "weather_education":
                 weight = 2
 
@@ -492,7 +539,7 @@ def main():
 
     # Get weather context for relevant topic selection
     weather_context = get_weather_context()
-    print(f"Weather context: cold_signal={weather_context['cold_signal']}, min_temp={weather_context['min_temp']}, agreement={weather_context['model_agreement']}")
+    print(f"Weather context: season={weather_context['season']}, cold={weather_context['cold_signal']} ({weather_context['min_temp']}C), warm={weather_context['warm_signal']} ({weather_context['max_temp']}C), agreement={weather_context['model_agreement']}")
     print()
 
     # Load state
