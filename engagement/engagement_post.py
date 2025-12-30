@@ -32,6 +32,9 @@ except ImportError:
 
 
 # Topic categories with example prompts
+# NOTE: Topics should be reviewed based on current conditions
+# Cold pattern active = prioritize cold_relevant and myth_busting topics
+# Mild pattern = use general education topics
 TOPIC_CATEGORIES = {
     "weather_education": {
         "name": "Weather Education",
@@ -46,6 +49,32 @@ TOPIC_CATEGORIES = {
             "How do weather models handle uncertainty?",
             "What's the difference between GFS, ECMWF, and other global models?",
             "Why is the jet stream important for UK winter weather?",
+        ]
+    },
+    "cold_relevant": {
+        "name": "Cold Weather Topics",
+        "topics": [
+            "What -8C at 850hPa actually means for temperatures at ground level",
+            "When all 4 models agree on cold - what rare full convergence means for confidence",
+            "Run-to-run tracking: why we watch how forecasts change between model updates",
+            "Why models agree on the next few days but diverge after day 7",
+            "Met Office warning levels explained - Yellow, Amber, Red and what they mean",
+            "The jet stream and UK cold snaps - how blocking patterns push Arctic air south",
+            "Snow vs ice risk - what conditions favour each type of hazard",
+            "The Polar Vortex explained - what it actually is vs tabloid headlines",
+        ]
+    },
+    "myth_busting": {
+        "name": "Cutting Through Hype",
+        "topics": [
+            "Polar Vortex reality vs tabloid hype - no it is not attacking Britain",
+            "Why snow bomb and weather bomb headlines are usually overblown",
+            "Do not trust snow depth charts - why they are unreliable beyond 3 days",
+            "Walls of snow and other tabloid favourites - what forecasters actually see",
+            "Beast from the East comparisons - why every cold spell is not 2018",
+            "Reading weather maps critically - spotting sensationalism",
+            "Why coldest winter in decades predictions in autumn are meaningless",
+            "Model outliers - why one run showing -20C does not mean it will happen",
         ]
     },
     "ai_tech": {
