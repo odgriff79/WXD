@@ -218,7 +218,11 @@ Periodic retrospectives like this capture what was learned. If there's significa
 
 ## Posted Retrospectives
 
-### "3 Days In" Thread (Dec 30, 2025)
+### 2025-12-30 - "3 Days In" Thread
+
+**Posted:** Dec 30, 2025 ~10:00 UTC
+**Thread length:** 12 posts
+**Topic:** Launch retrospective - what worked, what broke, lessons learned
 
 Hardcopy of retrospective thread posted to Bluesky:
 
