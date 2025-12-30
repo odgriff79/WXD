@@ -714,11 +714,12 @@ def main():
         print("  Warnings Post: (none - no active warnings)")
 
     # Build list of posts and add [X/Y] numbering
-    thread_posts = [post1]
+    # Lead with AI alert (most impactful), then Met Office detail, then stats
+    thread_posts = [post3]  # AI commentary/alert first
+    thread_posts.append(post1)  # Met Office today
     if post2:
-        thread_posts.append(post2)
-    thread_posts.append(post3)
-    thread_posts.append(post4)
+        thread_posts.append(post2)  # Met Office long range
+    thread_posts.append(post4)  # Stats last
 
     total = len(thread_posts)
     numbered_posts = [f"[{i+1}/{total}] {post}" for i, post in enumerate(thread_posts)]
