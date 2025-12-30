@@ -949,6 +949,12 @@ STYLE:
 - Mention model agreement/disagreement and what changed since last run
 - Can mention ONE key temperature to anchor the story
 
+CRITICAL - AVOID CONTRADICTIONS:
+- COLD RANKING shows which model forecasts the coldest FUTURE temperature (minimum in forecast period)
+- DO NOT mix this with current/today temps - pick ONE framing and stick to it
+- If saying one model is "coldest", use the COLD RANKING (forecast minimums) - don't then say another model is "coldest right now"
+- Keep timeframes consistent - either talk about the forecast minimum OR current temps, not both in a confusing way
+
 FORMAT:
 - NO markdown (no **, no #, no _) - Bluesky is plain text only
 - No hashtags, no emojis, no headers
@@ -1631,6 +1637,11 @@ def main():
         return posts
 
     main_posts = split_for_posting(main_text)
+
+    # Add thread indicators [1/X] if multiple posts
+    if len(main_posts) > 1:
+        total = len(main_posts)
+        main_posts = [f"[{i+1}/{total}] {post}" for i, post in enumerate(main_posts)]
 
     # Post to Bluesky (or show preview in dry-run mode)
     if dry_run:
