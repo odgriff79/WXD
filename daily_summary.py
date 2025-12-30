@@ -719,7 +719,7 @@ def main():
     today = datetime.now().strftime("%d %m %Y")
 
     # Build continuous content stream
-    content_parts = [f"UK Daily {today}"]
+    content_parts = [f"UK Daily {today} - Met Office says:"]
 
     # Add Met Office today content
     if metoffice.get("today_tomorrow"):
@@ -738,8 +738,8 @@ def main():
     # Join with double newlines
     full_content = "\n\n".join(content_parts)
 
-    # Split into posts at 300 char limit (reserve 9 chars for [XX/XX] prefix)
-    def split_content(text, max_chars=291):
+    # Split into posts at 300 char limit (reserve 12 chars for [XX/XX] prefix + safety)
+    def split_content(text, max_chars=280):
         if len(text) <= max_chars:
             return [text]
         chunks = []
