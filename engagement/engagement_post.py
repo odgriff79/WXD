@@ -218,11 +218,11 @@ def generate_community_request() -> str:
     """Generate Sunday community request post asking for topic suggestions."""
     return """What weather or forecasting topics would you like WXD to explain?
 
-Reply with your questions - we'll cover the most popular ones in our Tuesday and Friday posts.
+Follow us and reply with your questions - we can only see replies from followers. Popular topics covered Tuesday and Friday.
 
 ---
 
-Whether it's how models work, why forecasts change, or cutting through tabloid hype - we're here to make weather data accessible."""
+We're building automated community engagement so your questions shape our content. Models, forecasts, tabloid myth-busting - what interests you?"""
 
 
 def load_state(state_path: Path) -> dict:

@@ -24,6 +24,10 @@ Daily Summary:
 
 Engagement:
 - 'engagement': Preview engagement post (dry-run)
+- 'replies': Collect reply digest from followers
+
+Utilities:
+- 'oracle': Check Oracle A1 grabber status
 
 Results sent to wxd-alerts topic.
 """
@@ -188,6 +192,13 @@ def handle_oracle():
     return f'ORACLE GRABBER: {status}\n\n{last_lines}'
 
 
+def handle_replies():
+    """Collect and show reply digest from followers."""
+    print(f'Reply digest requested at {time.strftime("%H:%M:%S")}')
+    output = run_command(['/home/ubuntu/wxd/venv/bin/python', 'engagement/reply_digest.py'])
+    return output
+
+
 while True:
     try:
         # Stream messages with timeout
@@ -224,6 +235,8 @@ while True:
                             output = handle_engagement()
                         elif cmd == 'oracle':
                             output = handle_oracle()
+                        elif cmd == 'replies':
+                            output = handle_replies()
 
                         if output:
                             # Clean up output for ntfy
