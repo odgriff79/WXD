@@ -147,27 +147,27 @@ def get_weather_context() -> dict:
             data = json.load(f)
 
         # Check for cold signal (any model below -5C)
-        runs = data.get('runs', [])
-        if runs:
-            current = runs[0]
-            models = current.get('models', {})
-            min_temps = []
-            for model_data in models.values():
-                if 'min' in model_data:
-                    min_temps.append(model_data['min'])
+        # Structure: data['models']['gfs']['min'] = array of temps
+        models = data.get('models', {})
+        min_temps = []
+        for model_name, model_data in models.items():
+            if 'min' in model_data and isinstance(model_data['min'], list):
+                # Get the minimum value from the min array (coldest point in forecast)
+                model_min = min(model_data['min'])
+                min_temps.append(model_min)
 
-            if min_temps:
-                coldest = min(min_temps)
-                context["min_temp"] = coldest
-                context["cold_signal"] = coldest < -5.0
+        if min_temps:
+            coldest = min(min_temps)
+            context["min_temp"] = round(coldest, 1)
+            context["cold_signal"] = coldest < -5.0
 
-                # Check model agreement (spread of minimums)
-                if len(min_temps) >= 2:
-                    spread = max(min_temps) - min(min_temps)
-                    if spread < 3.0:
-                        context["model_agreement"] = "high"
-                    elif spread > 6.0:
-                        context["model_agreement"] = "low"
+            # Check model agreement (spread of minimums)
+            if len(min_temps) >= 2:
+                spread = max(min_temps) - min(min_temps)
+                if spread < 3.0:
+                    context["model_agreement"] = "high"
+                elif spread > 6.0:
+                    context["model_agreement"] = "low"
     except Exception as e:
         print(f"  Warning: Could not read weather context: {e}")
 
