@@ -713,25 +713,26 @@ def main():
     else:
         print("  Warnings Post: (none - no active warnings)")
 
+    # Build list of posts and add [X/Y] numbering
+    thread_posts = [post1]
+    if post2:
+        thread_posts.append(post2)
+    thread_posts.append(post3)
+    thread_posts.append(post4)
+
+    total = len(thread_posts)
+    numbered_posts = [f"[{i+1}/{total}] {post}" for i, post in enumerate(thread_posts)]
+
     if dry_run:
         print()
         print("=" * 50)
         print("PREVIEW (not posting):")
         print()
-        print("POST 1 (Met Office Today):")
-        print(post1)
-        print()
-        if post2:
-            print("POST 2 (Met Office Long Range) - reply:")
-            print(post2)
+        for i, post in enumerate(numbered_posts):
+            print(f"POST {i+1}/{total} ({len(post)} chars):")
+            print(post)
             print()
-        print("POST 3 (AI Commentary) - reply:")
-        print(post3)
-        print()
-        print("POST 4 (Stats) - reply:")
-        print(post4)
         if warnings_post:
-            print()
             print("=" * 50)
             print("SEPARATE WARNINGS POST (standalone, not in thread):")
             print(warnings_post)
@@ -740,44 +741,32 @@ def main():
         print("(Attribution in pinned post)")
         return 0
 
-    # Step 4: Post thread to Bluesky
+    # Step 4: Post thread to Bluesky (using numbered posts)
     print()
     print("Posting thread to Bluesky...")
 
-    # Post 1: Met Office today (root of thread)
-    result1 = post_to_bluesky(post1, handle=bsky_handle, password=bsky_password)
-    if not result1:
-        print("  Failed to post Met Office today")
-        return 1
-    print(f"  Post 1: {result1['uri']}")
-    root_post = result1  # All replies point to this as root
-    last_result = result1
+    root_post = None
+    last_result = None
 
-    # Post 2: Met Office long range (if available)
-    if post2:
-        result2 = post_to_bluesky(post2, reply_to=last_result, root_post=root_post,
-                                   handle=bsky_handle, password=bsky_password)
-        if not result2:
-            print("  Failed to post Met Office long range")
-            return 1
-        print(f"  Post 2: {result2['uri']}")
-        last_result = result2
+    for i, post_text in enumerate(numbered_posts):
+        if i == 0:
+            # First post is root
+            result = post_to_bluesky(post_text, handle=bsky_handle, password=bsky_password)
+            if not result:
+                print(f"  Failed to post {i+1}/{total}")
+                return 1
+            root_post = result
+            last_result = result
+        else:
+            # Subsequent posts are replies
+            result = post_to_bluesky(post_text, reply_to=last_result, root_post=root_post,
+                                     handle=bsky_handle, password=bsky_password)
+            if not result:
+                print(f"  Failed to post {i+1}/{total}")
+                return 1
+            last_result = result
 
-    # Post 3: AI Commentary
-    result3 = post_to_bluesky(post3, reply_to=last_result, root_post=root_post,
-                               handle=bsky_handle, password=bsky_password)
-    if not result3:
-        print("  Failed to post AI commentary")
-        return 1
-    print(f"  Post 3: {result3['uri']}")
-
-    # Post 4: Stats
-    result4 = post_to_bluesky(post4, reply_to=result3, root_post=root_post,
-                               handle=bsky_handle, password=bsky_password)
-    if not result4:
-        print("  Failed to post stats")
-        return 1
-    print(f"  Post 4: {result4['uri']}")
+        print(f"  Post {i+1}/{total}: {result['uri']}")
 
     print()
     print("Daily summary thread posted successfully")

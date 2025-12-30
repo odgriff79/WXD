@@ -104,6 +104,7 @@ ssh -i "$SSH_KEY" ubuntu@$VM_IP "cd ~/wxd && source venv/bin/activate && source 
 2. **Claude CLI has no `--max-tokens` flag** - Don't add it, causes silent failures
 3. **Always `--dry-run` first** before live posts
 4. **Update CHANGELOG.md** after any code changes
+5. **MANDATORY: Thread numbering** - ALL multi-post Bluesky threads MUST include `[X/Y]` at the start of each message (e.g., `[1/4]`, `[2/4]`). No exceptions.
 
 ## Troubleshooting
 
@@ -151,3 +152,4 @@ ssh -i "$SSH_KEY" ubuntu@$VM_IP "cd ~/wxd && source venv/bin/activate && source 
 - Commit credentials or `.vm_config`
 - Include SSH key paths, VM IPs, or ntfy channels in committed files
 - Create cheatsheets or docs with real infrastructure details in public repos
+- Post multi-message threads without `[X/Y]` numbering on EVERY message
