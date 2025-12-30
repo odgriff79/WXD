@@ -4,6 +4,27 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ## [Unreleased]
 
+## [2025-12-30] - Engagement System Overhaul
+
+### Added
+- **Context-aware topic selection** - Reads summary_latest.json for cold/warm signals, weights categories accordingly
+- **Seasonal awareness** - Detects winter/summer/shoulder seasons, excludes irrelevant topics
+- **New topic categories**:
+  - `cold_relevant` (9 topics): 850hPa, model convergence, jet stream, Polar Vortex, Gulf Stream
+  - `warm_relevant` (9 topics): Heatwaves, urban heat, dewpoint, thunderstorms
+  - `myth_busting` (8 topics): Snow depth charts, weather bombs, tabloid hype debunking
+- **Community request mode** - Sunday posts asking followers for topic suggestions
+- **Thread indicators** - Posts now show [1/3] [2/3] [3/3] so users know more content follows
+- **Question collection** - Monday cron harvests replies for Tuesday Q&A posts
+
+### Changed
+- **New engagement schedule**: Sun 12:00 (community request), Mon 20:00 (collect replies), Tue/Fri 12:00 (posts)
+- **Removed --dry-run** from engagement cron - posts now go live
+
+### Fixed
+- **AI preamble leak** - Stricter prompt rules prevent "Let me create..." appearing in posts
+- **Weather context parsing** - Fixed to match actual summary_latest.json structure
+
 ## [2025-12-29] - Daily Summary Enhancements & ntfy Triggers
 
 ### Added
