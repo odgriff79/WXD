@@ -949,11 +949,12 @@ STYLE:
 - Mention model agreement/disagreement and what changed since last run
 - Can mention ONE key temperature to anchor the story
 
-CRITICAL - AVOID CONTRADICTIONS:
+CLARITY ON TIMEFRAMES:
 - COLD RANKING shows which model forecasts the coldest FUTURE temperature (minimum in forecast period)
-- DO NOT mix this with current/today temps - pick ONE framing and stick to it
-- If saying one model is "coldest", use the COLD RANKING (forecast minimums) - don't then say another model is "coldest right now"
-- Keep timeframes consistent - either talk about the forecast minimum OR current temps, not both in a confusing way
+- You CAN mention both current temps AND forecast minimums - but BE EXPLICIT about timeframes
+- BAD: "GFS coldest... ECM coldest right now" (confusing - which is coldest?)
+- GOOD: "ECM showing -8°C today, but GFS dips coldest to -9°C by Jan 4th" (clear timeframes)
+- Always make it obvious whether you're talking about NOW vs the forecast minimum
 
 FORMAT:
 - NO markdown (no **, no #, no _) - Bluesky is plain text only
