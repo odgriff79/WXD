@@ -62,20 +62,31 @@ crontab -e
 
 ### Current Schedule (all times UTC)
 
+#### Forecast Trackers
+
 | Time (UTC) | Task | Description |
 |------------|------|-------------|
-| 04:30 | Tracker A | 4-model ensemble (GFS/ECM/AIFS/GEM) |
-| 10:30 | Tracker A | 4-model ensemble |
-| 16:30 | Tracker A | 4-model ensemble |
-| 22:30 | Tracker A | 4-model ensemble |
-| 05:00 | ICON fetch + post | German ensemble (40 members) |
-| 17:00 | ICON fetch + post | German ensemble |
-| 05:30 | UKMO fetch + post | UK Met Office deterministic |
-| 17:30 | UKMO fetch + post | UK Met Office deterministic |
-| 06:00 | MOGREPS fetch + post | UK Met Office ensemble (18 members) |
-| 18:00 | MOGREPS fetch + post | UK Met Office ensemble |
-| 08:00 | Daily summary | Met Office 5-day outlook |
-| 18:00 Sun/Wed | Engagement post | Educational/community posts |
+| 08:30, 20:30 | Tracker A | 4-model ensemble (GFS/ECM/AIFS/GEM) |
+| 04:00, 10:00, 16:00, 22:00 | ICON | German ensemble (40 members) |
+| 03:00, 09:00, 15:00, 21:00 | MOGREPS | UK Met Office ensemble (18 members) |
+| 07:00, 19:00 | UKMO | UK Met Office deterministic |
+| 09:30 | Daily Summary | Met Office 5-day narrative + WXD comparison |
+
+#### Weekly/Automated Posts
+
+| Time (UTC) | Task | Description |
+|------------|------|-------------|
+| Sun 01:00 | Weekly Changelog | Auto-generated from git commits |
+| Sun 12:00 | Community Request | Ask followers for topic suggestions |
+| Mon 20:00 | Collect Questions | Harvest replies from Sunday post |
+| Tue 12:00 | Educational Post | Weather topic based on collected questions |
+| Fri 12:00 | Educational Post | Weather topic (context-aware selection) |
+
+#### Maintenance
+
+| Time (UTC) | Task | Description |
+|------------|------|-------------|
+| 10:15, 22:15 | Chart Sync | Push charts to GitHub Pages |
 
 ### Cron Format Reference
 ```
