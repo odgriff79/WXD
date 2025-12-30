@@ -4,9 +4,15 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ## [Unreleased]
 
-## [2025-12-30] - Engagement System Overhaul
+## [2025-12-30] - Engagement System Overhaul & Oracle A1 Grabber
 
 ### Added
+- **Oracle A1 instance grabber** - Automated script to grab ARM instance when capacity available
+  - OCI CLI installed and configured on VM
+  - Cycles through all 3 London availability domains every 60 seconds
+  - Target: 2 OCPUs, 12GB RAM, 145GB disk, Ubuntu 24.04 ARM
+  - ntfy alert on success, uses Windows SSH key for direct access
+- **ntfy trigger `oracle`** - Check grabber status anytime
 - **Context-aware topic selection** - Reads summary_latest.json for cold/warm signals, weights categories accordingly
 - **Seasonal awareness** - Detects winter/summer/shoulder seasons, excludes irrelevant topics
 - **New topic categories**:
