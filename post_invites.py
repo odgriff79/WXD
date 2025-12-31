@@ -16,13 +16,13 @@ except ImportError:
 
 # Invite messages
 STEVE_MESSAGES = [
-    "Hey @winchesterweather.bsky.social! Testing an automated reply system for WXD posts - uses Claude AI to handle conversations. Fancy being a guinea pig?",
+    "Hey @winchesterweather.bsky.social - Testing an automated reply system for WXD posts - uses Claude AI to handle conversations. Fancy being a guinea pig?",
     "How it works: reply to any of my weather posts with the word 'chat' somewhere in your reply. The system will pick it up and start a conversation.",
     "We're monitoring replies to see how it handles real weather questions. Let me know if anything seems weird or off!",
 ]
 
 SARAH_MESSAGES = [
-    "Hey @sarahhants.bsky.social! Testing an automated reply system for my weather posts - uses Claude AI to handle conversations. Fancy being a guinea pig?",
+    "Hey @sarahhants.bsky.social - Testing an automated reply system for my weather posts - uses Claude AI to handle conversations. Fancy being a guinea pig?",
     "How it works: reply to this message AND another post of your choice from me with the word 'chat' somewhere in your reply. Want to make sure it picks up triggers across different threads.",
     "We're monitoring replies to see how it handles real conversation - your cold health alert question is exactly the type of query we want it to handle well! Let me know if anything seems weird.",
 ]

@@ -54,6 +54,13 @@ SESSION_MSG_LIMIT_TRUSTED = 10   # Max messages per session (trusted users)
 SESSION_MSG_LIMIT_FEEDBACK = 15  # Extended limit for feedback/clarification conversations
 SESSION_EXPIRY_HOURS = 72        # Session expires after this many hours idle
 
+# Adaptive polling - cron runs frequently, script decides whether to actually check
+# When engaged (recent reply): always run for fast response
+# When quiet: back off to save resources
+ENGAGED_MODE_WINDOW_MINS = 60     # If reply within this window, we're "engaged"
+QUIET_CHECK_INTERVAL_MINS = 120   # When quiet, only run every 2 hours
+ADAPTIVE_POLLING = True           # Set False to always run
+
 # Blocklist - DIDs of accounts to ignore
 BLOCKLIST = set()
 
@@ -91,6 +98,52 @@ CANNED_RESPONSES = {
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def should_run_now(state: dict, force: bool = False) -> tuple[bool, str]:
+    """Decide whether to actually run based on adaptive polling logic.
+
+    Returns:
+        (should_run, reason) tuple
+    """
+    if force:
+        return True, "forced run (manual trigger)"
+
+    if not ADAPTIVE_POLLING:
+        return True, "adaptive polling disabled"
+
+    now = utcnow()
+
+    # Check when last reply was received
+    last_reply = state.get('last_reply_received')
+    last_run = state.get('last_run')
+
+    # If we have active sessions, stay engaged
+    active_sessions = state.get('active_sessions', {})
+    if active_sessions:
+        return True, f"active sessions: {len(active_sessions)}"
+
+    # Check if we received a reply recently (engaged mode)
+    if last_reply:
+        try:
+            reply_time = parse_datetime(last_reply)
+            mins_since_reply = (now - reply_time).total_seconds() / 60
+            if mins_since_reply < ENGAGED_MODE_WINDOW_MINS:
+                return True, f"engaged mode (reply {int(mins_since_reply)}m ago)"
+        except:
+            pass
+
+    # Quiet mode - only run if enough time since last run
+    if last_run:
+        try:
+            run_time = parse_datetime(last_run)
+            mins_since_run = (now - run_time).total_seconds() / 60
+            if mins_since_run < QUIET_CHECK_INTERVAL_MINS:
+                return False, f"quiet mode (last run {int(mins_since_run)}m ago, wait {QUIET_CHECK_INTERVAL_MINS}m)"
+        except:
+            pass
+
+    return True, "time for quiet mode check"
 
 
 def parse_datetime(dt_str: str) -> datetime:
@@ -428,6 +481,7 @@ def post_reply(client: Client, text: str, reply_to: dict, root: dict = None) -> 
 def main():
     parser = argparse.ArgumentParser(description='WXD Reply Listener v2')
     parser.add_argument('--post', action='store_true', help='Actually post replies (default: dry-run)')
+    parser.add_argument('--force', '-f', action='store_true', help='Force run (bypass adaptive polling)')
     parser.add_argument('--limit', '-l', type=int, default=DEFAULT_POSTS_TO_CHECK,
                         help=f'Number of recent posts to check (default: {DEFAULT_POSTS_TO_CHECK})')
     parser.add_argument('--max-replies', '-m', type=int, default=DEFAULT_MAX_REPLIES,
@@ -454,7 +508,17 @@ def main():
     data_dir.mkdir(exist_ok=True)
     state_path = data_dir / "reply_listener_state.json"
 
+    # Load state for adaptive polling check
+    state = load_state(state_path)
+
+    # Adaptive polling - decide whether to actually run
+    should_run, reason = should_run_now(state, force=args.force)
+    if not should_run:
+        print(f"WXD Reply Listener - SKIPPED: {reason}")
+        return 0
+
     print(f"WXD Reply Listener v2 - {utcnow().isoformat()}")
+    print(f"Run reason: {reason}")
     if TEST_MODE_USERS:
         print(f"*** TEST MODE: Only responding to {len(TEST_MODE_USERS)} whitelisted users ***")
         for user in TEST_MODE_USERS:
@@ -466,8 +530,6 @@ def main():
     print(f"Checking {args.limit} recent posts, max {args.max_replies} replies")
     print()
 
-    # Load state
-    state = load_state(state_path)
     processed_set = set(state.get('processed_replies', []))
 
     print(f"Previously processed: {len(processed_set)} replies")
@@ -712,6 +774,10 @@ def main():
 
     # Update state
     state['processed_replies'] = list(processed_set | set(new_processed))
+
+    # Track when we last received a reply (for adaptive polling)
+    if new_processed:
+        state['last_reply_received'] = utcnow().isoformat()
 
     # Keep only last 1000 processed URIs
     if len(state['processed_replies']) > 1000:
