@@ -51,6 +51,7 @@ DEFAULT_POSTS_TO_CHECK = 10  # How many recent posts to check for replies
 # Session limits
 SESSION_MSG_LIMIT_STANDARD = 5   # Max messages per session (regular followers)
 SESSION_MSG_LIMIT_TRUSTED = 10   # Max messages per session (trusted users)
+SESSION_MSG_LIMIT_FEEDBACK = 15  # Extended limit for feedback/clarification conversations
 SESSION_EXPIRY_HOURS = 72        # Session expires after this many hours idle
 
 # Blocklist - DIDs of accounts to ignore
@@ -199,11 +200,28 @@ def update_session(session: dict) -> None:
     session['message_count'] = session.get('message_count', 0) + 1
 
 
-def get_session_limit(author_did: str) -> int:
-    """Get message limit for this user."""
+def get_session_limit(author_did: str, session: dict = None) -> int:
+    """Get message limit for this user/session.
+
+    Limits escalate based on conversation value:
+    - Standard: 5 messages
+    - Trusted: 10 messages
+    - Feedback session: 15 messages (when providing corrections/clarifications)
+    """
+    # Check if this is a feedback session (user providing valuable input)
+    if session and session.get('is_feedback_session'):
+        return SESSION_MSG_LIMIT_FEEDBACK
+
     if author_did in TRUSTED_USERS:
         return SESSION_MSG_LIMIT_TRUSTED
+
     return SESSION_MSG_LIMIT_STANDARD
+
+
+def upgrade_to_feedback_session(session: dict) -> None:
+    """Upgrade a session to feedback mode - extends message limit."""
+    session['is_feedback_session'] = True
+    print("      [SESSION UPGRADED] Extended limit for feedback conversation")
 
 
 def get_recent_posts(client: Client, actor: str, limit: int = 10) -> list:
@@ -560,7 +578,7 @@ def main():
 
             if session:
                 # User has an active session
-                msg_limit = get_session_limit(author_did)
+                msg_limit = get_session_limit(author_did, session)
                 if session['message_count'] >= msg_limit:
                     # Session limit reached
                     print(f"      Session limit reached ({msg_limit} msgs)")
@@ -617,6 +635,12 @@ def main():
                             'date': utcnow().isoformat(),
                         })
                         print(f"      *** FLAGGED FOR HUMAN REVIEW: {result.get('uncertainty_note', 'uncertain')} ***")
+
+                    # Upgrade to feedback session if user is providing valuable input
+                    # This extends the message limit to allow full clarification
+                    if classification in ('correction', 'uncertain') or result.get('needs_human'):
+                        if not session.get('is_feedback_session'):
+                            upgrade_to_feedback_session(session)
 
             else:
                 # No active session
