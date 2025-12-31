@@ -1823,6 +1823,15 @@ def main():
         print("Set these environment variables to enable posting")
         main_post_ref = None
 
+    # Sync charts to GitHub Pages after successful post
+    if main_post_ref and not dry_run:
+        print("Syncing charts to GitHub...")
+        try:
+            subprocess.run(["/home/ubuntu/wxd/sync_charts.sh"], check=False, capture_output=True)
+            print("  Chart sync complete")
+        except Exception as e:
+            print(f"  Chart sync failed: {e}")
+
     print()
     print("Complete")
     return 0
