@@ -280,10 +280,11 @@ def generate_chat_response(reply_text: str, parent_text: str, session: dict = No
     """Use Claude CLI to generate a conversational response.
 
     Returns dict with:
-        - classification: genuine_question | topic_suggestion | appreciation | correction | spam
+        - classification: genuine_question | topic_suggestion | appreciation | correction | uncertain | spam
         - should_respond: bool
         - response_text: str (if should_respond)
         - reason: str (explanation)
+        - needs_human: bool (flag for owner review)
     """
     # Build conversation context if we have session history
     context = ""
@@ -293,6 +294,13 @@ def generate_chat_response(reply_text: str, parent_text: str, session: dict = No
     prompt = f"""You are WXD, a friendly weather analysis bot on Bluesky focused on UK weather.
 Your tone is: casual, friendly, weather-savvy, helpful. Like chatting with a knowledgeable weather friend.
 
+IMPORTANT: If you're unsure about something, DON'T GUESS. Flag it for human review instead.
+Examples of when to flag:
+- Technical weather distinctions you're uncertain about (e.g., Met Office warnings vs UKHSA Cold Health Alerts)
+- Specific local knowledge you might not have
+- Questions about WXD's own posts/data that you can't verify
+- Anything where being wrong could mislead the user
+
 ORIGINAL POST:
 {parent_text[:500]}
 
@@ -301,18 +309,21 @@ USER'S MESSAGE:
 {context}
 
 Classify and respond. Categories:
-1. genuine_question - Weather question → helpful, conversational answer
-2. topic_suggestion - Future topic idea → brief thanks, note the suggestion
-3. appreciation - Thanks/praise → brief, warm thanks
-4. correction - Error pointed out → acknowledge gracefully, flag for review
-5. spam - Off-topic/promotional → ignore
+1. genuine_question - Weather question you CAN answer confidently → helpful response
+2. topic_suggestion - Future topic idea → brief thanks
+3. appreciation - Thanks/praise → brief warm thanks
+4. correction - Error pointed out → acknowledge, flag for review
+5. uncertain - Question you're NOT SURE about → polite "let me check" + flag for human
+6. spam - Off-topic/promotional → ignore
 
 Output JSON only:
 {{
-    "classification": "genuine_question|topic_suggestion|appreciation|correction|spam",
+    "classification": "genuine_question|topic_suggestion|appreciation|correction|uncertain|spam",
     "should_respond": true/false,
     "response_text": "Your response (max 280 chars, casual friendly tone)",
-    "reason": "Brief explanation"
+    "reason": "Brief explanation",
+    "needs_human": true/false,
+    "uncertainty_note": "If uncertain, what specifically needs checking"
 }}"""
 
     try:
@@ -594,6 +605,18 @@ def main():
                             'parent_uri': post['uri'],
                             'date': utcnow().isoformat(),
                         })
+                    elif classification == 'uncertain' or result.get('needs_human'):
+                        # Flag for human review - Claude wasn't confident
+                        state.setdefault('needs_human_review', []).append({
+                            'text': reply['text'],
+                            'author': author_handle,
+                            'parent_uri': post['uri'],
+                            'reply_uri': reply['uri'],
+                            'uncertainty_note': result.get('uncertainty_note', ''),
+                            'claude_response': response_text,
+                            'date': utcnow().isoformat(),
+                        })
+                        print(f"      *** FLAGGED FOR HUMAN REVIEW: {result.get('uncertainty_note', 'uncertain')} ***")
 
             else:
                 # No active session
@@ -696,6 +719,8 @@ def main():
         print(f"  Corrections flagged: {len(state['flagged_corrections'])}")
     if state.get('training_log'):
         print(f"  Training log entries: {len(state['training_log'])}")
+    if state.get('needs_human_review'):
+        print(f"  *** NEEDS HUMAN REVIEW: {len(state['needs_human_review'])} ***")
 
     print("=" * 50)
 
