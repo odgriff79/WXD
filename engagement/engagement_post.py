@@ -361,7 +361,21 @@ def select_topic_with_claude(weather_context: dict, available_topics: list) -> t
 
 STRATEGY: Educational posts should be VARIED over time, but when significant weather events occur (like extreme cold or heat anomalies), we should capitalize on public interest by selecting topics that help followers understand what they're experiencing.
 
-Current period context: This is an ACTUAL WEATHER EVENT, not typical seasonal conditions. When anomaly_strength is 'extreme' or 'significant', followers are actively interested in what's happening. Choose topics that explain the current situation.
+IMPORTANT - BALANCED APPROACH TO EXTREME WEATHER:
+
+1) DEBUNK TABLOID HYPE: UK tabloids pump out exaggerated headlines ("SNOWMAGEDDON", "POLAR VORTEX ATTACKS BRITAIN"). Our myth_busting category counters this:
+   - Don't believe snow depth charts beyond 3 days
+   - "Beast from the East" comparisons are usually wrong
+   - See through sensationalist headlines
+
+2) BUT RESPECT OFFICIAL WARNINGS: Met Office Yellow/Amber/Red warnings ARE serious and evidence-based. Help followers understand:
+   - Why the traffic light system matters
+   - When to take warnings seriously vs ignore tabloid noise
+   - The difference between clickbait and official guidance
+
+The goal: informed followers who ignore tabloid hysteria but respect official warnings when issued.
+
+Current period context: This is an ACTUAL WEATHER EVENT, not typical seasonal conditions. When anomaly_strength is 'extreme' or 'significant', followers are actively interested AND tabloids are hyping. Choose topics that either explain the real situation OR debunk the hype.
 
 {weather_summary}
 
@@ -369,7 +383,8 @@ Available educational topics (format: [category] topic):
 {topics_text}
 
 SELECTION CRITERIA:
-- If anomaly is extreme/significant: prioritize topics that explain current conditions (cold_relevant, myth_busting during cold events)
+- If anomaly is extreme: STRONGLY prioritize myth_busting (counter tabloid hype) OR cold_relevant (explain what's actually happening)
+- If anomaly is significant: prioritize cold_relevant or myth_busting
 - If anomaly is normal/moderate: pick varied educational content (ai_tech, project_updates, general weather_education)
 - Consider model agreement: high agreement = confidence topics; low = uncertainty topics
 
