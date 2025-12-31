@@ -79,6 +79,14 @@ BLOCKLIST = set()
 TRUSTED_USERS = set()
 
 # =============================================================================
+# SUPER USER - SYSTEM OWNER (DO NOT AUTO-RESPOND)
+# Super user messages are TRAINING INPUTS, not conversation triggers
+# =============================================================================
+SUPER_USER_HANDLES = [
+    "ogriff79.bsky.social",  # Owen Griffiths - system owner
+]
+
+# =============================================================================
 # TEST MODE / LOCKDOWN
 # Set to empty list for normal operation, or add handles for lockdown testing
 # =============================================================================
@@ -913,6 +921,25 @@ def main():
                 new_processed.append(reply['uri'])
                 continue
 
+        # SUPER USER CHECK - log as training feedback, don't auto-respond
+        is_super_user = any(
+            author_handle == user or author_handle.endswith(f".{user}")
+            for user in SUPER_USER_HANDLES
+        )
+        if is_super_user:
+            print(f"    [SUPER USER] Training feedback logged - no auto-response")
+            # Log to training file
+            training_entry = {
+                'timestamp': utcnow().isoformat(),
+                'type': 'super_user_feedback',
+                'author': author_handle,
+                'message': reply['text'],
+                'context': reply.get('parent_text', '')[:200]
+            }
+            training_log.append(training_entry)
+            new_processed.append(reply['uri'])
+            continue
+
         # Skip pass-through
         if is_pass_through(reply['text']):
             print("    [SKIP] Pass-through detected")
@@ -1056,6 +1083,26 @@ def main():
                     print(f"      [TEST MODE] Ignoring - not whitelisted")
                     new_processed.append(reply['uri'])
                     continue
+
+            # =================================================================
+            # SUPER USER CHECK - training feedback, no auto-response
+            # =================================================================
+            is_super_user = any(
+                author_handle == user or author_handle.endswith(f".{user}")
+                for user in SUPER_USER_HANDLES
+            )
+            if is_super_user:
+                print(f"      [SUPER USER] Training feedback logged - no auto-response")
+                training_entry = {
+                    'timestamp': utcnow().isoformat(),
+                    'type': 'super_user_feedback',
+                    'author': author_handle,
+                    'message': reply['text'],
+                    'context': post['text'][:200] if post.get('text') else ''
+                }
+                training_log.append(training_entry)
+                new_processed.append(reply['uri'])
+                continue
 
             # =================================================================
             # PRE-FILTERS (before any Claude call)
