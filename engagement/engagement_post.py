@@ -341,108 +341,123 @@ def get_recent_replies(handle: str, password: str, since_hours: int = 96) -> lis
         return []
 
 
-def select_topic(state: dict, weather_context: dict = None) -> tuple:
-    """Select next topic, using anomaly-based weather context for relevance.
+def select_topic_with_claude(weather_context: dict, available_topics: list) -> tuple:
+    """Use Claude to select the most relevant topic given current weather.
 
-    Weighting scales with how unusual current weather is compared to seasonal norms.
-    A -10°C reading in December (9°C below normal) gets higher weight than
-    a -5°C reading (only 4°C below normal).
+    Returns (category, topic) or None if Claude fails.
+    """
+    # Build weather summary
+    weather_summary = f"""Current weather context for London:
+- Season: {weather_context.get('season')}
+- 4-model mean minimum: {weather_context.get('mean_min')}°C (coldest model: {weather_context.get('min_temp')}°C)
+- Cold anomaly: {weather_context.get('cold_anomaly', 0):+.1f}°C vs December normal of {weather_context.get('seasonal_normal')}°C
+- Anomaly strength: {weather_context.get('anomaly_strength', 'normal')}
+- Model agreement: {weather_context.get('model_agreement')}"""
+
+    # Format topics
+    topics_text = "\n".join([f"- [{cat}] {topic}" for cat, topic in available_topics])
+
+    prompt = f"""{weather_summary}
+
+Available educational topics (format: [category] topic):
+{topics_text}
+
+Pick the ONE topic most relevant to current weather conditions. Consider:
+- Extreme cold anomaly = prioritize cold explainers or myth-busting
+- High model agreement = good time for confidence/ensemble topics
+- Low agreement = good time for uncertainty topics
+
+Reply with ONLY the exact topic text, nothing else."""
+
+    try:
+        result = subprocess.run(
+            ['claude', '--dangerously-skip-permissions', '--model', 'haiku', '-p', prompt],
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+
+        if result.returncode == 0 and result.stdout.strip():
+            selected = result.stdout.strip()
+            # Find matching topic
+            for cat, topic in available_topics:
+                if topic.lower() in selected.lower() or selected.lower() in topic.lower():
+                    return cat, topic
+    except Exception as e:
+        print(f"  Claude topic selection failed: {e}")
+
+    return None
+
+
+def select_topic(state: dict, weather_context: dict = None) -> tuple:
+    """Select next topic, using Claude + anomaly-based weather context.
+
+    First tries Claude for intelligent selection, falls back to weighted random.
 
     Returns (category_key, topic_text)
     """
     recent_categories = [t.get("category") for t in state.get("topic_history", [])[-4:]]
+    recent_topics = [t.get("topic") for t in state.get("topic_history", [])[-10:]]
 
     # Prioritize Q&A if we have collected questions
     if state.get("collected_questions") and len(state["collected_questions"]) >= 2:
         return "qa", "Community Q&A"
 
-    # Build weighted category list based on weather context
     if weather_context is None:
         weather_context = get_weather_context()
 
-    # Get anomaly info
-    cold_anomaly = weather_context.get("cold_anomaly", 0)
-    warm_anomaly = weather_context.get("warm_anomaly", 0)
-    anomaly_strength = weather_context.get("anomaly_strength", "normal")
     season = weather_context.get("season", "shoulder")
 
-    # Weight categories based on anomaly strength
-    weighted_categories = []
-    for cat in TOPIC_CATEGORIES.keys():
+    # Build list of available topics (not recently used)
+    available_topics = []
+    for cat, cat_info in TOPIC_CATEGORIES.items():
         if cat in recent_categories[-2:]:
-            continue  # Skip recently used
-
-        weight = 1  # Base weight
-
+            continue
         # Skip seasonal categories when not relevant
         if cat == "cold_relevant" and season == "summer":
             continue
         if cat == "warm_relevant" and season == "winter":
             continue
 
-        # Scale weights by anomaly strength
-        # Extreme (>=10°C anomaly): weather topics dominate
-        # Significant (>=6°C): weather topics heavily weighted
-        # Moderate (>=3°C): weather topics moderately weighted
-        # Normal: balanced mix
-
-        if cold_anomaly > warm_anomaly:
-            # Cold anomaly dominates
-            if anomaly_strength == "extreme":
-                if cat == "cold_relevant":
-                    weight = 8
-                elif cat == "myth_busting":
-                    weight = 5
-                elif cat == "weather_education":
-                    weight = 3
-            elif anomaly_strength == "significant":
-                if cat == "cold_relevant":
-                    weight = 5
-                elif cat == "myth_busting":
-                    weight = 3
-                elif cat == "weather_education":
-                    weight = 2
-            elif anomaly_strength == "moderate":
-                if cat == "cold_relevant":
-                    weight = 3
-                elif cat == "myth_busting":
-                    weight = 2
-
-        elif warm_anomaly > cold_anomaly:
-            # Warm anomaly dominates
-            if anomaly_strength == "extreme":
-                if cat == "warm_relevant":
-                    weight = 8
-                elif cat == "weather_education":
-                    weight = 3
-            elif anomaly_strength == "significant":
-                if cat == "warm_relevant":
-                    weight = 5
-                elif cat == "weather_education":
-                    weight = 2
-            elif anomaly_strength == "moderate":
-                if cat == "warm_relevant":
-                    weight = 3
-
-        # Add category with its weight
-        weighted_categories.extend([cat] * weight)
-
-    if not weighted_categories:
-        weighted_categories = list(TOPIC_CATEGORIES.keys())
-
-    category = random.choice(weighted_categories)
-    cat_info = TOPIC_CATEGORIES[category]
-
-    # Select a topic we haven't used recently
-    recent_topics = [t.get("topic") for t in state.get("topic_history", [])[-10:]]
-    available_topics = [t for t in cat_info["topics"] if t not in recent_topics]
+        for topic in cat_info["topics"]:
+            if topic not in recent_topics:
+                available_topics.append((cat, topic))
 
     if not available_topics:
-        available_topics = cat_info["topics"]
+        # Fallback: use all topics
+        for cat, cat_info in TOPIC_CATEGORIES.items():
+            for topic in cat_info["topics"]:
+                available_topics.append((cat, topic))
 
-    topic = random.choice(available_topics)
+    # Try Claude for intelligent selection
+    print("  Asking Claude to select most relevant topic...")
+    result = select_topic_with_claude(weather_context, available_topics[:15])  # Limit to 15 topics
+    if result:
+        print(f"  Claude selected: {result[0]} - {result[1][:50]}...")
+        return result
 
-    return category, topic
+    # Fallback: weighted random selection based on anomaly
+    print("  Falling back to weighted random selection...")
+    cold_anomaly = weather_context.get("cold_anomaly", 0)
+    warm_anomaly = weather_context.get("warm_anomaly", 0)
+    anomaly_strength = weather_context.get("anomaly_strength", "normal")
+
+    weighted = []
+    for cat, topic in available_topics:
+        weight = 1
+        if cold_anomaly > warm_anomaly:
+            if anomaly_strength in ["extreme", "significant"]:
+                if cat in ["cold_relevant", "myth_busting"]:
+                    weight = 5
+                elif cat == "weather_education":
+                    weight = 2
+        elif warm_anomaly > cold_anomaly:
+            if anomaly_strength in ["extreme", "significant"]:
+                if cat == "warm_relevant":
+                    weight = 5
+        weighted.extend([(cat, topic)] * weight)
+
+    return random.choice(weighted) if weighted else random.choice(available_topics)
 
 
 def generate_qa_post(questions: list) -> str:
