@@ -139,14 +139,34 @@ def get_weather_context() -> dict:
     """Read current weather state from summary_latest.json.
 
     Returns dict with:
-        cold_signal: bool - is there an active cold signal? (winter)
-        warm_signal: bool - is there an active warm signal? (summer)
+        cold_signal: bool - is there an active cold signal?
+        warm_signal: bool - is there an active warm signal?
         min_temp: float - coldest 850hPa temp in forecast
         max_temp: float - warmest 850hPa temp in forecast
+        cold_anomaly: float - degrees below seasonal normal (positive = colder than normal)
+        warm_anomaly: float - degrees above seasonal normal (positive = warmer than normal)
+        anomaly_strength: str - 'extreme', 'significant', 'moderate', 'normal'
         model_agreement: str - 'high', 'medium', 'low'
         season: str - 'winter', 'summer', 'shoulder'
         warnings_active: bool - Met Office warnings in effect
     """
+    # Seasonal 850hPa normals for London (recent 10-year averages)
+    # UK has warmed significantly - -5°C is now unusual, -10°C is rare (last: Feb 2021)
+    SEASONAL_NORMALS = {
+        1: 2,    # Jan: ~2°C normal (was 0°C historically)
+        2: 2,    # Feb: ~2°C
+        3: 4,    # Mar: ~4°C
+        4: 6,    # Apr: ~6°C
+        5: 9,    # May: ~9°C
+        6: 12,   # Jun: ~12°C
+        7: 14,   # Jul: ~14°C
+        8: 14,   # Aug: ~14°C
+        9: 11,   # Sep: ~11°C
+        10: 8,   # Oct: ~8°C
+        11: 5,   # Nov: ~5°C
+        12: 3,   # Dec: ~3°C (was 1°C historically)
+    }
+
     # Determine season based on month
     month = utcnow().month
     if month in [12, 1, 2]:
@@ -156,13 +176,19 @@ def get_weather_context() -> dict:
     else:
         season = "shoulder"  # Spring/Autumn
 
+    seasonal_normal = SEASONAL_NORMALS.get(month, 5)
+
     context = {
         "cold_signal": False,
         "warm_signal": False,
         "min_temp": None,
         "max_temp": None,
+        "cold_anomaly": 0,
+        "warm_anomaly": 0,
+        "anomaly_strength": "normal",
         "model_agreement": "medium",
         "season": season,
+        "seasonal_normal": seasonal_normal,
         "warnings_active": False,
     }
 
@@ -176,7 +202,6 @@ def get_weather_context() -> dict:
             data = json.load(f)
 
         # Get min and max temps from all models
-        # Structure: data['models']['gfs']['min'] = array of temps
         models = data.get('models', {})
         min_temps = []
         max_temps = []
@@ -190,13 +215,19 @@ def get_weather_context() -> dict:
 
         if min_temps:
             coldest = min(min_temps)
+            # Use 4-model mean for anomaly calculation (more robust than single coldest)
+            mean_min = sum(min_temps) / len(min_temps)
             context["min_temp"] = round(coldest, 1)
-            # Cold signal: below -5C at 850hPa (winter focus)
-            context["cold_signal"] = coldest < -5.0
+            context["mean_min"] = round(mean_min, 1)
+            # Calculate cold anomaly from MEAN (consensus), not single coldest model
+            context["cold_anomaly"] = round(seasonal_normal - mean_min, 1)
+            # Cold signal: mean >5°C below seasonal normal OR any model below -5°C
+            context["cold_signal"] = context["cold_anomaly"] > 5 or coldest < -5.0
 
             # Check model agreement (spread of minimums)
             if len(min_temps) >= 2:
                 spread = max(min_temps) - min(min_temps)
+                context["model_spread"] = round(spread, 1)
                 if spread < 3.0:
                     context["model_agreement"] = "high"
                 elif spread > 6.0:
@@ -204,9 +235,24 @@ def get_weather_context() -> dict:
 
         if max_temps:
             warmest = max(max_temps)
+            mean_max = sum(max_temps) / len(max_temps)
             context["max_temp"] = round(warmest, 1)
-            # Warm signal: above 15C at 850hPa (summer heat focus)
-            context["warm_signal"] = warmest > 15.0
+            context["mean_max"] = round(mean_max, 1)
+            # Calculate warm anomaly from MEAN (consensus)
+            context["warm_anomaly"] = round(mean_max - seasonal_normal, 1)
+            # Warm signal: mean >5°C above seasonal normal OR any model above 15°C
+            context["warm_signal"] = context["warm_anomaly"] > 5 or warmest > 15.0
+
+        # Determine anomaly strength based on max deviation from normal
+        max_anomaly = max(context["cold_anomaly"], context["warm_anomaly"])
+        if max_anomaly >= 10:
+            context["anomaly_strength"] = "extreme"
+        elif max_anomaly >= 6:
+            context["anomaly_strength"] = "significant"
+        elif max_anomaly >= 3:
+            context["anomaly_strength"] = "moderate"
+        else:
+            context["anomaly_strength"] = "normal"
 
     except Exception as e:
         print(f"  Warning: Could not read weather context: {e}")
@@ -296,7 +342,11 @@ def get_recent_replies(handle: str, password: str, since_hours: int = 96) -> lis
 
 
 def select_topic(state: dict, weather_context: dict = None) -> tuple:
-    """Select next topic, using weather context for relevance.
+    """Select next topic, using anomaly-based weather context for relevance.
+
+    Weighting scales with how unusual current weather is compared to seasonal norms.
+    A -10°C reading in December (9°C below normal) gets higher weight than
+    a -5°C reading (only 4°C below normal).
 
     Returns (category_key, topic_text)
     """
@@ -310,36 +360,69 @@ def select_topic(state: dict, weather_context: dict = None) -> tuple:
     if weather_context is None:
         weather_context = get_weather_context()
 
-    # Weight categories based on current conditions
+    # Get anomaly info
+    cold_anomaly = weather_context.get("cold_anomaly", 0)
+    warm_anomaly = weather_context.get("warm_anomaly", 0)
+    anomaly_strength = weather_context.get("anomaly_strength", "normal")
+    season = weather_context.get("season", "shoulder")
+
+    # Weight categories based on anomaly strength
     weighted_categories = []
     for cat in TOPIC_CATEGORIES.keys():
         if cat in recent_categories[-2:]:
             continue  # Skip recently used
 
         weight = 1  # Base weight
-        season = weather_context.get("season", "shoulder")
 
         # Skip seasonal categories when not relevant
         if cat == "cold_relevant" and season == "summer":
-            continue  # Don't suggest cold topics in summer
+            continue
         if cat == "warm_relevant" and season == "winter":
-            continue  # Don't suggest warm topics in winter
+            continue
 
-        # Cold signal active (winter) = boost cold_relevant and myth_busting
-        if weather_context.get("cold_signal"):
-            if cat == "cold_relevant":
-                weight = 4
-            elif cat == "myth_busting":
-                weight = 3
-            elif cat == "weather_education":
-                weight = 2
+        # Scale weights by anomaly strength
+        # Extreme (>=10°C anomaly): weather topics dominate
+        # Significant (>=6°C): weather topics heavily weighted
+        # Moderate (>=3°C): weather topics moderately weighted
+        # Normal: balanced mix
 
-        # Warm signal active (summer) = boost warm_relevant
-        if weather_context.get("warm_signal"):
-            if cat == "warm_relevant":
-                weight = 4
-            elif cat == "weather_education":
-                weight = 2
+        if cold_anomaly > warm_anomaly:
+            # Cold anomaly dominates
+            if anomaly_strength == "extreme":
+                if cat == "cold_relevant":
+                    weight = 8
+                elif cat == "myth_busting":
+                    weight = 5
+                elif cat == "weather_education":
+                    weight = 3
+            elif anomaly_strength == "significant":
+                if cat == "cold_relevant":
+                    weight = 5
+                elif cat == "myth_busting":
+                    weight = 3
+                elif cat == "weather_education":
+                    weight = 2
+            elif anomaly_strength == "moderate":
+                if cat == "cold_relevant":
+                    weight = 3
+                elif cat == "myth_busting":
+                    weight = 2
+
+        elif warm_anomaly > cold_anomaly:
+            # Warm anomaly dominates
+            if anomaly_strength == "extreme":
+                if cat == "warm_relevant":
+                    weight = 8
+                elif cat == "weather_education":
+                    weight = 3
+            elif anomaly_strength == "significant":
+                if cat == "warm_relevant":
+                    weight = 5
+                elif cat == "weather_education":
+                    weight = 2
+            elif anomaly_strength == "moderate":
+                if cat == "warm_relevant":
+                    weight = 3
 
         # Add category with its weight
         weighted_categories.extend([cat] * weight)
@@ -568,7 +651,10 @@ def main():
 
     # Get weather context for relevant topic selection
     weather_context = get_weather_context()
-    print(f"Weather context: season={weather_context['season']}, cold={weather_context['cold_signal']} ({weather_context['min_temp']}C), warm={weather_context['warm_signal']} ({weather_context['max_temp']}C), agreement={weather_context['model_agreement']}")
+    print(f"Weather context: season={weather_context['season']}, Dec normal={weather_context.get('seasonal_normal')}°C")
+    print(f"  4-model mean min: {weather_context.get('mean_min')}°C (coldest: {weather_context['min_temp']}°C)")
+    print(f"  Cold anomaly: {weather_context.get('cold_anomaly', 0):+.1f}°C vs normal → {weather_context.get('anomaly_strength', 'normal')}")
+    print(f"  Model spread: {weather_context.get('model_spread', 0)}°C → agreement: {weather_context['model_agreement']}")
     print()
 
     # Load state
