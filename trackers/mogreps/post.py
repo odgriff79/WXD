@@ -30,13 +30,9 @@ from shared.analysis import (
     COLD_THRESHOLD, EXTREME_COLD, WARM_THRESHOLD,
     utcnow, run_full_analysis
 )
-
-# Try to import atproto for Bluesky
-try:
-    from atproto import Client, models as atproto_models
-    HAS_ATPROTO = True
-except ImportError:
-    HAS_ATPROTO = False
+from shared.commentary import (
+    generate_full_thread, post_thread_to_bluesky
+)
 
 
 def get_run_label(fetched_at: str) -> str:
@@ -67,55 +63,6 @@ def load_alert_state(state_path: Path) -> dict:
 def save_alert_state(state_path: Path, state: dict) -> None:
     with open(state_path, 'w') as f:
         json.dump(state, f, indent=2)
-
-
-def get_claude_commentary(full_context: str, run_diff: dict, cold_info: dict) -> tuple:
-    """Get Claude CLI commentary for MOGREPS data with enriched context."""
-    prompt = f"""You are WXD MOGREPS tracker. Write brief factual commentary on UK Met Office ensemble (18 members) 850hPa temperature for London.
-
-Write a Bluesky post (max 250 chars).
-
-CRITICAL RULES:
-- Start with "MOGREPS:"
-- If analysis says "No significant shift" - DO NOT say "weakening", "strengthening", or imply change. Just state current forecast.
-- Only mention changes if SHIFT section shows actual shift value
-- Report what the data shows, not what sounds dramatic
-- State the coldest value and date window (not single day)
-- If PERIODS shows uniform pattern (cold/mild throughout), say that
-- If PERIODS shows divergent pattern, mention short-term vs mid/extended outlook, spread range, persistence if shown
-
-SIGNAL AND TIMING:
-- SIGNAL tells you event confidence: "locked" = certain, "strong" = very likely
-- TIMING tells you the date window - use this range, not a single day
-- NEVER say "low confidence" when SIGNAL is locked/strong - the event IS happening
-
-ANALYSIS:
-{full_context}
-
-FORMAT: Plain text, no emojis, use C for temps"""
-
-    try:
-        result = subprocess.run(
-            ['claude', '--dangerously-skip-permissions', '--model', 'sonnet', '-p', prompt],
-            input=None,
-            capture_output=True,
-            text=True,
-            timeout=300
-        )
-
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()[:280], False
-
-    except Exception as e:
-        print(f"  Claude CLI error: {e}")
-
-    # Fallback
-    if cold_info:
-        return f"MOGREPS: Ensemble mean reaches {cold_info['temp']}C at 850hPa around {cold_info['date']}.", True
-    elif run_diff:
-        return f"MOGREPS: Model shifted {abs(run_diff['shift'])}C {run_diff['direction']} since last run.", True
-    else:
-        return "MOGREPS: No significant changes in latest run.", True
 
 
 def generate_chart(data: dict, chart_path: Path) -> bool:
@@ -231,69 +178,6 @@ def generate_chart(data: dict, chart_path: Path) -> bool:
         return False
 
 
-def post_to_bluesky(text: str, image_path: Path = None, reply_to: dict = None,
-                    root_post: dict = None, handle: str = None, password: str = None) -> dict:
-    """Post to Bluesky with optional threading support.
-
-    Args:
-        text: Post text
-        image_path: Optional image to attach
-        reply_to: Optional dict with 'uri' and 'cid' to reply to (for threading)
-        root_post: Optional dict with 'uri' and 'cid' of thread root (for multi-level threads)
-        handle: Bluesky handle
-        password: App password
-
-    Returns:
-        dict with 'uri' and 'cid' of posted message, or None on failure
-    """
-    if not HAS_ATPROTO or not handle or not password:
-        return None
-
-    try:
-        client = Client()
-        client.login(handle, password)
-
-        # Build reply reference if threading
-        reply_ref = None
-        if reply_to and reply_to.get('uri') and reply_to.get('cid'):
-            # Use root_post if provided, otherwise reply_to is both parent and root
-            root = root_post if root_post else reply_to
-
-            # Create StrongRef objects manually for robust threading
-            parent_ref = atproto_models.ComAtprotoRepoStrongRef.Main(
-                uri=reply_to['uri'],
-                cid=reply_to['cid']
-            )
-            root_ref = atproto_models.ComAtprotoRepoStrongRef.Main(
-                uri=root['uri'],
-                cid=root['cid']
-            )
-            reply_ref = atproto_models.AppBskyFeedPost.ReplyRef(
-                parent=parent_ref,
-                root=root_ref
-            )
-
-        if image_path and image_path.exists():
-            with open(image_path, 'rb') as f:
-                img_data = f.read()
-            upload = client.upload_blob(img_data)
-            embed = atproto_models.AppBskyEmbedImages.Main(
-                images=[atproto_models.AppBskyEmbedImages.Image(
-                    alt="MOGREPS ensemble 850hPa temperature forecast",
-                    image=upload.blob
-                )]
-            )
-            response = client.send_post(text=text, embed=embed, reply_to=reply_ref)
-        else:
-            response = client.send_post(text=text, reply_to=reply_ref)
-
-        return {"uri": response.uri, "cid": response.cid}
-
-    except Exception as e:
-        print(f"  Bluesky error: {e}")
-        return None
-
-
 def main():
     parser = argparse.ArgumentParser(description='WXD MOGREPS Tracker - Analysis & Posting')
     parser.add_argument('--dry-run', '-n', action='store_true', help='Preview without posting')
@@ -331,12 +215,16 @@ def main():
 
 Now tracking the UK Met Office Global Ensemble (18 members) for London 850hPa.
 
-MOGREPS runs 4x daily. Posts tagged "MOGREPS:" as UK ensemble benchmark."""
+MOGREPS runs 4x daily. Threaded posts with chart and alerts when significant."""
 
         print("Posting introduction message...")
         if not dry_run:
-            result = post_to_bluesky(intro_msg, handle=bsky_handle, password=bsky_password)
-            if result:
+            success = post_thread_to_bluesky(
+                posts=[intro_msg],
+                handle=bsky_handle,
+                password=bsky_password
+            )
+            if success:
                 alert_state["intro_posted"] = True
                 save_alert_state(state_path, alert_state)
                 print("  Intro posted successfully")
@@ -409,35 +297,48 @@ MOGREPS runs 4x daily. Posts tagged "MOGREPS:" as UK ensemble benchmark."""
     print("Generating chart...")
     chart_ok = generate_chart(data, chart_path)
 
-    # Get commentary with enriched context
-    print("Generating commentary...")
-    text, is_fallback = get_claude_commentary(full_context, run_diff, cold_info)
-    print(f"  Commentary ({len(text)} chars):")
-    print(f"  {text}")
+    # Generate full thread with shared module (story-first, threading, alerts)
+    print("Generating commentary thread...")
+    posts, is_fallback = generate_full_thread(
+        model_name="MOGREPS",
+        full_context=full_context,
+        cold_info=cold_info,
+        trend_analysis=trend_analysis,
+        percentile_analysis=percentile_analysis,
+        run_diff=run_diff,
+        is_ensemble=True
+    )
+
+    print(f"  Generated {len(posts)} posts:")
+    for i, post in enumerate(posts):
+        print(f"    [{i+1}] ({len(post)} chars): {post[:80]}...")
 
     if dry_run:
         print()
         print("=" * 50)
         print("PREVIEW (not posting):")
-        print(text)
+        for i, post in enumerate(posts):
+            print(f"\n--- Post {i+1} ---")
+            print(post)
         print("=" * 50)
         return 0
 
-    # Post
+    # Post thread
     print()
-    print("Posting to Bluesky...")
-    result = post_to_bluesky(
-        text,
-        image_path=chart_path if chart_ok else None,
+    print("Posting thread to Bluesky...")
+    success = post_thread_to_bluesky(
+        posts=posts,
+        image_path=str(chart_path) if chart_ok else None,
         handle=bsky_handle,
-        password=bsky_password
+        password=bsky_password,
+        alt_text="MOGREPS ensemble 850hPa temperature forecast"
     )
 
-    if result:
-        print("  Posted successfully")
+    if success:
+        print("  Thread posted successfully")
         save_alert_state(state_path, alert_state)
     else:
-        print("  Failed to post")
+        print("  Failed to post thread")
         return 1
 
     return 0
