@@ -61,10 +61,13 @@ TRUSTED_USERS = set()
 
 # =============================================================================
 # TEST MODE / LOCKDOWN
-# Set to None for normal operation, or a handle/DID for lockdown testing
+# Set to empty list for normal operation, or add handles for lockdown testing
 # =============================================================================
-TEST_MODE_USER = "winchesterweather.bsky.social"  # Only respond to Steve during testing
-# TEST_MODE_USER = None  # Set to None for normal operation
+TEST_MODE_USERS = [
+    "winchesterweather.bsky.social",  # Steve - primary tester
+    "sarahhants.bsky.social",          # Sarah - trusted follower, training data
+]
+# TEST_MODE_USERS = []  # Set to empty list for normal operation
 
 # =============================================================================
 # CANNED RESPONSES
@@ -404,8 +407,10 @@ def main():
     state_path = data_dir / "reply_listener_state.json"
 
     print(f"WXD Reply Listener v2 - {utcnow().isoformat()}")
-    if TEST_MODE_USER:
-        print(f"*** TEST MODE: Only responding to @{TEST_MODE_USER} ***")
+    if TEST_MODE_USERS:
+        print(f"*** TEST MODE: Only responding to {len(TEST_MODE_USERS)} whitelisted users ***")
+        for user in TEST_MODE_USERS:
+            print(f"    - @{user}")
     if dry_run:
         print("DRY RUN - will NOT post replies")
     else:
@@ -495,9 +500,13 @@ def main():
             # =================================================================
             # TEST MODE CHECK
             # =================================================================
-            if TEST_MODE_USER:
-                if author_handle != TEST_MODE_USER and not author_handle.endswith(f".{TEST_MODE_USER}"):
-                    print(f"      [TEST MODE] Ignoring - not {TEST_MODE_USER}")
+            if TEST_MODE_USERS:
+                is_whitelisted = any(
+                    author_handle == user or author_handle.endswith(f".{user}")
+                    for user in TEST_MODE_USERS
+                )
+                if not is_whitelisted:
+                    print(f"      [TEST MODE] Ignoring - not whitelisted")
                     new_processed.append(reply['uri'])
                     continue
 
