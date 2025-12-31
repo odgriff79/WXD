@@ -469,22 +469,22 @@ More on this topic coming soon. Questions? Reply and we'll cover them in our nex
 
 
 def add_thread_indicators(posts: list) -> list:
-    """Add thread indicators (1/3, 2/3, etc) to posts when there are multiple.
+    """Add thread indicators [1/3], [2/3], etc to START of posts.
 
-    Only adds indicators if there are 2+ posts and the first post is short
-    (under 200 chars), suggesting it's a headline that needs context.
+    Only adds indicators if there are 2+ posts.
+    Matches post_bluesky.py format for consistency.
     """
     if len(posts) < 2:
         return posts
 
-    # Add indicators to all posts
+    # Add indicators at START of all posts
     result = []
     total = len(posts)
     for i, post in enumerate(posts):
-        indicator = f" [{i+1}/{total}]"
+        indicator = f"[{i+1}/{total}] "
         # Only add if it fits within 300 char limit
         if len(post) + len(indicator) <= 300:
-            result.append(post + indicator)
+            result.append(indicator + post)
         else:
             result.append(post)
     return result
