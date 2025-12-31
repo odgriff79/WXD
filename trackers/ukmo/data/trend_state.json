@@ -1,8 +1,8 @@
 {
-  "cold_signal_runs": 5,
+  "cold_signal_runs": 6,
   "warm_signal_runs": 0,
   "shift_direction": "colder",
-  "shift_runs": 1,
+  "shift_runs": 2,
   "last_min_temp": null,
-  "last_mean_temp": -8.3
+  "last_mean_temp": -8.8
 }
