@@ -602,6 +602,7 @@ def add_thread_indicators(posts: list) -> list:
 
     Only adds indicators if there are 2+ posts.
     Matches post_bluesky.py format for consistency.
+    MANDATORY: All posts MUST have indicators - truncate content if needed.
     """
     if len(posts) < 2:
         return posts
@@ -611,11 +612,11 @@ def add_thread_indicators(posts: list) -> list:
     total = len(posts)
     for i, post in enumerate(posts):
         indicator = f"[{i+1}/{total}] "
-        # Only add if it fits within 300 char limit
-        if len(post) + len(indicator) <= 300:
-            result.append(indicator + post)
-        else:
-            result.append(post)
+        max_content = 300 - len(indicator)
+        # Truncate post if needed to fit indicator (mandatory numbering)
+        if len(post) > max_content:
+            post = post[:max_content - 3].rstrip() + "..."
+        result.append(indicator + post)
     return result
 
 
