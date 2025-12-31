@@ -110,8 +110,27 @@ def load_state(state_path: Path) -> dict:
         'flagged_corrections': [],    # Corrections needing review
         'active_sessions': {},        # DID -> session data
         'notified_non_followers': [], # DIDs we've sent one-time non-follower msg
+        'training_log': [],           # Useful interactions for improving responses
         'last_run': None,
     }
+
+
+def log_training_data(state: dict, entry: dict) -> None:
+    """Log an interaction for training/improvement purposes.
+
+    Captures useful interactions to help improve:
+    - Weather terminology explanations (warnings vs alerts)
+    - Common user questions
+    - Claude's response quality
+    """
+    state.setdefault('training_log', []).append({
+        'timestamp': utcnow().isoformat(),
+        **entry
+    })
+
+    # Keep last 100 entries to prevent unbounded growth
+    if len(state['training_log']) > 100:
+        state['training_log'] = state['training_log'][-100:]
 
 
 def save_state(state_path: Path, state: dict) -> None:
@@ -550,6 +569,17 @@ def main():
                         update_session(session)
                         print(f"      Session msg count: {session['message_count']}")
 
+                        # Log for training/improvement
+                        log_training_data(state, {
+                            'type': 'claude_response',
+                            'author': author_handle,
+                            'classification': classification,
+                            'user_message': reply['text'],
+                            'wxd_post_context': post['text'][:200],
+                            'claude_response': response_text,
+                            'reason': result.get('reason', ''),
+                        })
+
                     # Track special classifications
                     if classification == 'topic_suggestion':
                         state.setdefault('topic_suggestions', []).append({
@@ -583,13 +613,29 @@ def main():
                     if result.get('should_respond'):
                         response_text = result.get('response_text')
                         update_session(session)
+
+                        # Log session start for training
+                        log_training_data(state, {
+                            'type': 'session_start',
+                            'author': author_handle,
+                            'wxd_post_context': post['text'][:200],
+                            'initial_response': response_text,
+                        })
                     else:
                         # Fallback greeting if Claude didn't respond
                         response_text = "Hi! Happy to chat about UK weather. What's on your mind?"
                         update_session(session)
                 else:
                     # First reply without "chat" - send invitation
+                    # Log the initial question for context (useful for training)
                     print("      First reply - sending chat invitation")
+                    log_training_data(state, {
+                        'type': 'initial_question',
+                        'author': author_handle,
+                        'user_message': reply['text'],
+                        'wxd_post_context': post['text'][:200],
+                        'note': 'Pre-chat question - user may follow up with chat trigger',
+                    })
                     response_text = CANNED_RESPONSES['chat_invitation']
 
             # =================================================================
@@ -648,6 +694,8 @@ def main():
         print(f"  Topic suggestions logged: {len(state['topic_suggestions'])}")
     if state.get('flagged_corrections'):
         print(f"  Corrections flagged: {len(state['flagged_corrections'])}")
+    if state.get('training_log'):
+        print(f"  Training log entries: {len(state['training_log'])}")
 
     print("=" * 50)
 
