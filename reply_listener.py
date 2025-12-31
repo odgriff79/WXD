@@ -921,24 +921,63 @@ def main():
                 new_processed.append(reply['uri'])
                 continue
 
-        # SUPER USER CHECK - log as training feedback, don't auto-respond
+        # SUPER USER CHECK - commands or training feedback
         is_super_user = any(
             author_handle == user or author_handle.endswith(f".{user}")
             for user in SUPER_USER_HANDLES
         )
         if is_super_user:
-            print(f"    [SUPER USER] Training feedback logged - no auto-response")
-            # Log to training file
-            training_entry = {
-                'timestamp': utcnow().isoformat(),
-                'type': 'super_user_feedback',
-                'author': author_handle,
-                'message': reply['text'],
-                'context': reply.get('parent_text', '')[:200]
-            }
-            training_log.append(training_entry)
-            new_processed.append(reply['uri'])
-            continue
+            msg_lower = reply['text'].lower().strip()
+
+            # Check for COMMANDS
+            if any(cmd in msg_lower for cmd in ['reply', 'respond', 'answer']):
+                # Command: reply to the parent message
+                print(f"    [SUPER USER CMD] Triggering reply to parent message")
+                # Don't skip - let the normal flow generate a response to the PARENT
+                # The super user is asking us to reply to whoever they're replying to
+                # Override: treat as if the parent author sent a chat trigger
+                if reply.get('parent_text'):
+                    # Generate response to the parent message
+                    result = generate_chat_response(
+                        reply.get('parent_text', ''),
+                        context_text,
+                        None,  # No session
+                        forecast_context
+                    )
+                    claude_calls += 1
+                    if result.get('should_respond'):
+                        response_posts = result.get('response_posts', [result.get('response_text')])
+                        if response_posts and not dry_run:
+                            # Reply to the PARENT (not to super user)
+                            parent_ref = {'uri': reply.get('parent_uri', reply['uri']),
+                                         'cid': reply.get('parent_cid', reply['cid'])}
+                            root_ref = {'uri': reply.get('root_uri', reply['uri']),
+                                       'cid': reply.get('root_cid', reply['cid'])}
+                            last_reply = parent_ref
+                            for i, post_text in enumerate(response_posts):
+                                post_result = post_reply(client, post_text, reply_to=last_reply, root=root_ref)
+                                if post_result:
+                                    print(f"    Posted reply {i+1}/{len(response_posts)}: {post_result['uri']}")
+                                    last_reply = post_result
+                                    if i == 0:
+                                        replies_sent += 1
+                        elif response_posts and dry_run:
+                            print(f"    [DRY RUN] Would post {len(response_posts)} reply(ies) to parent")
+                new_processed.append(reply['uri'])
+                continue
+            else:
+                # Not a command - log as training feedback
+                print(f"    [SUPER USER] Training feedback logged")
+                training_entry = {
+                    'timestamp': utcnow().isoformat(),
+                    'type': 'super_user_feedback',
+                    'author': author_handle,
+                    'message': reply['text'],
+                    'context': reply.get('parent_text', '')[:200]
+                }
+                training_log.append(training_entry)
+                new_processed.append(reply['uri'])
+                continue
 
         # Skip pass-through
         if is_pass_through(reply['text']):
@@ -1085,24 +1124,55 @@ def main():
                     continue
 
             # =================================================================
-            # SUPER USER CHECK - training feedback, no auto-response
+            # SUPER USER CHECK - commands or training feedback
             # =================================================================
             is_super_user = any(
                 author_handle == user or author_handle.endswith(f".{user}")
                 for user in SUPER_USER_HANDLES
             )
             if is_super_user:
-                print(f"      [SUPER USER] Training feedback logged - no auto-response")
-                training_entry = {
-                    'timestamp': utcnow().isoformat(),
-                    'type': 'super_user_feedback',
-                    'author': author_handle,
-                    'message': reply['text'],
-                    'context': post['text'][:200] if post.get('text') else ''
-                }
-                training_log.append(training_entry)
-                new_processed.append(reply['uri'])
-                continue
+                msg_lower = reply['text'].lower().strip()
+
+                # Check for COMMANDS
+                if any(cmd in msg_lower for cmd in ['reply', 'respond', 'answer']):
+                    print(f"      [SUPER USER CMD] Triggering reply to this thread")
+                    # Generate response to the original post context
+                    result = generate_chat_response(
+                        post.get('text', ''),
+                        post.get('text', ''),
+                        None,
+                        forecast_context
+                    )
+                    claude_calls += 1
+                    if result.get('should_respond'):
+                        response_posts = result.get('response_posts', [result.get('response_text')])
+                        if response_posts and not dry_run:
+                            last_reply = {'uri': reply['uri'], 'cid': reply['cid']}
+                            root_ref = {'uri': post['uri'], 'cid': post['cid']}
+                            for i, post_text in enumerate(response_posts):
+                                post_result = post_reply(client, post_text, reply_to=last_reply, root=root_ref)
+                                if post_result:
+                                    print(f"      Posted reply {i+1}/{len(response_posts)}: {post_result['uri']}")
+                                    last_reply = post_result
+                                    if i == 0:
+                                        replies_sent += 1
+                        elif response_posts and dry_run:
+                            print(f"      [DRY RUN] Would post {len(response_posts)} reply(ies)")
+                    new_processed.append(reply['uri'])
+                    continue
+                else:
+                    # Not a command - log as training feedback
+                    print(f"      [SUPER USER] Training feedback logged")
+                    training_entry = {
+                        'timestamp': utcnow().isoformat(),
+                        'type': 'super_user_feedback',
+                        'author': author_handle,
+                        'message': reply['text'],
+                        'context': post['text'][:200] if post.get('text') else ''
+                    }
+                    training_log.append(training_entry)
+                    new_processed.append(reply['uri'])
+                    continue
 
             # =================================================================
             # PRE-FILTERS (before any Claude call)
