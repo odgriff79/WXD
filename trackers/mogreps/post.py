@@ -337,6 +337,13 @@ MOGREPS runs 4x daily. Threaded posts with chart and alerts when significant."""
     if success:
         print("  Thread posted successfully")
         save_alert_state(state_path, alert_state)
+        # Sync charts to GitHub Pages
+        print("  Syncing charts to GitHub...")
+        try:
+            subprocess.run(["/home/ubuntu/wxd/sync_charts.sh"], check=False, capture_output=True)
+            print("  Chart sync complete")
+        except Exception as e:
+            print(f"  Chart sync failed: {e}")
     else:
         print("  Failed to post thread")
         return 1
