@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
-WXD Reply Listener
+WXD Reply Listener v2
 
-Monitors replies to WXD posts and responds intelligently using Claude CLI.
+Two-step engagement model:
+1. First reply from user → canned "reply 'chat' to continue"
+2. User replies "chat" → Claude conversation begins
 
-Classification:
-- genuine_question → respond with helpful answer
-- topic_suggestion → log for engagement posts
-- appreciation → brief thanks
-- correction → flag for review
-- spam/irrelevant → ignore
+Features:
+- Lockdown mode for testing (only respond to specific users)
+- Session management with message limits
+- Two-step opt-in prevents abuse and minimizes API costs
+- Friendly, weather-savvy persona
 
 Safety:
 - Rate limited (max 5 replies per run)
@@ -27,8 +28,9 @@ Usage:
 import argparse
 import json
 import os
+import re
 import subprocess
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 try:
@@ -38,16 +40,60 @@ except ImportError:
     HAS_ATPROTO = False
 
 
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+
 # Safety limits
 DEFAULT_MAX_REPLIES = 5  # Max replies to send per run
 DEFAULT_POSTS_TO_CHECK = 10  # How many recent posts to check for replies
 
-# Blocklist - DIDs of accounts to ignore (add trolls here)
+# Session limits
+SESSION_MSG_LIMIT_STANDARD = 5   # Max messages per session (regular followers)
+SESSION_MSG_LIMIT_TRUSTED = 10   # Max messages per session (trusted users)
+SESSION_EXPIRY_HOURS = 72        # Session expires after this many hours idle
+
+# Blocklist - DIDs of accounts to ignore
 BLOCKLIST = set()
+
+# Trusted users - get higher limits and auto-approve (add DIDs here)
+TRUSTED_USERS = set()
+
+# =============================================================================
+# TEST MODE / LOCKDOWN
+# Set to None for normal operation, or a handle/DID for lockdown testing
+# =============================================================================
+TEST_MODE_USER = "winchesterweather.bsky.social"  # Only respond to Steve during testing
+# TEST_MODE_USER = None  # Set to None for normal operation
+
+# =============================================================================
+# CANNED RESPONSES
+# =============================================================================
+CANNED_RESPONSES = {
+    "chat_invitation": (
+        "Thanks for the reply! WXD is trialing automated AI responses. "
+        "Reply 'chat' to this message to continue the conversation."
+    ),
+    "session_limit": (
+        "You've reached the message limit for this chat session. "
+        "Start a new conversation anytime by replying 'chat' to a future post."
+    ),
+    "non_follower": (
+        "Thanks for reaching out! WXD replies are currently limited to followers. "
+        "Follow for weather updates and responses."
+    ),
+}
 
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def parse_datetime(dt_str: str) -> datetime:
+    """Parse ISO datetime string to datetime object."""
+    if dt_str.endswith('Z'):
+        dt_str = dt_str[:-1] + '+00:00'
+    return datetime.fromisoformat(dt_str)
 
 
 def load_state(state_path: Path) -> dict:
@@ -56,9 +102,11 @@ def load_state(state_path: Path) -> dict:
         with open(state_path, 'r') as f:
             return json.load(f)
     return {
-        'processed_replies': [],  # List of reply URIs already handled
-        'topic_suggestions': [],  # Collected topic suggestions
-        'flagged_corrections': [],  # Corrections needing review
+        'processed_replies': [],      # List of reply URIs already handled
+        'topic_suggestions': [],      # Collected topic suggestions
+        'flagged_corrections': [],    # Corrections needing review
+        'active_sessions': {},        # DID -> session data
+        'notified_non_followers': [], # DIDs we've sent one-time non-follower msg
         'last_run': None,
     }
 
@@ -68,6 +116,72 @@ def save_state(state_path: Path, state: dict) -> None:
     state['last_run'] = utcnow().isoformat()
     with open(state_path, 'w') as f:
         json.dump(state, f, indent=2)
+
+
+def is_chat_trigger(text: str) -> bool:
+    """Check if message is the 'chat' trigger word."""
+    # Normalize: lowercase, strip whitespace
+    normalized = text.strip().lower()
+    # Accept "chat" with optional punctuation
+    return bool(re.match(r'^chat[!?.]*$', normalized))
+
+
+def is_pass_through(text: str) -> bool:
+    """Check if reply is users tagging friends, not engaging with WXD."""
+    mentions = re.findall(r'@[\w.]+', text)
+    # 2+ mentions = probably tagging friends
+    if len(mentions) >= 2:
+        return True
+    # Mostly @handles = not really engaging
+    handle_chars = sum(len(m) for m in mentions)
+    if handle_chars > len(text) * 0.5:
+        return True
+    # Starts with @mention (tagging someone else)
+    if re.match(r'^@[\w.]+\s', text):
+        return True
+    return False
+
+
+def get_session(state: dict, author_did: str) -> dict:
+    """Get or create a session for the user."""
+    sessions = state.setdefault('active_sessions', {})
+
+    if author_did in sessions:
+        session = sessions[author_did]
+        # Check if session expired
+        last_activity = parse_datetime(session['last_activity'])
+        if utcnow() - last_activity > timedelta(hours=SESSION_EXPIRY_HOURS):
+            # Session expired, remove it
+            del sessions[author_did]
+            return None
+        return session
+    return None
+
+
+def create_session(state: dict, author_did: str, author_handle: str, thread_uri: str) -> dict:
+    """Create a new chat session."""
+    session = {
+        'started': utcnow().isoformat(),
+        'last_activity': utcnow().isoformat(),
+        'message_count': 0,
+        'author_handle': author_handle,
+        'thread_uri': thread_uri,
+    }
+    state.setdefault('active_sessions', {})[author_did] = session
+    return session
+
+
+def update_session(session: dict) -> None:
+    """Update session activity and increment message count."""
+    session['last_activity'] = utcnow().isoformat()
+    session['message_count'] = session.get('message_count', 0) + 1
+
+
+def get_session_limit(author_did: str) -> int:
+    """Get message limit for this user."""
+    if author_did in TRUSTED_USERS:
+        return SESSION_MSG_LIMIT_TRUSTED
+    return SESSION_MSG_LIMIT_STANDARD
 
 
 def get_recent_posts(client: Client, actor: str, limit: int = 10) -> list:
@@ -140,8 +254,8 @@ def extract_replies(thread_response, own_did: str) -> list:
     return replies
 
 
-def classify_reply(reply_text: str, parent_text: str) -> dict:
-    """Use Claude CLI to classify a reply and generate response if needed.
+def generate_chat_response(reply_text: str, parent_text: str, session: dict = None) -> dict:
+    """Use Claude CLI to generate a conversational response.
 
     Returns dict with:
         - classification: genuine_question | topic_suggestion | appreciation | correction | spam
@@ -149,27 +263,34 @@ def classify_reply(reply_text: str, parent_text: str) -> dict:
         - response_text: str (if should_respond)
         - reason: str (explanation)
     """
-    prompt = f"""You are WXD, a weather analysis bot on Bluesky. Analyze this reply to one of your posts.
+    # Build conversation context if we have session history
+    context = ""
+    if session and session.get('message_count', 0) > 0:
+        context = f"\nThis is message #{session['message_count'] + 1} in an ongoing chat session."
 
-YOUR POST:
+    prompt = f"""You are WXD, a friendly weather analysis bot on Bluesky focused on UK weather.
+Your tone is: casual, friendly, weather-savvy, helpful. Like chatting with a knowledgeable weather friend.
+
+ORIGINAL POST:
 {parent_text[:500]}
 
-REPLY FROM USER:
+USER'S MESSAGE:
 {reply_text}
+{context}
 
-Classify this reply and decide if/how to respond. Categories:
-1. genuine_question - User asking about weather, forecasts, or your analysis → respond helpfully
-2. topic_suggestion - User suggesting a topic for future posts → log it, brief thanks
-3. appreciation - User thanking or praising → brief thanks
-4. correction - User pointing out an error → flag for review, acknowledge
-5. spam - Off-topic, promotional, trolling → ignore
+Classify and respond. Categories:
+1. genuine_question - Weather question → helpful, conversational answer
+2. topic_suggestion - Future topic idea → brief thanks, note the suggestion
+3. appreciation - Thanks/praise → brief, warm thanks
+4. correction - Error pointed out → acknowledge gracefully, flag for review
+5. spam - Off-topic/promotional → ignore
 
 Output JSON only:
 {{
     "classification": "genuine_question|topic_suggestion|appreciation|correction|spam",
     "should_respond": true/false,
-    "response_text": "Your response (max 280 chars, plain text, no emojis unless replying to emojis)",
-    "reason": "Brief explanation of classification"
+    "response_text": "Your response (max 280 chars, casual friendly tone)",
+    "reason": "Brief explanation"
 }}"""
 
     try:
@@ -181,7 +302,6 @@ Output JSON only:
         )
 
         if result.returncode == 0 and result.stdout.strip():
-            # Parse JSON response
             output = result.stdout.strip()
             # Handle potential markdown code blocks
             if '```json' in output:
@@ -193,7 +313,6 @@ Output JSON only:
 
             # Validate and sanitize response
             if response.get('should_respond') and response.get('response_text'):
-                # Truncate response if needed
                 response['response_text'] = response['response_text'][:280]
 
             return response
@@ -203,7 +322,7 @@ Output JSON only:
     except json.JSONDecodeError as e:
         print(f"    JSON parse error: {e}")
     except Exception as e:
-        print(f"    Classification error: {e}")
+        print(f"    Claude error: {e}")
 
     # Fallback - don't respond
     return {
@@ -227,13 +346,11 @@ def post_reply(client: Client, text: str, reply_to: dict, root: dict = None) -> 
         dict with 'uri' and 'cid' of posted reply, or None on failure
     """
     try:
-        # Build reply reference
         parent_ref = atproto_models.ComAtprotoRepoStrongRef.Main(
             uri=reply_to['uri'],
             cid=reply_to['cid']
         )
 
-        # If no root specified, use reply_to as root
         root_data = root if root else reply_to
         root_ref = atproto_models.ComAtprotoRepoStrongRef.Main(
             uri=root_data['uri'],
@@ -258,7 +375,7 @@ def post_reply(client: Client, text: str, reply_to: dict, root: dict = None) -> 
 
 
 def main():
-    parser = argparse.ArgumentParser(description='WXD Reply Listener')
+    parser = argparse.ArgumentParser(description='WXD Reply Listener v2')
     parser.add_argument('--post', action='store_true', help='Actually post replies (default: dry-run)')
     parser.add_argument('--limit', '-l', type=int, default=DEFAULT_POSTS_TO_CHECK,
                         help=f'Number of recent posts to check (default: {DEFAULT_POSTS_TO_CHECK})')
@@ -286,7 +403,9 @@ def main():
     data_dir.mkdir(exist_ok=True)
     state_path = data_dir / "reply_listener_state.json"
 
-    print(f"WXD Reply Listener - {utcnow().isoformat()}")
+    print(f"WXD Reply Listener v2 - {utcnow().isoformat()}")
+    if TEST_MODE_USER:
+        print(f"*** TEST MODE: Only responding to @{TEST_MODE_USER} ***")
     if dry_run:
         print("DRY RUN - will NOT post replies")
     else:
@@ -299,6 +418,7 @@ def main():
     processed_set = set(state.get('processed_replies', []))
 
     print(f"Previously processed: {len(processed_set)} replies")
+    print(f"Active sessions: {len(state.get('active_sessions', {}))}")
     if state.get('last_run'):
         print(f"Last run: {state['last_run']}")
     print()
@@ -336,6 +456,7 @@ def main():
 
     replies_sent = 0
     new_processed = []
+    claude_calls = 0
 
     for post in posts_with_replies:
         if replies_sent >= args.max_replies:
@@ -364,26 +485,114 @@ def main():
             if reply['uri'] in processed_set:
                 continue
 
+            author_did = reply['author_did']
+            author_handle = reply['author_handle']
+
             reply_preview = reply['text'][:60] + "..." if len(reply['text']) > 60 else reply['text']
-            print(f"\n    Reply from @{reply['author_handle']}:")
+            print(f"\n    Reply from @{author_handle}:")
             print(f"      {reply_preview}")
 
-            # Classify reply
-            print("      Classifying...")
-            classification = classify_reply(reply['text'], post['text'])
+            # =================================================================
+            # TEST MODE CHECK
+            # =================================================================
+            if TEST_MODE_USER:
+                if author_handle != TEST_MODE_USER and not author_handle.endswith(f".{TEST_MODE_USER}"):
+                    print(f"      [TEST MODE] Ignoring - not {TEST_MODE_USER}")
+                    new_processed.append(reply['uri'])
+                    continue
 
-            print(f"      Classification: {classification.get('classification', 'unknown')}")
-            print(f"      Reason: {classification.get('reason', 'N/A')}")
+            # =================================================================
+            # PRE-FILTERS (before any Claude call)
+            # =================================================================
 
-            # Handle based on classification
-            if classification.get('should_respond'):
-                response_text = classification.get('response_text', '')
+            # Check for pass-through (users tagging friends)
+            if is_pass_through(reply['text']):
+                print("      [SKIP] Pass-through detected (tagging others)")
+                new_processed.append(reply['uri'])
+                continue
+
+            # =================================================================
+            # TWO-STEP ENGAGEMENT
+            # =================================================================
+
+            session = get_session(state, author_did)
+            response_text = None
+            classification = None
+
+            if session:
+                # User has an active session
+                msg_limit = get_session_limit(author_did)
+                if session['message_count'] >= msg_limit:
+                    # Session limit reached
+                    print(f"      Session limit reached ({msg_limit} msgs)")
+                    response_text = CANNED_RESPONSES['session_limit']
+                    # End the session
+                    del state['active_sessions'][author_did]
+                else:
+                    # Continue conversation - invoke Claude
+                    print("      Active session - generating response...")
+                    result = generate_chat_response(reply['text'], post['text'], session)
+                    claude_calls += 1
+                    classification = result.get('classification')
+                    print(f"      Classification: {classification}")
+
+                    if result.get('should_respond'):
+                        response_text = result.get('response_text')
+                        update_session(session)
+                        print(f"      Session msg count: {session['message_count']}")
+
+                    # Track special classifications
+                    if classification == 'topic_suggestion':
+                        state.setdefault('topic_suggestions', []).append({
+                            'text': reply['text'],
+                            'author': author_handle,
+                            'date': utcnow().isoformat(),
+                        })
+                    elif classification == 'correction':
+                        state.setdefault('flagged_corrections', []).append({
+                            'text': reply['text'],
+                            'author': author_handle,
+                            'parent_uri': post['uri'],
+                            'date': utcnow().isoformat(),
+                        })
+
+            else:
+                # No active session
+                if is_chat_trigger(reply['text']):
+                    # User said "chat" - start a new session!
+                    print("      'chat' trigger detected - starting session!")
+                    session = create_session(state, author_did, author_handle, post['uri'])
+
+                    # Generate initial response with Claude
+                    result = generate_chat_response(
+                        "Hi, I'd like to chat about weather!",
+                        post['text'],
+                        session
+                    )
+                    claude_calls += 1
+
+                    if result.get('should_respond'):
+                        response_text = result.get('response_text')
+                        update_session(session)
+                    else:
+                        # Fallback greeting if Claude didn't respond
+                        response_text = "Hi! Happy to chat about UK weather. What's on your mind?"
+                        update_session(session)
+                else:
+                    # First reply without "chat" - send invitation
+                    print("      First reply - sending chat invitation")
+                    response_text = CANNED_RESPONSES['chat_invitation']
+
+            # =================================================================
+            # POST RESPONSE
+            # =================================================================
+
+            if response_text:
                 print(f"      Response: {response_text[:80]}...")
 
                 if dry_run:
                     print("      [DRY RUN - would post reply]")
                 else:
-                    # Post the reply
                     result = post_reply(
                         client,
                         response_text,
@@ -396,30 +605,13 @@ def main():
                     else:
                         print("      Failed to post reply")
 
-            # Track topic suggestions
-            if classification.get('classification') == 'topic_suggestion':
-                state.setdefault('topic_suggestions', []).append({
-                    'text': reply['text'],
-                    'author': reply['author_handle'],
-                    'date': utcnow().isoformat(),
-                })
-
-            # Track corrections for review
-            if classification.get('classification') == 'correction':
-                state.setdefault('flagged_corrections', []).append({
-                    'text': reply['text'],
-                    'author': reply['author_handle'],
-                    'parent_uri': post['uri'],
-                    'date': utcnow().isoformat(),
-                })
-
             # Mark as processed
             new_processed.append(reply['uri'])
 
     # Update state
     state['processed_replies'] = list(processed_set | set(new_processed))
 
-    # Keep only last 1000 processed URIs to prevent unbounded growth
+    # Keep only last 1000 processed URIs
     if len(state['processed_replies']) > 1000:
         state['processed_replies'] = state['processed_replies'][-1000:]
 
@@ -436,11 +628,13 @@ def main():
     print("Summary:")
     print(f"  Posts checked: {len(posts_with_replies)}")
     print(f"  New replies found: {len(new_processed)}")
+    print(f"  Claude API calls: {claude_calls}")
     if dry_run:
         print(f"  Replies that would be sent: {replies_sent}")
     else:
         print(f"  Replies sent: {replies_sent}")
 
+    print(f"  Active sessions: {len(state.get('active_sessions', {}))}")
     if state.get('topic_suggestions'):
         print(f"  Topic suggestions logged: {len(state['topic_suggestions'])}")
     if state.get('flagged_corrections'):
