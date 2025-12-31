@@ -127,11 +127,49 @@ tail -100 cron.log
 ## Remote Preview (ntfy.sh)
 
 ```bash
-curl -d "preview" ntfy.sh/YOUR_CHANNEL    # Quick preview
+# Tracker A (main ensemble)
+curl -d "preview" ntfy.sh/YOUR_CHANNEL    # Quick preview (stale data)
 curl -d "fresh" ntfy.sh/YOUR_CHANNEL      # Fresh fetch + preview
+
+# Other trackers
 curl -d "icon" ntfy.sh/YOUR_CHANNEL       # ICON preview
+curl -d "icon-fresh" ntfy.sh/YOUR_CHANNEL # ICON fresh + preview
 curl -d "ukmo" ntfy.sh/YOUR_CHANNEL       # UKMO preview
+curl -d "ukmo-fresh" ntfy.sh/YOUR_CHANNEL # UKMO fresh + preview
+curl -d "mogreps" ntfy.sh/YOUR_CHANNEL    # MOGREPS preview
+curl -d "mogreps-fresh" ntfy.sh/YOUR_CHANNEL  # MOGREPS fresh + preview
+
+# Daily/engagement
+curl -d "summary" ntfy.sh/YOUR_CHANNEL    # Met Office summary preview
+curl -d "engagement" ntfy.sh/YOUR_CHANNEL # Engagement post preview
+
+# Reply system
+curl -d "check" ntfy.sh/YOUR_CHANNEL      # Check replies NOW (dry-run)
+curl -d "respond" ntfy.sh/YOUR_CHANNEL    # Check AND respond NOW (live)
+
+# Utility
+curl -d "oracle" ntfy.sh/YOUR_CHANNEL     # Check A1 grabber status
 ```
+
+## Cron Schedule (UTC)
+
+| Job | Time | Script |
+|-----|------|--------|
+| Tracker A | 08:30, 20:30 | `cron_fetch.sh` |
+| ICON | 04:00, 10:00, 16:00, 22:00 | `trackers/icon/cron_icon.sh` |
+| MOGREPS | 03:00, 09:00, 15:00, 21:00 | `trackers/mogreps/cron_mogreps.sh` |
+| UKMO | 07:00, 19:00 | `trackers/ukmo/cron_ukmo.sh` |
+| Daily Summary | 09:30 | `cron_daily_summary.sh` |
+| Chart Sync | 10:15, 22:15 | `sync_charts.sh` |
+| Reply Listener | */15 min | `reply_listener.py --post` |
+| Engagement (Sun) | 12:00 | `engagement_post.py --community-request` |
+| Engagement (Tue/Fri) | 12:00 | `engagement_post.py` |
+
+**Reply Listener Adaptive Polling:**
+- Cron runs every 15 min
+- If reply received in last 60 min (engaged mode): runs
+- If no recent activity (quiet mode): only runs every 2h
+- Use `--force` to bypass adaptive polling
 
 ## Remote Orchestration
 

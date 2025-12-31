@@ -4,6 +4,44 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ## [Unreleased]
 
+## [2025-12-31] - Reply System v2 Implementation
+
+### Added
+- **Reply listener v2** - Full two-step engagement model implemented:
+  - First reply gets canned "reply 'chat' to continue"
+  - Claude only invoked after explicit "chat" opt-in
+  - Test mode/lockdown for whitelisted users only
+- **Adaptive polling** - Smart cron scheduling:
+  - Cron runs every 15 min
+  - Engaged mode (reply within 60min): always runs
+  - Quiet mode: only runs every 2h
+  - `--force` flag bypasses adaptive logic
+- **ntfy triggers for replies**:
+  - `check`: Check replies now (dry-run)
+  - `respond`: Check and respond now (live)
+- **Training data logging** - Captures interactions for improving responses:
+  - `initial_question`: Pre-chat questions
+  - `session_start`: Chat session beginnings
+  - `claude_response`: Generated responses
+- **Uncertainty handling** - Claude flags instead of guessing:
+  - New `uncertain` classification
+  - `needs_human` flag for owner review
+  - Logged to `needs_human_review` state
+- **Dynamic session limits** - Extends for valuable conversations:
+  - Standard: 5 messages
+  - Trusted: 10 messages
+  - Feedback session: 15 messages (auto-upgrades on corrections/uncertainty)
+- **Proper Bluesky mentions** - Using TextBuilder for clickable @mention facets
+- **post_invites.py** - Script for posting invite threads to test users
+
+### Changed
+- Reply listener cron: 4h → 15min (with adaptive polling)
+- Updated CLAUDE.md with full ntfy command reference and cron schedule
+- Updated REPLY_SYSTEM.md with implementation details
+
+### Fixed
+- @mentions in posts now use proper facets (resolve handle to DID, use TextBuilder)
+
 ## [2025-12-30] - Engagement System Overhaul & Oracle A1 Grabber
 
 ### Added

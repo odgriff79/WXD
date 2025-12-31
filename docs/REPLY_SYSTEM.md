@@ -324,17 +324,139 @@ python reply_listener.py
 # Live mode - actually post replies
 python reply_listener.py --post
 
+# Force run (bypass adaptive polling)
+python reply_listener.py --force --post
+
 # Check specific number of posts
 python reply_listener.py --limit 5
 
 # Set max replies per run
 python reply_listener.py --max-replies 3
-
-# Future: Different modes
-python reply_listener.py --auto          # Auto-approve safe responses
-python reply_listener.py --notify        # Require approval for all
-python reply_listener.py --dry-run       # Log only, no posts
 ```
+
+---
+
+## Adaptive Polling
+
+Cron runs frequently but the script decides whether to actually check based on recent activity.
+
+### Configuration
+```python
+ENGAGED_MODE_WINDOW_MINS = 60     # If reply within 60min, we're "engaged"
+QUIET_CHECK_INTERVAL_MINS = 120   # When quiet, only run every 2 hours
+ADAPTIVE_POLLING = True           # Set False to always run
+```
+
+### Logic
+1. **Engaged mode**: If a reply was received in the last 60 minutes, always run
+2. **Active sessions**: If any chat sessions are active, always run
+3. **Quiet mode**: Only run if 2+ hours since last run
+4. **Force mode**: `--force` flag bypasses all adaptive logic
+
+### State Tracking
+- `last_run`: When script last completed
+- `last_reply_received`: When we last found a new reply
+
+---
+
+## ntfy Integration
+
+### Reply Commands
+```bash
+curl -d "check" ntfy.sh/YOUR_CHANNEL    # Check replies NOW (dry-run)
+curl -d "respond" ntfy.sh/YOUR_CHANNEL  # Check AND respond NOW (live)
+```
+
+Both commands use `--force` to bypass adaptive polling.
+
+---
+
+## Test Mode / Lockdown
+
+For testing, limit responses to whitelisted users only:
+
+```python
+TEST_MODE_USERS = [
+    "winchesterweather.bsky.social",  # Steve
+    "sarahhants.bsky.social",          # Sarah
+]
+# Set to [] for normal operation
+```
+
+All other users are silently ignored when lockdown is active.
+
+---
+
+## Training Data Logging
+
+Interactions are logged for improving response quality:
+
+```python
+{
+    'training_log': [
+        {
+            'timestamp': '2025-12-31T12:00:00Z',
+            'type': 'initial_question',  # or 'session_start', 'claude_response'
+            'author': 'user.bsky.social',
+            'user_message': '...',
+            'wxd_post_context': '...',
+            'note': 'Pre-chat question...'
+        }
+    ]
+}
+```
+
+Types logged:
+- `initial_question`: User replied before saying "chat"
+- `session_start`: User triggered chat session
+- `claude_response`: Claude generated a response
+
+---
+
+## Uncertainty Handling
+
+Claude can flag when it's unsure rather than guessing:
+
+### Classifications
+| Type | Action | Human Review |
+|------|--------|--------------|
+| `genuine_question` | Answer if confident | No |
+| `topic_suggestion` | Brief thanks | No |
+| `appreciation` | Brief thanks | No |
+| `correction` | Acknowledge, flag | Yes |
+| `uncertain` | "Let me check", flag | Yes |
+| `spam` | Ignore | No |
+
+### Response Fields
+```json
+{
+    "classification": "uncertain",
+    "should_respond": true,
+    "response_text": "Good question! Let me check on that...",
+    "needs_human": true,
+    "uncertainty_note": "Not sure about Met Office warning vs UKHSA alert distinction"
+}
+```
+
+Uncertain items are logged to `needs_human_review` in state.
+
+---
+
+## Dynamic Session Limits
+
+Sessions upgrade based on conversation value:
+
+| Condition | Message Limit |
+|-----------|--------------|
+| Standard follower | 5 messages |
+| Trusted user | 10 messages |
+| Feedback session | 15 messages |
+
+**Feedback upgrade triggers:**
+- Classification is `correction` or `uncertain`
+- `needs_human` flag is true
+
+This allows full clarification when users provide valuable feedback.
 
 ---
 
@@ -387,4 +509,4 @@ wxd/
 | Date | Change |
 |------|--------|
 | 2025-12-31 | Initial architecture design |
-| TBD | Implementation of full system |
+| 2025-12-31 | v2 implementation: adaptive polling, test mode, training logs, uncertainty handling, dynamic limits, ntfy triggers |
