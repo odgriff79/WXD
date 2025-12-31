@@ -148,6 +148,7 @@ curl -d "check" ntfy.sh/YOUR_CHANNEL      # Check replies NOW (dry-run)
 curl -d "respond" ntfy.sh/YOUR_CHANNEL    # Check AND respond NOW (live)
 
 # Utility
+curl -d "status" ntfy.sh/YOUR_CHANNEL     # Quick system status
 curl -d "oracle" ntfy.sh/YOUR_CHANNEL     # Check A1 grabber status
 ```
 

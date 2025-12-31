@@ -30,6 +30,7 @@ Reply System:
 - 'respond': Check AND respond to new replies NOW (force run, live)
 
 Utilities:
+- 'status': Quick system status (replies, trackers, uptime)
 - 'oracle': Check Oracle A1 grabber status
 
 Results sent to wxd-alerts topic.
@@ -52,6 +53,7 @@ print('  Tracker D: "ukmo" (quick) or "ukmo-fresh" (fetch new)')
 print('  Daily: "summary" (Met Office summary preview)')
 print('  Engagement: "engagement" (preview)')
 print('  Replies: "check" (dry-run) or "respond" (live)')
+print('  Status: "status" (quick system overview)')
 print('Send to: https://ntfy.sh/wxd-cmd')
 
 # Use ntfy JSON stream API
@@ -210,6 +212,79 @@ def handle_respond():
     return output
 
 
+def handle_status():
+    """Quick system status summary."""
+    import json
+    from datetime import datetime, timezone
+    from pathlib import Path
+
+    print(f'Status requested at {time.strftime("%H:%M:%S")}')
+
+    lines = []
+    lines.append(f"WXD STATUS - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
+    lines.append("=" * 40)
+
+    # Check reply listener state
+    try:
+        state_path = Path('/home/ubuntu/wxd/data/reply_listener_state.json')
+        if state_path.exists():
+            with open(state_path) as f:
+                state = json.load(f)
+            last_run = state.get('last_run', 'Never')[:19] if state.get('last_run') else 'Never'
+            sessions = len(state.get('active_sessions', {}))
+            processed = len(state.get('processed_replies', []))
+            lines.append(f"\n📨 REPLIES")
+            lines.append(f"  Last run: {last_run}")
+            lines.append(f"  Active sessions: {sessions}")
+            lines.append(f"  Processed: {processed}")
+    except Exception as e:
+        lines.append(f"\n📨 REPLIES: Error - {e}")
+
+    # Check recent cron logs
+    cron_files = [
+        ('/home/ubuntu/wxd/cron.log', 'Tracker A'),
+        ('/home/ubuntu/wxd/trackers/icon/cron.log', 'ICON'),
+        ('/home/ubuntu/wxd/trackers/mogreps/cron.log', 'MOGREPS'),
+        ('/home/ubuntu/wxd/trackers/ukmo/cron.log', 'UKMO'),
+    ]
+
+    lines.append(f"\n📊 TRACKERS (last line)")
+    for log_path, name in cron_files:
+        try:
+            with open(log_path) as f:
+                last_line = f.readlines()[-1].strip()[:50] if f.readlines() else 'Empty'
+            # Re-read to get actual last line
+            with open(log_path) as f:
+                all_lines = f.readlines()
+                last_line = all_lines[-1].strip()[:60] if all_lines else 'Empty'
+            lines.append(f"  {name}: {last_line}")
+        except Exception as e:
+            lines.append(f"  {name}: No log")
+
+    # ntfy listener status
+    try:
+        import subprocess
+        ps = subprocess.run(['pgrep', '-f', 'ntfy_listener'], capture_output=True, text=True)
+        ntfy_running = 'RUNNING' if ps.stdout.strip() else 'STOPPED'
+    except:
+        ntfy_running = 'Unknown'
+
+    lines.append(f"\n🔔 SERVICES")
+    lines.append(f"  ntfy listener: {ntfy_running}")
+
+    # Uptime
+    try:
+        with open('/proc/uptime') as f:
+            uptime_secs = float(f.read().split()[0])
+        days = int(uptime_secs // 86400)
+        hours = int((uptime_secs % 86400) // 3600)
+        lines.append(f"  VM uptime: {days}d {hours}h")
+    except:
+        pass
+
+    return '\n'.join(lines)
+
+
 while True:
     try:
         # Stream messages with timeout
@@ -250,6 +325,8 @@ while True:
                             output = handle_check()
                         elif cmd == 'respond':
                             output = handle_respond()
+                        elif cmd == 'status':
+                            output = handle_status()
 
                         if output:
                             # Clean up output for ntfy
