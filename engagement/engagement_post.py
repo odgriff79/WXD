@@ -587,6 +587,16 @@ It's one of the key concepts behind how WXD tracks cold air for London.
 More on this topic coming soon. Questions? Reply and we'll cover them in our next Q&A post."""
 
 
+def add_community_cta(posts: list) -> list:
+    """Add community call-to-action as final post in thread.
+
+    Asks followers for topic suggestions, turning every educational
+    post into a question collector.
+    """
+    cta = "What weather or forecasting topics would you like WXD to explain? Reply with your questions - we read every response and use them to shape future posts."
+    return posts + [cta]
+
+
 def add_thread_indicators(posts: list) -> list:
     """Add thread indicators [1/3], [2/3], etc to START of posts.
 
@@ -786,6 +796,9 @@ def main():
     for i, post in enumerate(posts):
         print(f"\n  [{i+1}] ({len(post)} chars):")
         print(f"  {post[:200]}{'...' if len(post) > 200 else ''}")
+
+    # Add community CTA as final post
+    posts = add_community_cta(posts)
 
     if args.dry_run:
         preview_posts = add_thread_indicators(posts)
