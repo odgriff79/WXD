@@ -975,7 +975,7 @@ def main():
                     'message': reply['text'],
                     'context': reply.get('parent_text', '')[:200]
                 }
-                training_log.append(training_entry)
+                state.setdefault('training_log', []).append(training_entry)
                 new_processed.append(reply['uri'])
                 continue
 
@@ -1170,7 +1170,7 @@ def main():
                         'message': reply['text'],
                         'context': post['text'][:200] if post.get('text') else ''
                     }
-                    training_log.append(training_entry)
+                    state.setdefault('training_log', []).append(training_entry)
                     new_processed.append(reply['uri'])
                     continue
 
