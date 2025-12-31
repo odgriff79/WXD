@@ -52,14 +52,31 @@ wxd/
 - Timing uncertainty analysis
 - Run-on-run shift detection
 
-## VM Setup
+## VM Environment Separation — CRITICAL
 
-- **VM**: Oracle ARM A1.Flex (4 OCPU, 24GB RAM) - migrated 2025-12-30
+Two VMs exist. They are completely separate. **Never cross-contaminate.**
+
+| Name | Purpose | Hostname | Status |
+|------|---------|----------|--------|
+| **WXD-VM** | All WXD work | wxd-arm-vm | **ACTIVE** - all development here |
+| **EVO-VM** | Evo_mon only | evohome-monitor | Maintenance only - DO NOT USE for WXD |
+
+### Rules
+- **WXD work goes to WXD-VM only**
+- **EVO-VM is maintenance-only for Evo_mon — do not touch for WXD**
+- Before any remote operation: **STOP → CONFIRM target VM by name → CHECK `.vm_config` → proceed**
+- If uncertain, **ASK**
+
+### Connection Details
+Stored in `.vm_config` (gitignored). **Never hardcode IPs or keys.**
+
+### WXD-VM Details
+- **Hardware**: Oracle ARM A1.Flex (4 OCPU, 24GB RAM)
 - **User**: ubuntu
 - **Project dir**: ~/wxd
 - **Venv**: ~/wxd/venv
 - **Env file**: ~/.wxd_env (Bluesky credentials)
-- **Old VM**: evohome-monitor (AMD micro, 1GB) - Evo_mon only, WXD cron disabled
+- **Migrated**: 2025-12-30
 
 ## Commands
 
