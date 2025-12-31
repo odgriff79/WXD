@@ -546,6 +546,11 @@ CRITICAL: Be ACCURATE, not overconfident. Weather is complex.
 - NEVER claim certainty about local weather from our ensemble data alone
 - If uncertain, say so - better to be honest than confidently wrong
 
+WARNINGS RULE - CRITICAL:
+- NEVER mention Met Office warnings unless they are EXPLICITLY stated in the forecast data provided
+- If a warning IS in the data, you MUST specify: region affected AND valid period (dates)
+- Do NOT invent or assume warnings exist - if not in the data, don't mention them
+
 Use the forecast data to explain the general pattern, then qualify with appropriate caveats.
 
 Only flag for human review if:
@@ -570,7 +575,7 @@ Output JSON only:
 {{
     "classification": "genuine_question|topic_suggestion|appreciation|correction|spam",
     "should_respond": true/false,
-    "response_text": "Your response (max 280 chars, casual friendly tone, SPECIFIC not vague)",
+    "response_text": "Your response (max 295 chars, casual friendly tone, SPECIFIC not vague)",
     "reason": "Brief explanation",
     "needs_human": true/false
 }}"""
@@ -593,9 +598,18 @@ Output JSON only:
 
             response = json.loads(output.strip())
 
-            # Validate and sanitize response
+            # Validate and sanitize response - smart truncation at word boundary
             if response.get('should_respond') and response.get('response_text'):
-                response['response_text'] = response['response_text'][:280]
+                text = response['response_text']
+                if len(text) > 300:
+                    # Truncate at last space before 297 chars, add "..."
+                    text = text[:297]
+                    last_space = text.rfind(' ')
+                    if last_space > 250:  # Only if we have reasonable content
+                        text = text[:last_space] + "..."
+                    else:
+                        text = text[:297] + "..."
+                response['response_text'] = text
 
             return response
 
