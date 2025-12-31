@@ -25,6 +25,8 @@ Usage:
     python reply_listener.py --max-replies 2    # Respond to max 2 replies per run
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -38,6 +40,7 @@ try:
     HAS_ATPROTO = True
 except ImportError:
     HAS_ATPROTO = False
+    Client = None  # type: ignore
 
 
 # =============================================================================
@@ -347,7 +350,160 @@ def extract_replies(thread_response, own_did: str) -> list:
     return replies
 
 
-def generate_chat_response(reply_text: str, parent_text: str, session: dict = None) -> dict:
+def get_notification_replies(client: Client, own_did: str, limit: int = 50) -> list:
+    """Get replies from notifications API - catches replies to ANY of WXD's posts.
+
+    This is essential for threaded conversations where users reply to WXD's replies,
+    not just to original posts. The notifications API catches all mentions/replies.
+    """
+    replies = []
+
+    try:
+        response = client.app.bsky.notification.list_notifications({'limit': limit})
+
+        if not hasattr(response, 'notifications'):
+            return replies
+
+        for notif in response.notifications:
+            # Only process reply notifications
+            if notif.reason != 'reply':
+                continue
+
+            # Skip already-read notifications older than 24h to save processing
+            # (We still check them via processed_replies set)
+
+            author_did = notif.author.did if hasattr(notif.author, 'did') else None
+
+            # Skip self-replies
+            if author_did == own_did:
+                continue
+
+            # Skip blocked accounts
+            if author_did in BLOCKLIST:
+                continue
+
+            # Extract reply info from the notification record
+            record = notif.record if hasattr(notif, 'record') else None
+            if not record:
+                continue
+
+            reply_text = record.text if hasattr(record, 'text') else ''
+            created_at = record.created_at if hasattr(record, 'created_at') else None
+
+            # Get parent reference (what they're replying to)
+            parent_uri = None
+            parent_cid = None
+            root_uri = None
+            root_cid = None
+
+            if hasattr(record, 'reply') and record.reply:
+                if hasattr(record.reply, 'parent'):
+                    parent_uri = record.reply.parent.uri if hasattr(record.reply.parent, 'uri') else None
+                    parent_cid = record.reply.parent.cid if hasattr(record.reply.parent, 'cid') else None
+                if hasattr(record.reply, 'root'):
+                    root_uri = record.reply.root.uri if hasattr(record.reply.root, 'uri') else None
+                    root_cid = record.reply.root.cid if hasattr(record.reply.root, 'cid') else None
+
+            replies.append({
+                'uri': notif.uri,
+                'cid': notif.cid,
+                'text': reply_text,
+                'author_handle': notif.author.handle if hasattr(notif.author, 'handle') else 'unknown',
+                'author_did': author_did,
+                'created_at': created_at,
+                'parent_uri': parent_uri,
+                'parent_cid': parent_cid,
+                'root_uri': root_uri,
+                'root_cid': root_cid,
+                'is_notification': True,  # Flag to identify source
+            })
+
+    except Exception as e:
+        print(f"  Error fetching notifications: {e}")
+
+    return replies
+
+
+def get_latest_forecast_context(client: Client, handle: str) -> str:
+    """Fetch the latest weather forecast from WXD's recent posts.
+
+    This ensures Claude has actual forecast data to answer weather questions,
+    even when the thread started from a non-weather post.
+    """
+    try:
+        response = client.app.bsky.feed.get_author_feed({
+            'actor': handle,
+            'limit': 20,
+            'filter': 'posts_no_replies'
+        })
+
+        forecast_posts = []
+        for item in response.feed if hasattr(response, 'feed') else []:
+            text = item.post.record.text if hasattr(item.post.record, 'text') else ''
+            # Look for forecast-type posts (contain temperature, model names, or weather terms)
+            if any(term in text.lower() for term in ['°c', 'gfs', 'ecm', 'icon', 'cold', 'warm', 'snow', 'rain', 'frost']):
+                forecast_posts.append(text)
+                if len(forecast_posts) >= 2:
+                    break
+
+        if forecast_posts:
+            return "\n---\n".join(forecast_posts)
+    except Exception as e:
+        print(f"    Error fetching forecast context: {e}")
+
+    return ""
+
+
+def extract_location(text: str) -> str:
+    """Extract UK location from text if mentioned."""
+    # Common UK cities/towns
+    locations = [
+        'london', 'manchester', 'birmingham', 'leeds', 'glasgow', 'edinburgh',
+        'liverpool', 'bristol', 'sheffield', 'newcastle', 'nottingham', 'cardiff',
+        'belfast', 'leicester', 'southampton', 'portsmouth', 'oxford', 'cambridge',
+        'winchester', 'brighton', 'reading', 'coventry', 'hull', 'bradford',
+        'york', 'bath', 'exeter', 'norwich', 'plymouth', 'derby', 'aberdeen',
+        'dundee', 'swansea', 'milton keynes', 'northampton', 'luton', 'swindon'
+    ]
+    text_lower = text.lower()
+    for loc in locations:
+        if loc in text_lower:
+            return loc.title()
+    return ""
+
+
+def fetch_location_forecast(location: str) -> str:
+    """Fetch weather forecast for a specific UK location using web search via Claude."""
+    if not location:
+        return ""
+
+    try:
+        # Use Claude with web search to get location-specific forecast
+        prompt = f"""Search the web for the current weather forecast for {location}, UK for the next 5-7 days.
+Focus on:
+- Temperature highs and lows
+- Precipitation (rain, snow, sleet)
+- Any weather warnings
+- Wind conditions
+
+Return a concise 3-4 sentence summary of the forecast. Be specific with dates and temperatures."""
+
+        result = subprocess.run(
+            ['claude', '--dangerously-skip-permissions', '--model', 'haiku', '-p', prompt],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()[:500]
+    except Exception as e:
+        print(f"    Error fetching location forecast: {e}")
+
+    return ""
+
+
+def generate_chat_response(reply_text: str, parent_text: str, session: dict = None, forecast_context: str = "") -> dict:
     """Use Claude CLI to generate a conversational response.
 
     Returns dict with:
@@ -362,39 +518,61 @@ def generate_chat_response(reply_text: str, parent_text: str, session: dict = No
     if session and session.get('message_count', 0) > 0:
         context = f"\nThis is message #{session['message_count'] + 1} in an ongoing chat session."
 
+    # Check if user is asking about a specific location
+    location = extract_location(reply_text)
+    location_forecast = ""
+    if location:
+        print(f"    Detected location: {location} - fetching specific forecast...")
+        location_forecast = fetch_location_forecast(location)
+        if location_forecast:
+            print(f"    Got location forecast ({len(location_forecast)} chars)")
+
+    # Add forecast context if available
+    forecast_section = ""
+    if forecast_context or location_forecast:
+        forecast_section = "\n\nFORECAST DATA:\n"
+        if location_forecast:
+            forecast_section += f"SPECIFIC FORECAST FOR {location.upper()}:\n{location_forecast}\n\n"
+        if forecast_context:
+            forecast_section += f"WXD ENSEMBLE DATA:\n{forecast_context[:600]}\n"
+
     prompt = f"""You are WXD, a friendly weather analysis bot on Bluesky focused on UK weather.
 Your tone is: casual, friendly, weather-savvy, helpful. Like chatting with a knowledgeable weather friend.
 
-IMPORTANT: If you're unsure about something, DON'T GUESS. Flag it for human review instead.
-Examples of when to flag:
-- Technical weather distinctions you're uncertain about (e.g., Met Office warnings vs UKHSA Cold Health Alerts)
-- Specific local knowledge you might not have
-- Questions about WXD's own posts/data that you can't verify
-- Anything where being wrong could mislead the user
+CRITICAL: Be ACCURATE, not overconfident. Weather is complex.
+- Our data shows 850hPa temps (1.5km altitude) - these DON'T directly predict surface conditions
+- For snow: 850hPa temps indicate potential, but surface snow depends on local factors (elevation, urban heat, exact precip timing)
+- For location-specific questions: Give the synoptic outlook but note local forecasts (Met Office, metcheck) are better for street-level detail
+- NEVER claim certainty about local weather from our ensemble data alone
+- If uncertain, say so - better to be honest than confidently wrong
 
-ORIGINAL POST:
-{parent_text[:500]}
+Use the forecast data to explain the general pattern, then qualify with appropriate caveats.
+
+Only flag for human review if:
+- User points out an error in WXD's data (correction)
+- Question is about WXD's internal systems/operations
+{forecast_section}
+THREAD CONTEXT:
+{parent_text[:300]}
 
 USER'S MESSAGE:
 {reply_text}
 {context}
 
-Classify and respond. Categories:
-1. genuine_question - Weather question you CAN answer confidently → helpful response
+Classify and respond:
+1. genuine_question - Weather question → give a REAL answer using the forecast context
 2. topic_suggestion - Future topic idea → brief thanks
 3. appreciation - Thanks/praise → brief warm thanks
 4. correction - Error pointed out → acknowledge, flag for review
-5. uncertain - Question you're NOT SURE about → polite "let me check" + flag for human
-6. spam - Off-topic/promotional → ignore
+5. spam - Off-topic/promotional → ignore
 
 Output JSON only:
 {{
-    "classification": "genuine_question|topic_suggestion|appreciation|correction|uncertain|spam",
+    "classification": "genuine_question|topic_suggestion|appreciation|correction|spam",
     "should_respond": true/false,
-    "response_text": "Your response (max 280 chars, casual friendly tone)",
+    "response_text": "Your response (max 280 chars, casual friendly tone, SPECIFIC not vague)",
     "reason": "Brief explanation",
-    "needs_human": true/false,
-    "uncertainty_note": "If uncertain, what specifically needs checking"
+    "needs_human": true/false
 }}"""
 
     try:
@@ -549,7 +727,31 @@ def main():
         print(f"ERROR: Authentication failed: {e}")
         return 1
 
-    # Get recent posts
+    # =================================================================
+    # PHASE 1: Check notifications for threaded conversation replies
+    # This catches replies to WXD's own replies, not just to original posts
+    # =================================================================
+    print()
+    print("Checking notifications for threaded replies...")
+    notification_replies = get_notification_replies(client, own_did, limit=50)
+    print(f"  Found {len(notification_replies)} reply notifications")
+
+    # Filter to only new notifications from users with active sessions
+    # (or new chat triggers from anyone)
+    active_session_dids = set(state.get('active_sessions', {}).keys())
+    threaded_replies = []
+    for notif in notification_replies:
+        if notif['uri'] in processed_set:
+            continue
+        # Include if: user has active session OR this might be a chat trigger
+        if notif['author_did'] in active_session_dids or is_chat_trigger(notif['text']):
+            threaded_replies.append(notif)
+
+    print(f"  {len(threaded_replies)} new threaded replies to process")
+
+    # =================================================================
+    # PHASE 2: Get recent posts (original flow)
+    # =================================================================
     print()
     print(f"Fetching {args.limit} recent posts...")
     posts = get_recent_posts(client, bsky_handle, limit=args.limit)
@@ -559,19 +761,151 @@ def main():
     posts_with_replies = [p for p in posts if p.get('reply_count', 0) > 0]
     print(f"  {len(posts_with_replies)} posts have replies")
 
-    if not posts_with_replies:
-        print()
-        print("No replies to process")
-        save_state(state_path, state)
-        return 0
+    # =================================================================
+    # PHASE 3: Process all replies
+    # =================================================================
+    # Fetch latest forecast context for weather questions
+    # =================================================================
+    print()
+    print("Fetching latest forecast context...")
+    forecast_context = get_latest_forecast_context(client, bsky_handle)
+    if forecast_context:
+        print(f"  Got forecast context ({len(forecast_context)} chars)")
+    else:
+        print("  No forecast context available")
 
-    # Process replies
+    # =================================================================
     print()
     print("Processing replies...")
 
     replies_sent = 0
     new_processed = []
     claude_calls = 0
+
+    # Build a quick lookup for post context
+    post_context_cache = {p['uri']: p['text'] for p in posts}
+
+    # -------------------------------------------------------------
+    # 3a: Process threaded replies first (from notifications)
+    # These are replies to WXD's replies - active conversations
+    # -------------------------------------------------------------
+    if threaded_replies:
+        print("\n--- Processing threaded conversation replies ---")
+
+    for reply in threaded_replies:
+        if replies_sent >= args.max_replies:
+            print(f"\n  Rate limit reached ({args.max_replies} replies)")
+            break
+
+        author_did = reply['author_did']
+        author_handle = reply['author_handle']
+
+        reply_preview = reply['text'][:60] + "..." if len(reply['text']) > 60 else reply['text']
+        print(f"\n  Threaded reply from @{author_handle}:")
+        print(f"    {reply_preview}")
+
+        # TEST MODE CHECK
+        if TEST_MODE_USERS:
+            is_whitelisted = any(
+                author_handle == user or author_handle.endswith(f".{user}")
+                for user in TEST_MODE_USERS
+            )
+            if not is_whitelisted:
+                print(f"    [TEST MODE] Ignoring - not whitelisted")
+                new_processed.append(reply['uri'])
+                continue
+
+        # Skip pass-through
+        if is_pass_through(reply['text']):
+            print("    [SKIP] Pass-through detected")
+            new_processed.append(reply['uri'])
+            continue
+
+        # Get session for this user
+        session = get_session(state, author_did)
+
+        # Get context - try to find root post text
+        context_text = ""
+        if reply.get('root_uri') and reply['root_uri'] in post_context_cache:
+            context_text = post_context_cache[reply['root_uri']]
+        else:
+            # Try to fetch the root post for context
+            try:
+                if reply.get('root_uri'):
+                    root_thread = get_post_thread(client, reply['root_uri'], depth=0)
+                    if hasattr(root_thread, 'thread') and hasattr(root_thread.thread, 'post'):
+                        context_text = root_thread.thread.post.record.text if hasattr(root_thread.thread.post.record, 'text') else ""
+            except:
+                pass
+
+        response_text = None
+
+        if session:
+            msg_limit = get_session_limit(author_did, session)
+            if session['message_count'] >= msg_limit:
+                print(f"    Session limit reached ({msg_limit} msgs)")
+                response_text = CANNED_RESPONSES['session_limit']
+                del state['active_sessions'][author_did]
+            else:
+                print("    Active session - generating response...")
+                result = generate_chat_response(reply['text'], context_text, session, forecast_context)
+                claude_calls += 1
+                classification = result.get('classification')
+                print(f"    Classification: {classification}")
+
+                if result.get('should_respond'):
+                    response_text = result.get('response_text')
+                    update_session(session)
+                    print(f"    Session msg count: {session['message_count']}")
+
+                    log_training_data(state, {
+                        'type': 'threaded_claude_response',
+                        'author': author_handle,
+                        'classification': classification,
+                        'user_message': reply['text'],
+                        'thread_context': context_text[:200] if context_text else '',
+                        'claude_response': response_text,
+                    })
+        elif is_chat_trigger(reply['text']):
+            # New chat trigger in a thread
+            print("    'chat' trigger detected - starting session!")
+            session = create_session(state, author_did, author_handle, reply.get('root_uri', reply['uri']))
+            result = generate_chat_response("Hi, I'd like to chat about weather!", context_text, session, forecast_context)
+            claude_calls += 1
+            if result.get('should_respond'):
+                response_text = result.get('response_text')
+                update_session(session)
+            else:
+                response_text = "Hi! Happy to chat about UK weather. What's on your mind?"
+                update_session(session)
+
+        # Post response if we have one
+        if response_text:
+            print(f"    Response: {response_text[:80]}...")
+
+            if dry_run:
+                print("    [DRY RUN - would post reply]")
+            else:
+                result = post_reply(
+                    client,
+                    response_text,
+                    reply_to={'uri': reply['uri'], 'cid': reply['cid']},
+                    root={'uri': reply.get('root_uri', reply['uri']),
+                          'cid': reply.get('root_cid', reply['cid'])}
+                )
+                if result:
+                    print(f"    Posted reply: {result['uri']}")
+                    replies_sent += 1
+                else:
+                    print("    Failed to post reply")
+
+        new_processed.append(reply['uri'])
+
+    # -------------------------------------------------------------
+    # 3b: Process replies to original posts (existing flow)
+    # -------------------------------------------------------------
+    if posts_with_replies:
+        print("\n--- Processing replies to original posts ---")
 
     for post in posts_with_replies:
         if replies_sent >= args.max_replies:
@@ -650,7 +984,7 @@ def main():
                 else:
                     # Continue conversation - invoke Claude
                     print("      Active session - generating response...")
-                    result = generate_chat_response(reply['text'], post['text'], session)
+                    result = generate_chat_response(reply['text'], post['text'], session, forecast_context)
                     claude_calls += 1
                     classification = result.get('classification')
                     print(f"      Classification: {classification}")
@@ -715,7 +1049,8 @@ def main():
                     result = generate_chat_response(
                         "Hi, I'd like to chat about weather!",
                         post['text'],
-                        session
+                        session,
+                        forecast_context
                     )
                     claude_calls += 1
 
@@ -794,6 +1129,7 @@ def main():
     print()
     print("=" * 50)
     print("Summary:")
+    print(f"  Threaded replies processed: {len(threaded_replies)}")
     print(f"  Posts checked: {len(posts_with_replies)}")
     print(f"  New replies found: {len(new_processed)}")
     print(f"  Claude API calls: {claude_calls}")

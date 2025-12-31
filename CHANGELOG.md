@@ -4,6 +4,43 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ## [Unreleased]
 
+### WXD-Direct: Phase 5 - Add MOGREPS, UKMO, ICON
+
+**Context:** WXD-Direct POC complete with GFS, IFS, AIFS, GEM. Expanding to include UK and European models via AWS Open Data and DWD.
+
+**New Models:**
+| Model | Source | Format | Resolution | Runs/Day | Access |
+|-------|--------|--------|------------|----------|--------|
+| MOGREPS-G | AWS S3 (Met Office) | NetCDF | ~20km | 00/06/12/18z | Anonymous S3 |
+| UKMO Global | AWS S3 (Met Office) | NetCDF | 10km | TBD | Anonymous S3 |
+| UKV | AWS S3 (Met Office) | NetCDF | 2km | TBD | Anonymous S3 |
+| ICON-EU | DWD Open Data | GRIB2 (bz2) | 6.5km | 00/06/12/18z | HTTPS |
+
+**Target:** London 51.5°N, 0.1°W, 850hPa temperature.
+
+**Tasks:**
+- [ ] Task 1: MOGREPS-G Fetcher (`~/wxd-direct/src/fetchers/mogreps.py`)
+  - boto3 anonymous S3 access to `s3://met-office-global-ensemble-model-data/`
+  - Extract 850hPa temp for London from NetCDF via xarray
+  - Handle ensemble members (mean or control)
+- [ ] Task 2: UKMO Deterministic Fetcher (`~/wxd-direct/src/fetchers/ukmo.py`)
+  - Global: `s3://met-office-atmospheric-model-data/`
+  - UKV: Separate bucket (verify)
+- [ ] Task 3: ICON-EU Fetcher (`~/wxd-direct/src/fetchers/icon.py`)
+  - HTTPS from `https://opendata.dwd.de/weather/nwp/icon-eu/grib/`
+  - bz2 stream decompression
+  - cfgrib for GRIB2 extraction
+- [ ] Task 4: Update scheduler.py with new models
+- [ ] Task 5: Update availability_probe.py for new models
+- [ ] Task 6: Verify AWS bucket access and document file patterns
+- [ ] Task 7: Check dependencies (boto3, xarray, cfgrib)
+
+**Technical Notes:**
+- NetCDF (Met Office) via xarray, GRIB2 (DWD) via cfgrib
+- ICON files are bz2 compressed
+- Verify longitude conventions per source (0-360 vs -180..180)
+- MOGREPS ensemble: extract control run or compute mean
+
 ## [2025-12-31] - Reply System v2 Implementation
 
 ### Added
