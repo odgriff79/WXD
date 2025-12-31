@@ -392,7 +392,7 @@ Pick the ONE topic most relevant RIGHT NOW. Reply with ONLY the exact topic text
 
     try:
         result = subprocess.run(
-            ['claude', '--dangerously-skip-permissions', '--model', 'haiku', '-p', prompt],
+            ['claude', '--dangerously-skip-permissions', '--model', 'sonnet', '-p', prompt],
             capture_output=True,
             text=True,
             timeout=60
