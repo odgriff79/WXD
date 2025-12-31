@@ -1718,10 +1718,72 @@ def main():
 
     main_posts = split_for_posting(main_text)
 
-    # Add thread indicators [1/X] if multiple posts
-    if len(main_posts) > 1:
-        total = len(main_posts)
-        main_posts = [f"[{i+1}/{total}] {post}" for i, post in enumerate(main_posts)]
+    # Build ALL posts first (main + alerts), then number them all [X/total]
+    all_posts = []  # List of (text, has_image, label) tuples
+
+    # Add main posts
+    for i, post in enumerate(main_posts):
+        label = "MAIN" if i == 0 else f"MAIN CONT"
+        has_image = (i == 0)
+        all_posts.append((post, has_image, label))
+
+    # Build alert texts and add to list
+    # Cold alert
+    if cold_alert:
+        models_crossing = cold_alert.get('models', [])
+        is_multi = cold_alert.get('multi_model', False)
+        is_extreme = cold_alert.get('extreme', False)
+
+        if is_multi and len(models_crossing) >= 2:
+            model_temps = ", ".join([f"{m['model']} {m['temp']}°C" for m in models_crossing])
+            if is_extreme:
+                alert_text = f"⚠️ Multi-model extreme cold: {model_temps} at 850hPa around {cold_alert['date']}. {len(models_crossing)}/4 models agree - significant snow/ice risk."
+            else:
+                alert_text = f"❄️ Multi-model cold signal: {model_temps} at 850hPa around {cold_alert['date']}. {len(models_crossing)}/4 models below -5°C - elevated snow risk."
+        else:
+            if is_extreme:
+                alert_text = f"⚠️ Extreme cold signal: {cold_alert['model']} showing {cold_alert['temp']}°C at 850hPa for {cold_alert['date']}. Significant snow/ice risk if verified."
+            else:
+                alert_text = f"❄️ Cold signal: {cold_alert['model']} showing {cold_alert['temp']}°C at 850hPa for {cold_alert['date']}. Elevated snow risk for UK uplands."
+        all_posts.append((alert_text, False, "COLD ALERT"))
+
+    # Warm alert (summer only)
+    if warm_alert:
+        if warm_alert.get('extreme'):
+            alert_text = f"🌡️ Extreme warmth signal: {warm_alert['model']} showing {warm_alert['temp']}°C at 850hPa for {warm_alert['date']}. Potential heatwave conditions."
+        else:
+            alert_text = f"☀️ Warm signal: {warm_alert['model']} showing {warm_alert['temp']}°C at 850hPa for {warm_alert['date']}. Above-average temperatures expected."
+        all_posts.append((alert_text, False, "WARM ALERT"))
+
+    # Divergence alert
+    if divergence_info and divergence_info['diff'] > 6.0:
+        alert_text = f"⚡ Model disagreement: {divergence_info['diff']}°C gap for {divergence_info['date']}. {divergence_info['coldest']} at {divergence_info['coldest_temp']}°C vs {divergence_info['warmest']} at {divergence_info['warmest_temp']}°C. Low confidence."
+        all_posts.append((alert_text, False, "DIVERGENCE ALERT"))
+
+    # Swing alert
+    if swing_info and abs(swing_info['swing']) >= 8.0:
+        alert_text = f"🔄 Pattern flip: {abs(swing_info['swing'])}°C {swing_info['direction']} expected {swing_info['start_date']} to {swing_info['end_date']}. Major temperature change incoming."
+        all_posts.append((alert_text, False, "SWING ALERT"))
+
+    # Percentile alert
+    if percentile_info and percentile_info.get('pct', 0) >= 80:
+        pct = int(percentile_info['pct'])
+        model = percentile_info['model'].upper()
+        date = percentile_info['date']
+        threshold_key = percentile_info.get('threshold', 'cold')
+        threshold_temp = '-8°C' if threshold_key == 'extreme' else '-5°C'
+        alert_text = f"📊 High confidence: {pct}% of {model} ensemble members below {threshold_temp} by {date}. Strong agreement on cold signal."
+        all_posts.append((alert_text, False, "PERCENTILE ALERT"))
+
+    # Now number ALL posts with [X/total] - but only if more than 1 post
+    total_posts = len(all_posts)
+    numbered_posts = []
+    for i, (text, has_image, label) in enumerate(all_posts):
+        if total_posts > 1:
+            numbered_text = f"[{i+1}/{total_posts}] {text}"
+        else:
+            numbered_text = text  # Single post - no numbering needed
+        numbered_posts.append((numbered_text, has_image, label))
 
     # Post to Bluesky (or show preview in dry-run mode)
     if dry_run:
@@ -1729,137 +1791,37 @@ def main():
         print("PREVIEW - Would post the following:")
         print("=" * 50)
         print()
-        for i, post in enumerate(main_posts):
-            label = "MAIN POST" if i == 0 else f"MAIN CONT {i}"
-            print(f"[{label}] ({len(post)} chars):")
-            print(f"  {post}")
-            if i == 0:
+        for i, (text, has_image, label) in enumerate(numbered_posts):
+            print(f"[{label}] ({len(text)} chars):")
+            print(f"  {text}")
+            if has_image:
                 print(f"  Image: {chart_path if chart_ok else 'None'}")
             print()
-        main_post_ref = {'uri': 'dry-run', 'cid': 'dry-run'}  # Fake ref for showing alerts
+        main_post_ref = {'uri': 'dry-run', 'cid': 'dry-run'}
     elif bsky_handle and bsky_password:
-        # Post main update(s)
-        print(f"Posting main update to Bluesky ({len(main_posts)} part(s))...")
+        print(f"Posting thread to Bluesky ({total_posts} posts)...")
         image = chart_path if chart_ok else None
 
         # First post with image (root of thread)
-        main_post_ref = post_to_bluesky(main_posts[0], image, bsky_handle, bsky_password)
+        first_text, _, first_label = numbered_posts[0]
+        main_post_ref = post_to_bluesky(first_text, image, bsky_handle, bsky_password)
         if not main_post_ref:
             return 1
-        root_post = main_post_ref  # All replies point to this as root
+        root_post = main_post_ref
 
-        # Continuation posts as thread
+        # All subsequent posts as replies in thread
         last_ref = main_post_ref
-        for i, continuation in enumerate(main_posts[1:], 1):
-            print(f"  Posting continuation {i}...")
-            last_ref = post_to_bluesky(continuation, None, bsky_handle, bsky_password,
+        for i, (text, _, label) in enumerate(numbered_posts[1:], 2):
+            print(f"  Posting [{i}/{total_posts}] {label}...")
+            last_ref = post_to_bluesky(text, None, bsky_handle, bsky_password,
                                        reply_to=last_ref, root_post=root_post)
             if not last_ref:
-                print(f"  Warning: continuation {i} failed")
+                print(f"  Warning: post {i} failed")
                 break
     else:
         print("BSKY_HANDLE and BSKY_PASSWORD not set, skipping post")
         print("Set these environment variables to enable posting")
         main_post_ref = None
-
-    # Generate alert texts and post/preview them
-    # For dry-run mode, we need a fake root_post
-    if dry_run:
-        root_post = {'uri': 'dry-run', 'cid': 'dry-run'}
-
-    if main_post_ref:
-        # Cold alert - now with multi-model support
-        if cold_alert:
-            models_crossing = cold_alert.get('models', [])
-            is_multi = cold_alert.get('multi_model', False)
-            is_extreme = cold_alert.get('extreme', False)
-
-            if is_multi and len(models_crossing) >= 2:
-                model_temps = ", ".join([f"{m['model']} {m['temp']}°C" for m in models_crossing])
-                if is_extreme:
-                    alert_text = f"⚠️ Multi-model extreme cold: {model_temps} at 850hPa around {cold_alert['date']}. {len(models_crossing)}/4 models agree - significant snow/ice risk."
-                else:
-                    alert_text = f"❄️ Multi-model cold signal: {model_temps} at 850hPa around {cold_alert['date']}. {len(models_crossing)}/4 models below -5°C - elevated snow risk."
-            else:
-                if is_extreme:
-                    alert_text = f"⚠️ Extreme cold signal: {cold_alert['model']} showing {cold_alert['temp']}°C at 850hPa for {cold_alert['date']}. Significant snow/ice risk if verified."
-                else:
-                    alert_text = f"❄️ Cold signal: {cold_alert['model']} showing {cold_alert['temp']}°C at 850hPa for {cold_alert['date']}. Elevated snow risk for UK uplands."
-
-            if dry_run:
-                print(f"[COLD ALERT] ({len(alert_text)} chars):")
-                print(f"  {alert_text}")
-                print()
-            else:
-                print(f"Posting cold alert as reply ({len(alert_text)} chars):")
-                print(f"  {alert_text}")
-                post_to_bluesky(alert_text, None, bsky_handle, bsky_password,
-                               reply_to=main_post_ref, root_post=root_post)
-
-        # Warm alert (summer only)
-        if warm_alert:
-            if warm_alert.get('extreme'):
-                alert_text = f"🌡️ Extreme warmth signal: {warm_alert['model']} showing {warm_alert['temp']}°C at 850hPa for {warm_alert['date']}. Potential heatwave conditions."
-            else:
-                alert_text = f"☀️ Warm signal: {warm_alert['model']} showing {warm_alert['temp']}°C at 850hPa for {warm_alert['date']}. Above-average temperatures expected."
-
-            if dry_run:
-                print(f"[WARM ALERT] ({len(alert_text)} chars):")
-                print(f"  {alert_text}")
-                print()
-            else:
-                print(f"Posting warm alert as reply ({len(alert_text)} chars):")
-                print(f"  {alert_text}")
-                post_to_bluesky(alert_text, None, bsky_handle, bsky_password,
-                               reply_to=main_post_ref, root_post=root_post)
-
-        # Divergence alert
-        if divergence_info and divergence_info['diff'] > 6.0:
-            alert_text = f"⚡ Model disagreement: {divergence_info['diff']}°C gap for {divergence_info['date']}. {divergence_info['coldest']} at {divergence_info['coldest_temp']}°C vs {divergence_info['warmest']} at {divergence_info['warmest_temp']}°C. Low confidence."
-
-            if dry_run:
-                print(f"[DIVERGENCE ALERT] ({len(alert_text)} chars):")
-                print(f"  {alert_text}")
-                print()
-            else:
-                print(f"Posting divergence alert as reply ({len(alert_text)} chars):")
-                print(f"  {alert_text}")
-                post_to_bluesky(alert_text, None, bsky_handle, bsky_password,
-                               reply_to=main_post_ref, root_post=root_post)
-
-        # Swing alert
-        if swing_info and abs(swing_info['swing']) >= 8.0:
-            alert_text = f"🔄 Pattern flip: {abs(swing_info['swing'])}°C {swing_info['direction']} expected {swing_info['start_date']} to {swing_info['end_date']}. Major temperature change incoming."
-
-            if dry_run:
-                print(f"[SWING ALERT] ({len(alert_text)} chars):")
-                print(f"  {alert_text}")
-                print()
-            else:
-                print(f"Posting swing alert as reply ({len(alert_text)} chars):")
-                print(f"  {alert_text}")
-                post_to_bluesky(alert_text, None, bsky_handle, bsky_password,
-                               reply_to=main_post_ref, root_post=root_post)
-
-        # Percentile alert
-        if percentile_info and percentile_info.get('pct', 0) >= 80:
-            pct = int(percentile_info['pct'])
-            model = percentile_info['model'].upper()
-            date = percentile_info['date']
-            # Convert threshold key to actual temperature
-            threshold_key = percentile_info.get('threshold', 'cold')
-            threshold_temp = '-8°C' if threshold_key == 'extreme' else '-5°C'
-            alert_text = f"📊 High confidence: {pct}% of {model} ensemble members below {threshold_temp} by {date}. Strong agreement on cold signal."
-
-            if dry_run:
-                print(f"[PERCENTILE ALERT] ({len(alert_text)} chars):")
-                print(f"  {alert_text}")
-                print()
-            else:
-                print(f"Posting percentile alert as reply ({len(alert_text)} chars):")
-                print(f"  {alert_text}")
-                post_to_bluesky(alert_text, None, bsky_handle, bsky_password,
-                               reply_to=main_post_ref, root_post=root_post)
 
     print()
     print("Complete")
