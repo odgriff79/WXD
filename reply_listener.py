@@ -42,6 +42,14 @@ except ImportError:
     HAS_ATPROTO = False
     Client = None  # type: ignore
 
+# Import Met Office fetcher for ground truth warnings
+try:
+    from daily_summary import fetch_metoffice_narrative
+    HAS_METOFFICE = True
+except ImportError:
+    HAS_METOFFICE = False
+    fetch_metoffice_narrative = None
+
 
 # =============================================================================
 # CONFIGURATION
@@ -424,12 +432,43 @@ def get_notification_replies(client: Client, own_did: str, limit: int = 50) -> l
     return replies
 
 
+def get_metoffice_warnings() -> str:
+    """Fetch current Met Office warnings - GROUND TRUTH for any warning claims."""
+    if not HAS_METOFFICE or not fetch_metoffice_narrative:
+        return ""
+
+    try:
+        mo_data = fetch_metoffice_narrative()
+
+        warnings_parts = []
+        if mo_data.get("long_range_warning"):
+            warnings_parts.append(f"ACTIVE: {mo_data['long_range_warning']}")
+        if mo_data.get("uk_warnings"):
+            warnings_parts.append(f"UK: {mo_data['uk_warnings']}")
+
+        if warnings_parts:
+            return "MET OFFICE WARNINGS:\n" + "\n".join(warnings_parts)
+        else:
+            return "MET OFFICE WARNINGS: None currently in force"
+    except Exception as e:
+        print(f"    Error fetching Met Office warnings: {e}")
+        return ""
+
+
 def get_latest_forecast_context(client: Client, handle: str) -> str:
-    """Fetch the latest weather forecast from WXD's recent posts.
+    """Fetch the latest weather forecast from WXD's recent posts + Met Office warnings.
 
     This ensures Claude has actual forecast data to answer weather questions,
     even when the thread started from a non-weather post.
     """
+    context_parts = []
+
+    # Get Met Office warnings FIRST - this is ground truth
+    mo_warnings = get_metoffice_warnings()
+    if mo_warnings:
+        context_parts.append(mo_warnings)
+
+    # Then get WXD posts
     try:
         response = client.app.bsky.feed.get_author_feed({
             'actor': handle,
@@ -447,11 +486,11 @@ def get_latest_forecast_context(client: Client, handle: str) -> str:
                     break
 
         if forecast_posts:
-            return "\n---\n".join(forecast_posts)
+            context_parts.append("WXD RECENT POSTS:\n" + "\n---\n".join(forecast_posts))
     except Exception as e:
         print(f"    Error fetching forecast context: {e}")
 
-    return ""
+    return "\n\n".join(context_parts) if context_parts else ""
 
 
 def extract_location(text: str) -> str:
