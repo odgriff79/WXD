@@ -542,6 +542,43 @@ Return a concise 3-4 sentence summary of the forecast. Be specific with dates an
     return ""
 
 
+def split_into_posts(text: str, max_chars: int = 295) -> list:
+    """Split long text into multiple posts at sentence/word boundaries."""
+    if len(text) <= max_chars:
+        return [text]
+
+    posts = []
+    remaining = text
+
+    while remaining:
+        if len(remaining) <= max_chars:
+            posts.append(remaining.strip())
+            break
+
+        # Find best break point - prefer sentence end, then word boundary
+        chunk = remaining[:max_chars]
+
+        # Try to break at sentence end
+        for end in ['. ', '! ', '? ']:
+            idx = chunk.rfind(end)
+            if idx > max_chars // 2:
+                posts.append(remaining[:idx + 1].strip())
+                remaining = remaining[idx + 1:].strip()
+                break
+        else:
+            # Break at last space
+            idx = chunk.rfind(' ')
+            if idx > max_chars // 2:
+                posts.append(remaining[:idx].strip())
+                remaining = remaining[idx:].strip()
+            else:
+                # Hard break as last resort
+                posts.append(remaining[:max_chars].strip())
+                remaining = remaining[max_chars:].strip()
+
+    return posts
+
+
 def generate_chat_response(reply_text: str, parent_text: str, session: dict = None, forecast_context: str = "") -> dict:
     """Use Claude CLI to generate a conversational response.
 
@@ -549,6 +586,7 @@ def generate_chat_response(reply_text: str, parent_text: str, session: dict = No
         - classification: genuine_question | topic_suggestion | appreciation | correction | uncertain | spam
         - should_respond: bool
         - response_text: str (if should_respond)
+        - response_posts: list (split into multiple posts if needed)
         - reason: str (explanation)
         - needs_human: bool (flag for owner review)
     """
@@ -578,11 +616,12 @@ def generate_chat_response(reply_text: str, parent_text: str, session: dict = No
     prompt = f"""You are WXD, a friendly weather analysis bot on Bluesky focused on UK weather.
 Your tone is: casual, friendly, weather-savvy, helpful. Like chatting with a knowledgeable weather friend.
 
-CRITICAL RULE - GROUND TRUTH ONLY:
-- ONLY state facts that are EXPLICITLY in the FORECAST DATA section below
-- If something isn't in the data, DON'T claim it - say "I don't have that specific info"
-- NEVER invent warnings, dates, temperatures, or forecasts
-- If user asks about something not in our data, offer direction: "Check metoffice.gov.uk for local details"
+CRITICAL RULE - VERIFY FACTS:
+- Use web search to verify any claims about warnings, specific forecasts, or dates
+- If the FORECAST DATA below has info, use it - but VALIDATE with web search if user asks specifics
+- NEVER invent or assume facts - search the web to confirm
+- For location-specific questions: search for that location's actual forecast
+- You CAN and SHOULD search the web to give accurate, verified answers
 
 850hPa DATA INTERPRETATION:
 - Our data shows 850hPa temps (1.5km altitude) - these indicate upper-air patterns, NOT surface conditions
@@ -594,6 +633,12 @@ WARNINGS - STRICT RULES:
 - If it says "None currently in force" - do NOT mention any warnings
 - If a warning IS listed, you MUST include: region AND valid period exactly as shown
 - NEVER assume or infer warnings that aren't explicitly stated
+
+NO HALLUCINATION - CRITICAL:
+- Do NOT invent events, dates, warnings, or facts
+- If you don't know something, say so and search the web to find out
+- Better to say "let me check" than to make something up
+- Every factual claim must be from data provided OR verified via web search
 
 Only flag for human review if:
 - User points out an error in WXD's data (correction)
@@ -617,7 +662,7 @@ Output JSON only:
 {{
     "classification": "genuine_question|topic_suggestion|appreciation|correction|spam",
     "should_respond": true/false,
-    "response_text": "Your response (max 295 chars, casual friendly tone, SPECIFIC not vague)",
+    "response_text": "Your COMPLETE answer (casual friendly tone, be thorough - no char limit)",
     "reason": "Brief explanation",
     "needs_human": true/false
 }}"""
@@ -640,18 +685,15 @@ Output JSON only:
 
             response = json.loads(output.strip())
 
-            # Validate and sanitize response - smart truncation at word boundary
+            # Validate response - split into multiple posts if needed
             if response.get('should_respond') and response.get('response_text'):
                 text = response['response_text']
                 if len(text) > 300:
-                    # Truncate at last space before 297 chars, add "..."
-                    text = text[:297]
-                    last_space = text.rfind(' ')
-                    if last_space > 250:  # Only if we have reasonable content
-                        text = text[:last_space] + "..."
-                    else:
-                        text = text[:297] + "..."
-                response['response_text'] = text
+                    # Split into multiple posts instead of truncating
+                    response['response_posts'] = split_into_posts(text)
+                else:
+                    response['response_posts'] = [text]
+                response['response_text'] = response['response_posts'][0]  # First post for backward compat
 
             return response
 
@@ -935,25 +977,30 @@ def main():
                 response_text = "Hi! Happy to chat about UK weather. What's on your mind?"
                 update_session(session)
 
-        # Post response if we have one
-        if response_text:
-            print(f"    Response: {response_text[:80]}...")
+        # Post response(s) - may be multiple posts for long answers
+        response_posts = result.get('response_posts', [response_text]) if 'result' in dir() and result else [response_text] if response_text else []
+
+        if response_posts:
+            print(f"    Response ({len(response_posts)} post(s)): {response_posts[0][:80]}...")
 
             if dry_run:
-                print("    [DRY RUN - would post reply]")
+                print(f"    [DRY RUN - would post {len(response_posts)} reply(ies)]")
             else:
-                result = post_reply(
-                    client,
-                    response_text,
-                    reply_to={'uri': reply['uri'], 'cid': reply['cid']},
-                    root={'uri': reply.get('root_uri', reply['uri']),
-                          'cid': reply.get('root_cid', reply['cid'])}
-                )
-                if result:
-                    print(f"    Posted reply: {result['uri']}")
-                    replies_sent += 1
-                else:
-                    print("    Failed to post reply")
+                # Post as threaded replies
+                last_reply = {'uri': reply['uri'], 'cid': reply['cid']}
+                root = {'uri': reply.get('root_uri', reply['uri']),
+                        'cid': reply.get('root_cid', reply['cid'])}
+
+                for i, post_text in enumerate(response_posts):
+                    post_result = post_reply(client, post_text, reply_to=last_reply, root=root)
+                    if post_result:
+                        print(f"    Posted reply {i+1}/{len(response_posts)}: {post_result['uri']}")
+                        last_reply = post_result  # Chain replies
+                        if i == 0:
+                            replies_sent += 1
+                    else:
+                        print(f"    Failed to post reply {i+1}")
+                        break
 
         new_processed.append(reply['uri'])
 
