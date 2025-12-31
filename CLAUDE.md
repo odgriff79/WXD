@@ -18,6 +18,21 @@ Weather ensemble data pipeline with automated Bluesky posting. Multiple trackers
 | C | MOGREPS-G (18 members) | TBD | `trackers/mogreps/` (planned) |
 | D | UKMO Global (deterministic) | 05:00, 17:00 | `trackers/ukmo/` |
 
+## Reply System
+
+Automated reply handling with cost controls and abuse prevention. **Full architecture: [`docs/REPLY_SYSTEM.md`](docs/REPLY_SYSTEM.md)**
+
+Key points:
+- **Two-step engagement**: First reply gets canned "reply 'chat' to continue", Claude only invoked after opt-in
+- **User tiers**: Blocked → Non-follower → Follower → Trusted (different limits)
+- **Pre-filters**: Blocklist, pass-through (@tags), follower check - all before any Claude call
+- **Session limits**: 5 msgs/session (standard), 10 msgs (trusted), 72h expiry
+- **Corrections**: Always require human approval via ntfy
+
+Scripts:
+- `reply_listener.py` - Main processor (cron every 4h)
+- `fetch_own_posts.py` - Post history for audit
+
 ## Key Files
 
 ```
@@ -25,20 +40,30 @@ wxd/
 ├── fetch.py              # Main 4-model data fetch
 ├── post_bluesky.py       # Main tracker posting (Tracker A)
 ├── daily_summary.py      # Met Office narrative thread
+├── reply_listener.py     # Reply monitoring & response
+├── fetch_own_posts.py    # Post history fetcher
 ├── sync_charts.sh        # Push charts to GitHub Pages
 ├── trackers/
 │   ├── shared/
 │   │   ├── __init__.py
-│   │   └── analysis.py   # Common analysis functions (trend, percentile, timing)
+│   │   ├── analysis.py   # Common analysis functions
+│   │   └── commentary.py # Shared Claude commentary generation
 │   ├── icon/
 │   │   ├── fetch.py      # DWD GRIB fetcher
 │   │   ├── post.py       # ICON posting
 │   │   └── cron_icon.sh
+│   ├── mogreps/
+│   │   ├── fetch.py      # Met Office S3 fetcher
+│   │   ├── post.py       # MOGREPS posting
+│   │   └── cron_mogreps.sh
 │   └── ukmo/
 │       ├── fetch.py      # Open-Meteo fetcher
 │       ├── post.py       # UKMO posting
 │       └── cron_ukmo.sh
+├── engagement/
+│   └── engagement_post.py # Community engagement posts
 └── docs/
+    ├── REPLY_SYSTEM.md   # Reply system architecture
     ├── index.html        # GitHub Pages chart gallery
     └── charts/           # Published charts
 ```

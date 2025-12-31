@@ -82,11 +82,20 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
   - State tracking for processed replies
   - Safety: rate limit (max 5 replies/run), dry-run default, blocklist for trolls
   - Cron: every 4 hours~~ **DONE - reply_listener.py**
-- **Reply approval via ntfy** - Human-in-the-loop before auto-responding:
-  - Send proposed response to ntfy for review
-  - Wait for `approve`/`reject` command
-  - Modes: `--auto` (immediate), `--notify` (approval required), `--dry-run` (log only)
-  - Consider: first-time repliers, corrections always require approval
+- **Reply system v2 implementation** - Full architecture documented in [`docs/REPLY_SYSTEM.md`](docs/REPLY_SYSTEM.md):
+  - Two-step engagement model (canned "reply 'chat' to continue", Claude only after opt-in)
+  - User tiers: Blocked → Non-follower → Follower → Trusted
+  - Pre-filters: blocklist, pass-through (@tags), follower check
+  - Session limits: 5 msgs (standard), 10 msgs (trusted), 72h expiry
+  - ntfy approval for corrections and questions
+  - Usage tracking and daily limits
+  - **Status**: Architecture designed, implementation pending
+
+- **Reply system monitoring TODOs** (review after launch):
+  - [ ] Review 72h session expiry based on engagement patterns
+  - [ ] Set final daily Claude limits after observing usage
+  - [ ] Review per-user limits monthly
+  - [ ] Monitor for abuse patterns
 
 ### Fixed
 - **MOGREPS longitude bug** - Was using 0-360 convention (359.87°) but MOGREPS files use -180..180 convention. With `method='nearest'`, 359.87 snapped to 179.86° (Pacific Ocean) instead of London. Fix: use -0.1278° directly. Debug confirmed: correct selection now at -0.14°.
