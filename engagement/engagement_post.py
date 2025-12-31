@@ -357,17 +357,23 @@ def select_topic_with_claude(weather_context: dict, available_topics: list) -> t
     # Format topics
     topics_text = "\n".join([f"- [{cat}] {topic}" for cat, topic in available_topics])
 
-    prompt = f"""{weather_summary}
+    prompt = f"""WXD is a weather tracking bot. We post educational content twice weekly.
+
+STRATEGY: Educational posts should be VARIED over time, but when significant weather events occur (like extreme cold or heat anomalies), we should capitalize on public interest by selecting topics that help followers understand what they're experiencing.
+
+Current period context: This is an ACTUAL WEATHER EVENT, not typical seasonal conditions. When anomaly_strength is 'extreme' or 'significant', followers are actively interested in what's happening. Choose topics that explain the current situation.
+
+{weather_summary}
 
 Available educational topics (format: [category] topic):
 {topics_text}
 
-Pick the ONE topic most relevant to current weather conditions. Consider:
-- Extreme cold anomaly = prioritize cold explainers or myth-busting
-- High model agreement = good time for confidence/ensemble topics
-- Low agreement = good time for uncertainty topics
+SELECTION CRITERIA:
+- If anomaly is extreme/significant: prioritize topics that explain current conditions (cold_relevant, myth_busting during cold events)
+- If anomaly is normal/moderate: pick varied educational content (ai_tech, project_updates, general weather_education)
+- Consider model agreement: high agreement = confidence topics; low = uncertainty topics
 
-Reply with ONLY the exact topic text, nothing else."""
+Pick the ONE topic most relevant RIGHT NOW. Reply with ONLY the exact topic text, nothing else."""
 
     try:
         result = subprocess.run(
