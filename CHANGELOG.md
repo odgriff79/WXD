@@ -75,6 +75,13 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 - ~~**Anytime preview/testing mode** - Allow fresh data fetch for preview/testing without polluting or contaminating the production data files or history. Must ensure complete isolation from scheduled runs.~~ **DONE**
 - **ICON/UKMO/MOGREPS commentary enhancement** - Need to port Tracker A's rich features: story-first prompts (no prefix), split/thread for longer posts (290 char), threshold warnings (-5°C/-8°C), 450 char for significant events. Currently have basic "ICON:" prefix style with 250 char single post.
 - **Break down workflows into smaller tasks** - Current cron jobs run fetch + analysis + chart + Claude commentary + post as one heavy process. Causes memory issues and VM overload (load avg 20+). Need to split into smaller sequential steps or add delays between stages. MOGREPS S3 fetches + Claude CLI commentary together overwhelm the VM.
+- **Fetch own posts history** - Use `app.bsky.feed.getAuthorFeed` API with cursor pagination to retrieve WXD's own post history. Useful for audit, analytics, duplicate detection, and backfilling local records. Requires authenticated session with app password (already available in .wxd_env).
+- **Reply listener system** - Monitor replies to WXD posts and respond intelligently:
+  - Fetch replies via `app.bsky.feed.getPostThread`
+  - Evaluate each reply with Claude CLI: genuine question → respond, spam → ignore, topic suggestion → log for engagement posts, appreciation → brief thanks, correction → flag for review
+  - State tracking for processed replies
+  - Safety: rate limit (max 5 replies/run), dry-run default, blocklist for trolls
+  - Cron: every 4 hours
 
 ### Fixed
 - **MOGREPS longitude bug** - Was using 0-360 convention (359.87°) but MOGREPS files use -180..180 convention. With `method='nearest'`, 359.87 snapped to 179.86° (Pacific Ocean) instead of London. Fix: use -0.1278° directly. Debug confirmed: correct selection now at -0.14°.
