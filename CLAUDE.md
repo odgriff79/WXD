@@ -227,23 +227,12 @@ ssh -i "$SSH_KEY" ubuntu@$VM_IP "cd ~/wxd && source venv/bin/activate && source 
 - Create cheatsheets or docs with real infrastructure details in public repos
 - Post multi-message threads without `[X/Y]` numbering on EVERY message
 
+
 ## WXD-Direct Project (~/wxd-direct/)
 
 Parallel POC for fetching 850hPa temperature directly from source agencies via GRIB instead of Open-Meteo.
 
 **Location:** ~/wxd-direct/ (same VM, separate directory)
-**CLAUDE.md:** ~/wxd-direct/CLAUDE.md
-
-### Status
-- Phase 1-4: GFS, ECMWF (IFS+AIFS), GEM, Scheduler - DONE
-- Phase 5: MOGREPS - TODO
-- Phase 6: UKMO - TODO  
-- Phase 7: ICON - TODO
-- Phase 8: Evaluation - TODO
-
-### Purpose
-- Investigate 13°C offset mystery
-- Reduce latency vs Open-Meteo
-- Direct access to source GRIB data
+**Details:** See ~/wxd-direct/CLAUDE.md for full project brief, phases, and status.
 
 **IMPORTANT:** wxd-direct is ISOLATED from ~/wxd - do not cross-contaminate code or data.
