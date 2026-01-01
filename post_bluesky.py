@@ -1089,7 +1089,7 @@ LANGUAGE:
 - Confidence synonyms: highly likely, well-supported, consistently shown, strongly indicated
 - Change synonyms: adjustment, shift, revision, movement
 - Magnitude synonyms: marked, notable, significant, appreciable
-- AVOID sensational terms: dramatic, slammed, plunged, locked in, major shift
+- AVOID sensational terms: dramatic, slammed, plunged, locked in, major shift, prolonged
 - No jargon like "regime", "synoptic", "conviction"
 
 MET OFFICE WARNINGS - STRICT RULES:

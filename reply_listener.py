@@ -960,8 +960,13 @@ def main():
         if is_super_user:
             msg_lower = reply['text'].lower().strip()
 
+            # Super user can say 'chat' to start a conversation like anyone else
+            if is_chat_trigger(reply['text']):
+                print(f"    [SUPER USER] 'chat' trigger - starting conversation")
+                # Fall through to normal chat flow below (don't continue)
+                pass
             # Check for COMMANDS
-            if any(cmd in msg_lower for cmd in ['reply', 'respond', 'answer']):
+            elif any(cmd in msg_lower for cmd in ['reply', 'respond', 'answer']):
                 # Command: reply to the parent message
                 print(f"    [SUPER USER CMD] Triggering reply to parent message")
                 # Don't skip - let the normal flow generate a response to the PARENT
@@ -996,8 +1001,8 @@ def main():
                             print(f"    [DRY RUN] Would post {len(response_posts)} reply(ies) to parent")
                 new_processed.append(reply['uri'])
                 continue
-            else:
-                # Not a command - log as training feedback
+            elif not is_chat_trigger(reply['text']):
+                # Not a command and not chat - log as training feedback
                 print(f"    [SUPER USER] Training feedback logged")
                 training_entry = {
                     'timestamp': utcnow().isoformat(),
@@ -1194,8 +1199,13 @@ def main():
             if is_super_user:
                 msg_lower = reply['text'].lower().strip()
 
+                # Super user can say 'chat' to start a conversation like anyone else
+                if is_chat_trigger(reply['text']):
+                    print(f"      [SUPER USER] 'chat' trigger - starting conversation")
+                    # Fall through to normal chat flow below
+                    pass
                 # Check for COMMANDS
-                if any(cmd in msg_lower for cmd in ['reply', 'respond', 'answer']):
+                elif any(cmd in msg_lower for cmd in ['reply', 'respond', 'answer']):
                     print(f"      [SUPER USER CMD] Triggering reply to this thread")
                     # Generate response to the original post context
                     result = generate_chat_response(
@@ -1221,8 +1231,8 @@ def main():
                             print(f"      [DRY RUN] Would post {len(response_posts)} reply(ies)")
                     new_processed.append(reply['uri'])
                     continue
-                else:
-                    # Not a command - log as training feedback
+                elif not is_chat_trigger(reply['text']):
+                    # Not a command and not chat - log as training feedback
                     print(f"      [SUPER USER] Training feedback logged")
                     training_entry = {
                         'timestamp': utcnow().isoformat(),
