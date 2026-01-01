@@ -26,6 +26,44 @@ import sys
 sys.path.insert(0, 'trackers')
 from shared.analysis import analyze_by_period, format_period_context
 
+# Import Met Office warnings
+try:
+    from daily_summary import fetch_metoffice_narrative
+    HAS_METOFFICE = True
+except ImportError:
+    HAS_METOFFICE = False
+    fetch_metoffice_narrative = None
+
+
+def fetch_current_warnings() -> str:
+    """Fetch and format current Met Office warnings for Claude prompt."""
+    if not HAS_METOFFICE or not fetch_metoffice_narrative:
+        return ""
+    
+    try:
+        mo_data = fetch_metoffice_narrative()
+        
+        warnings_parts = []
+        
+        # UK warnings with dates and regions
+        uk_warn = mo_data.get("uk_warnings", "")
+        if uk_warn and "No warnings" not in uk_warn:
+            warnings_parts.append("ACTIVE UK WARNINGS: " + uk_warn)
+        
+        # Long range warning
+        lr_warn = mo_data.get("long_range_warning", "")
+        if lr_warn:
+            warnings_parts.append("LONG RANGE WARNING: " + lr_warn)
+        
+        if warnings_parts:
+            return "MET OFFICE WARNINGS (VERIFIED): " + " | ".join(warnings_parts)
+        else:
+            return "MET OFFICE WARNINGS: None currently in force."
+            
+    except Exception as e:
+        print(f"  Warning fetch error: {e}")
+        return ""
+
 # Try imports - will fail gracefully if not installed
 try:
     import matplotlib
@@ -990,6 +1028,9 @@ def get_claude_commentary(data_path: Path, run_diff_text: str, confidence: str,
     except:
         period_info = None
     # Build analysis context
+    # Fetch current Met Office warnings
+    warnings_data = fetch_current_warnings()
+    
     analysis_context = format_analysis_context(
         run_diff_text, confidence,
         percentile_info, bimodal_info,
@@ -1065,6 +1106,8 @@ MET OFFICE WARNINGS - STRICT RULES:
 
 ANALYSIS CONTEXT:
 {analysis_context}
+
+{warnings_data}
 
 Data shows ensemble means from GFS, ECM, AIFS, and GEM models."""
 
