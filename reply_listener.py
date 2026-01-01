@@ -101,16 +101,14 @@ TEST_MODE_USERS = [
 # =============================================================================
 CANNED_RESPONSES = {
     "chat_invitation": (
-        "Thanks for the reply! WXD is trialing automated AI responses. "
-        "Reply 'chat' to this message to continue the conversation."
+        "Thanks for your reply! 🌤️ WXD is trialing AI-powered weather discussions. "
+        "If you'd like to chat about UK weather forecasts, models, or anything weather-related, "
+        "just make sure you're following us and reply with the word 'chat' - "
+        "we'd love to hear from you!"
     ),
     "session_limit": (
         "You've reached the message limit for this chat session. "
         "Start a new conversation anytime by replying 'chat' to a future post."
-    ),
-    "non_follower": (
-        "Thanks for reaching out! WXD replies are currently limited to followers. "
-        "Follow for weather updates and responses."
     ),
 }
 
@@ -235,6 +233,28 @@ def is_pass_through(text: str) -> bool:
     if re.match(r'^@[\w.]+\s', text):
         return True
     return False
+
+
+def is_follower(client, author_did: str, own_did: str) -> bool:
+    """Check if author_did follows own_did (WXD)."""
+    try:
+        # Check if author follows WXD
+        response = client.app.bsky.graph.get_follows({
+            'actor': author_did,
+            'limit': 100  # Check first 100 follows
+        })
+        
+        if hasattr(response, 'follows'):
+            for follow in response.follows:
+                if hasattr(follow, 'did') and follow.did == own_did:
+                    return True
+        
+        # If not found in first 100, could paginate but for now assume not following
+        return False
+    except Exception as e:
+        print(f"    Error checking follower status: {e}")
+        # On error, be permissive - allow the conversation
+        return True
 
 
 def get_session(state: dict, author_did: str) -> dict:
