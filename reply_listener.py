@@ -56,7 +56,7 @@ except ImportError:
 # =============================================================================
 
 # Safety limits
-DEFAULT_MAX_REPLIES = 50  # Max replies to send per run
+DEFAULT_MAX_REPLIES = 5  # Max replies to send per run
 DEFAULT_POSTS_TO_CHECK = 10  # How many recent posts to check for replies
 
 # Session limits
@@ -981,21 +981,19 @@ def main():
                 # Fall through to normal chat flow below (don't continue)
                 pass
             # Check for COMMANDS
-            elif any(cmd in msg_lower for cmd in ['reply', 'respond', 'answer']):
+            elif msg_lower.startswith(('reply to', 'respond to', 'answer to', 'reply here', 'respond here')):
                 # Command: reply to the parent message
                 print(f"    [SUPER USER CMD] Triggering reply to parent message")
                 # Don't skip - let the normal flow generate a response to the PARENT
                 # The super user is asking us to reply to whoever they're replying to
                 # Override: treat as if the parent author sent a chat trigger
-                # Use parent_text if available, otherwise use the instruction itself
-                prompt_text = reply.get('parent_text') or reply['text']
-                if True:  # Always generate response
+                if reply.get('parent_text'):
+                    # Generate response to the parent message
                     result = generate_chat_response(
-                        prompt_text,
-                        reply['text'],  # Include super user instruction as context
-                        None,
-                        forecast_context,
-                        is_super_user=True
+                        reply.get('parent_text', ''),
+                        context_text,
+                        None,  # No session
+                        forecast_context
                     )
                     claude_calls += 1
                     if result.get('should_respond'):
@@ -1019,29 +1017,16 @@ def main():
                 new_processed.append(reply['uri'])
                 continue
             elif not is_chat_trigger(reply['text']):
-                # Direct instruction from super user - execute it
-                instruction = reply['text']
-                print(f"    [SUPER USER] Direct instruction: {instruction[:60]}...")
-                ctx = reply.get('parent_text', '')
-                result = generate_chat_response(instruction, ctx, None, forecast_context, is_super_user=True)
-                claude_calls += 1
-                if result and result.get('should_respond'):
-                    posts = result.get('response_posts') or [result.get('response_text')]
-                    posts = [p for p in posts if p]
-                    if posts and not dry_run:
-                        reply_ref = {'uri': reply['uri'], 'cid': reply['cid']}
-                        root_ref = {'uri': reply.get('root_uri', reply['uri']), 'cid': reply.get('root_cid', reply['cid'])}
-                        last_ref = reply_ref
-                        for i, txt in enumerate(posts):
-                            res = post_reply(client, txt, reply_to=last_ref, root=root_ref)
-                            if res:
-                                print(f"    Posted {i+1}/{len(posts)}: {res['uri']}")
-                                last_ref = res
-                                replies_sent += 1
-                    elif posts and dry_run:
-                        print(f"    [DRY RUN] Would post {len(posts)} replies")
-                        for p in posts:
-                            print(f"      -> {p[:80]}...")
+                # Not a command and not chat - log as training feedback
+                print(f"    [SUPER USER] Training feedback logged")
+                training_entry = {
+                    'timestamp': utcnow().isoformat(),
+                    'type': 'super_user_feedback',
+                    'author': author_handle,
+                    'message': reply['text'],
+                    'context': reply.get('parent_text', '')[:200]
+                }
+                state.setdefault('training_log', []).append(training_entry)
                 new_processed.append(reply['uri'])
                 continue
 
@@ -1231,7 +1216,7 @@ def main():
                     # Fall through to normal chat flow below
                     pass
                 # Check for COMMANDS
-                elif any(cmd in msg_lower for cmd in ['reply', 'respond', 'answer']):
+                elif msg_lower.startswith(('reply to', 'respond to', 'answer to', 'reply here', 'respond here')):
                     print(f"      [SUPER USER CMD] Triggering reply to this thread")
                     # Generate response to the original post context
                     result = generate_chat_response(
