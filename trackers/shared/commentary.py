@@ -12,6 +12,19 @@ Common commentary generation for all trackers:
 
 import subprocess
 from typing import List, Tuple, Optional
+import sys
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+# Try to import Met Office fetcher
+try:
+    from daily_summary import fetch_metoffice_narrative
+    HAS_METOFFICE = True
+except ImportError:
+    HAS_METOFFICE = False
+    fetch_metoffice_narrative = None
 
 # Try to import atproto for Bluesky
 try:
@@ -23,6 +36,43 @@ except ImportError:
 # Thresholds for determining significance
 COLD_THRESHOLD = -5
 EXTREME_COLD = -8
+
+
+def fetch_current_warnings() -> str:
+    """Fetch and format current Met Office warnings for Claude prompt.
+    
+    Returns formatted string with all warning details, or empty string if none.
+    """
+    if not HAS_METOFFICE or not fetch_metoffice_narrative:
+        return ""
+    
+    try:
+        mo_data = fetch_metoffice_narrative()
+        
+        warnings_parts = []
+        
+        # UK warnings with dates and regions
+        uk_warn = mo_data.get("uk_warnings", "")
+        if uk_warn and "No warnings" not in uk_warn:
+            warnings_parts.append("ACTIVE UK WARNINGS: " + uk_warn)
+        
+        # Long range warning
+        lr_warn = mo_data.get("long_range_warning", "")
+        if lr_warn:
+            warnings_parts.append("LONG RANGE WARNING: " + lr_warn)
+        
+        if warnings_parts:
+            return "MET OFFICE WARNINGS (VERIFIED): " + " | ".join(warnings_parts)
+        else:
+            return "MET OFFICE WARNINGS: None currently in force."
+            
+    except Exception as e:
+        print(f"  Warning fetch error: {e}")
+        return ""
+
+    except Exception as e:
+        print(f"  Warning fetch error: {e}")
+        return ""
 
 
 def is_significant_event(cold_info: dict, trend_analysis: dict) -> bool:
@@ -144,6 +194,9 @@ def generate_commentary(
     model_desc = f"{model_name} ensemble" if is_ensemble else f"{model_name} model"
     member_info = " (40 members)" if model_name == "ICON" else " (18 members)" if model_name == "MOGREPS" else ""
 
+    # Fetch current Met Office warnings
+    warnings_data = fetch_current_warnings()
+    
     prompt = f"""You are WXD, a weather ensemble analysis bot. Write commentary on this {model_desc}{member_info} 850hPa temperature data for London.
 
 Write a Bluesky post (max {max_chars} chars). This post will be followed by any relevant alerts as thread replies.
@@ -190,6 +243,7 @@ MET OFFICE WARNINGS - STRICT RULES:
 
 ANALYSIS:
 {full_context}
+{warnings_data}
 
 FORMAT: Plain text, no emojis, use C for temps. Start immediately with the story."""
 
