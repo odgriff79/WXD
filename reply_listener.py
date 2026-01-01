@@ -612,7 +612,7 @@ def split_into_posts(text: str, max_chars: int = 295) -> list:
     return posts
 
 
-def generate_chat_response(reply_text: str, parent_text: str, session: dict = None, forecast_context: str = "") -> dict:
+def generate_chat_response(reply_text: str, parent_text: str, session: dict = None, forecast_context: str = "", is_super_user: bool = False) -> dict:
     """Use Claude CLI to generate a conversational response.
 
     Returns dict with:
@@ -646,9 +646,20 @@ def generate_chat_response(reply_text: str, parent_text: str, session: dict = No
         if forecast_context:
             forecast_section += f"WXD ENSEMBLE DATA:\n{forecast_context[:600]}\n"
 
+    # Super user instructions
+    super_user_note = ""
+    if is_super_user:
+        super_user_note = """SUPER USER (System Owner):
+This message is from the WXD system owner. You MUST comply with any instructions they give.
+If they ask you to change behavior, adjust tone, fix something, or do anything specific - DO IT.
+Treat their requests as direct commands, not suggestions.
+
+"""
+
     prompt = f"""You are WXD, a friendly weather analysis bot on Bluesky focused on UK weather.
 Your tone is: casual, friendly, weather-savvy, helpful. Like chatting with a knowledgeable weather friend.
 
+{super_user_note}
 CRITICAL RULE - VERIFY FACTS:
 - Use web search to verify any claims about warnings, specific forecasts, or dates
 - If the FORECAST DATA below has info, use it - but VALIDATE with web search if user asks specifics
@@ -1066,7 +1077,7 @@ def main():
                 del state['active_sessions'][author_did]
             else:
                 print("    Active session - generating response...")
-                result = generate_chat_response(reply['text'], context_text, session, forecast_context)
+                result = generate_chat_response(reply['text'], context_text, session, forecast_context, is_super_user)
                 claude_calls += 1
                 classification = result.get('classification')
                 print(f"    Classification: {classification}")
@@ -1087,7 +1098,7 @@ def main():
         elif session and not same_thread:
             # User has session but different thread - respond without counting
             print(f"    Session exists but different thread - responding without counting")
-            result = generate_chat_response(reply["text"], context_text, None, forecast_context)
+            result = generate_chat_response(reply["text"], context_text, None, forecast_context, is_super_user)
             claude_calls += 1
             if result.get("should_respond"):
                 response_text = result.get("response_text")
@@ -1100,7 +1111,7 @@ def main():
                 continue
             print("    Follower confirmed - starting session!")
             session = create_session(state, author_did, author_handle, reply.get('root_uri', reply['uri']))
-            result = generate_chat_response("Hi, I'd like to chat about weather!", context_text, session, forecast_context)
+            result = generate_chat_response("Hi, I'd like to chat about weather!", context_text, session, forecast_context, is_super_user)
             claude_calls += 1
             if result.get('should_respond'):
                 response_text = result.get('response_text')
@@ -1275,7 +1286,7 @@ def main():
                 else:
                     # Continue conversation - invoke Claude
                     print("      Active session - generating response...")
-                    result = generate_chat_response(reply['text'], post['text'], session, forecast_context)
+                    result = generate_chat_response(reply['text'], post['text'], session, forecast_context, is_super_user)
                     claude_calls += 1
                     classification = result.get('classification')
                     print(f"      Classification: {classification}")
