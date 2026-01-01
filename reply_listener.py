@@ -60,7 +60,7 @@ DEFAULT_MAX_REPLIES = 5  # Max replies to send per run
 DEFAULT_POSTS_TO_CHECK = 10  # How many recent posts to check for replies
 
 # Session limits
-SESSION_MSG_LIMIT_STANDARD = 5   # Max messages per session (regular followers)
+SESSION_MSG_LIMIT_STANDARD = 10   # Max messages per session (regular followers)
 SESSION_MSG_LIMIT_TRUSTED = 10   # Max messages per session (trusted users)
 SESSION_MSG_LIMIT_FEEDBACK = 15  # Extended limit for feedback/clarification conversations
 SESSION_EXPIRY_HOURS = 72        # Session expires after this many hours idle
@@ -272,7 +272,7 @@ def update_session(session: dict) -> None:
     session['message_count'] = session.get('message_count', 0) + 1
 
 
-def get_session_limit(author_did: str, session: dict = None) -> int:
+def get_session_limit(author_did: str, session: dict = None, author_handle: str = None) -> int:
     """Get message limit for this user/session.
 
     Limits escalate based on conversation value:
@@ -280,6 +280,11 @@ def get_session_limit(author_did: str, session: dict = None) -> int:
     - Trusted: 10 messages
     - Feedback session: 15 messages (when providing corrections/clarifications)
     """
+    # TEST MODE users get unlimited messages
+    if author_handle and TEST_MODE_USERS:
+        if any(author_handle == user or author_handle.endswith(f".{user}") for user in TEST_MODE_USERS):
+            return 50  # Effectively unlimited for testing
+
     # Check if this is a feedback session (user providing valuable input)
     if session and session.get('is_feedback_session'):
         return SESSION_MSG_LIMIT_FEEDBACK
@@ -1004,8 +1009,13 @@ def main():
 
         response_text = None
 
-        if session:
-            msg_limit = get_session_limit(author_did, session)
+        # Check if reply is in the same thread as the session
+        reply_thread = reply.get('root_uri', reply['uri'])
+        session_thread = session.get('thread_uri', '') if session else ''
+        same_thread = session and reply_thread == session_thread
+
+        if session and same_thread:
+            msg_limit = get_session_limit(author_did, session, author_handle)
             if session['message_count'] >= msg_limit:
                 print(f"    Session limit reached ({msg_limit} msgs)")
                 response_text = CANNED_RESPONSES['session_limit']
@@ -1030,6 +1040,13 @@ def main():
                         'thread_context': context_text[:200] if context_text else '',
                         'claude_response': response_text,
                     })
+        elif session and not same_thread:
+            # User has session but different thread - respond without counting
+            print(f"    Session exists but different thread - responding without counting")
+            result = generate_chat_response(reply["text"], context_text, None, forecast_context)
+            claude_calls += 1
+            if result.get("should_respond"):
+                response_text = result.get("response_text")
         elif is_chat_trigger(reply['text']):
             # New chat trigger in a thread
             print("    'chat' trigger detected - starting session!")
@@ -1194,7 +1211,7 @@ def main():
 
             if session:
                 # User has an active session
-                msg_limit = get_session_limit(author_did, session)
+                msg_limit = get_session_limit(author_did, session, author_handle)
                 if session['message_count'] >= msg_limit:
                     # Session limit reached
                     print(f"      Session limit reached ({msg_limit} msgs)")
