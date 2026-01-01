@@ -1081,8 +1081,13 @@ def main():
             if result.get("should_respond"):
                 response_text = result.get("response_text")
         elif is_chat_trigger(reply['text']):
-            # New chat trigger in a thread
-            print("    'chat' trigger detected - starting session!")
+            # New chat trigger in a thread - check if follower first
+            print("    'chat' trigger detected - checking follower status...")
+            if not is_follower(client, author_did, own_did):
+                print("    Not a follower - ignoring")
+                new_processed.append(reply['uri'])
+                continue
+            print("    Follower confirmed - starting session!")
             session = create_session(state, author_did, author_handle, reply.get('root_uri', reply['uri']))
             result = generate_chat_response("Hi, I'd like to chat about weather!", context_text, session, forecast_context)
             claude_calls += 1
@@ -1311,8 +1316,13 @@ def main():
             else:
                 # No active session
                 if is_chat_trigger(reply['text']):
-                    # User said "chat" - start a new session!
-                    print("      'chat' trigger detected - starting session!")
+                    # User said "chat" - check if follower first
+                    print("      'chat' trigger detected - checking follower status...")
+                    if not is_follower(client, author_did, own_did):
+                        print("      Not a follower - ignoring")
+                        new_processed.append(reply['uri'])
+                        continue
+                    print("      Follower confirmed - starting session!")
                     session = create_session(state, author_did, author_handle, post['uri'])
 
                     # Generate initial response with Claude
