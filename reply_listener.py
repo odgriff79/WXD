@@ -100,6 +100,10 @@ TEST_MODE_USERS = []  # LIVE MODE - all followers can chat
 # CANNED RESPONSES
 # =============================================================================
 CANNED_RESPONSES = {
+    "chat_greeting": (
+        "Hi! Happy to chat about WXD, UK weather, automation, AI or related topics. "
+        "What's on your mind?"
+    ),
     "chat_invitation": (
         "Thanks for your reply! 🌤️ WXD is trialing AI-powered weather discussions. "
         "If you'd like to chat about UK weather forecasts, models, or anything weather-related, "
@@ -1111,14 +1115,10 @@ def main():
                 continue
             print("    Follower confirmed - starting session!")
             session = create_session(state, author_did, author_handle, reply.get('root_uri', reply['uri']))
-            result = generate_chat_response("Hi, I'd like to chat about weather!", context_text, session, forecast_context, is_super_user)
-            claude_calls += 1
-            if result.get('should_respond'):
-                response_text = result.get('response_text')
-                update_session(session)
-            else:
-                response_text = "Hi! Happy to chat about UK weather. What's on your mind?"
-                update_session(session)
+            # Simple canned greeting - no need for Claude on initial chat trigger
+            response_text = CANNED_RESPONSES['chat_greeting']
+            update_session(session)
+            result = {}  # Empty result for response_posts logic
 
         # Post response(s) - may be multiple posts for long answers
         response_posts = result.get('response_posts', [response_text]) if 'result' in dir() and result else [response_text] if response_text else []
@@ -1352,30 +1352,18 @@ def main():
                     print("      Follower confirmed - starting session!")
                     session = create_session(state, author_did, author_handle, post['uri'])
 
-                    # Generate initial response with Claude
-                    result = generate_chat_response(
-                        "Hi, I'd like to chat about weather!",
-                        post['text'],
-                        session,
-                        forecast_context
-                    )
-                    claude_calls += 1
+                    # Simple canned greeting - no need for Claude on initial chat trigger
+                    response_text = CANNED_RESPONSES['chat_greeting']
+                    update_session(session)
+                    result = {}  # Empty result for response_posts logic
 
-                    if result.get('should_respond'):
-                        response_text = result.get('response_text')
-                        update_session(session)
-
-                        # Log session start for training
-                        log_training_data(state, {
-                            'type': 'session_start',
-                            'author': author_handle,
-                            'wxd_post_context': post['text'][:200],
-                            'initial_response': response_text,
-                        })
-                    else:
-                        # Fallback greeting if Claude didn't respond
-                        response_text = "Hi! Happy to chat about UK weather. What's on your mind?"
-                        update_session(session)
+                    # Log session start for training
+                    log_training_data(state, {
+                        'type': 'session_start',
+                        'author': author_handle,
+                        'wxd_post_context': post['text'][:200],
+                        'initial_response': response_text,
+                    })
                 else:
                     # First reply without "chat" - send invitation
                     # Log the initial question for context (useful for training)

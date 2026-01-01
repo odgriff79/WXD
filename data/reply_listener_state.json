@@ -1,29 +1,23 @@
 {
   "processed_replies": [
-    "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mbbxnxa6vk2k",
-    "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mbbx3cejh22k",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbdzvwo5vs23",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbcevk72422t",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbcfogpuok2i",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbduvvcwac23",
-    "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mbbwugiwrk2k",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbcexofb5s2t",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mb5sznl3p22m",
     "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mb5kahznek2m",
-    "at://did:plc:cmirdyg2syn4fypt6w742a7y/app.bsky.feed.post/3mbbu6dv5bs2b",
-    "at://did:plc:cmirdyg2syn4fypt6w742a7y/app.bsky.feed.post/3mbbsccvx5s2p",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbbwzx2qps2i",
+    "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mbcjjm3iqc2k",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbbmwdhe3s26",
+    "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mbbx3cejh22k",
     "at://did:plc:cmirdyg2syn4fypt6w742a7y/app.bsky.feed.post/3mbbumyejvc2b",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbcffgnfhs2i",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbclauvifs2i",
-    "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mbckctkyyk2k",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbcvvfgcfk2i",
+    "at://did:plc:cmirdyg2syn4fypt6w742a7y/app.bsky.feed.post/3mbbsccvx5s2p",
+    "at://did:plc:cmirdyg2syn4fypt6w742a7y/app.bsky.feed.post/3mbbu6dv5bs2b",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbdzvwo5vs23",
+    "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mbbxnxa6vk2k",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mb5sznl3p22m",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbcfogpuok2i",
     "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mbbwr3k5i22k",
+    "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mbbwugiwrk2k",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbclauvifs2i",
     "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mbbmgj3fq22k",
     "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mbbwqq2ukc2k",
-    "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mbcjjm3iqc2k",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbcvvfgcfk2i",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbdzssensk23",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbbmwdhe3s26"
+    "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mbckctkyyk2k"
   ],
   "topic_suggestions": [],
   "flagged_corrections": [],
@@ -42,6 +36,13 @@
       "author_handle": "sarahhants.bsky.social",
       "thread_uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mbbofddkxa2b",
       "is_feedback_session": true
+    },
+    "did:plc:6kxoyyg5tfcrofeiwnwqzheo": {
+      "started": "2026-01-01T09:19:00.974225+00:00",
+      "last_activity": "2026-01-01T09:19:10.661705+00:00",
+      "message_count": 1,
+      "author_handle": "ogriff79.bsky.social",
+      "thread_uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mbdzf5xaqx2u"
     }
   },
   "notified_non_followers": [],
@@ -188,8 +189,29 @@
       "author": "ogriff79.bsky.social",
       "message": "Moderate language less than a week is not prolonged and it's below average rather than strictly severe",
       "context": "[1/5] Prolonged severe cold now locked in with MOGREPS showing 19 straight runs of below-freezing 850hPa temps. Coldest point hits -8.7C around Jan 4 with tight ensemble spread (3.2C range) - high mod"
+    },
+    {
+      "timestamp": "2026-01-01T09:19:12.489676+00:00",
+      "type": "super_user_feedback",
+      "author": "ogriff79.bsky.social",
+      "message": "It hasn't dramatically shifted, it was always forecast",
+      "context": "[1/4] Cold signal now locked for 9 runs straight\u2014ICON has dramatically shifted 6C colder and now shows mean temps hitting -8C on Jan 3. The coldest members reach -10C while even the mildest stay below"
+    },
+    {
+      "timestamp": "2026-01-01T09:19:13.025196+00:00",
+      "type": "super_user_feedback",
+      "author": "ogriff79.bsky.social",
+      "message": "Another stupid x degrees colder than yesterday, this is an error and not correct",
+      "context": "[1/4] Cold signal now locked for 6 consecutive runs as UKMO shifts 10C colder than yesterday's forecast. Deep freeze developing around Jan 5 with 850hPa mean hitting -8.8C. Model shows consistent cold"
+    },
+    {
+      "timestamp": "2026-01-01T09:19:13.238734+00:00",
+      "type": "super_user_feedback",
+      "author": "ogriff79.bsky.social",
+      "message": "It hasn't dropped 5.9 since yesterday's forecast you keep making similar errors",
+      "context": "[1/4] Cold signal now locked for 9 straight runs as ICON shifts dramatically colder\u20145.9C drop from yesterday's forecast. Mean hits -7.7C on Jan 3rd with coldest members down to -10C. Ensemble spread t"
     }
   ],
-  "last_run": "2026-01-01T09:14:38.886063+00:00",
-  "last_reply_received": "2026-01-01T09:14:38.886046+00:00"
+  "last_run": "2026-01-01T09:19:13.238763+00:00",
+  "last_reply_received": "2026-01-01T09:19:13.238758+00:00"
 }
