@@ -56,7 +56,7 @@ except ImportError:
 # =============================================================================
 
 # Safety limits
-DEFAULT_MAX_REPLIES = 5  # Max replies to send per run
+DEFAULT_MAX_REPLIES = 50  # Max replies to send per run
 DEFAULT_POSTS_TO_CHECK = 10  # How many recent posts to check for replies
 
 # Session limits
@@ -987,13 +987,15 @@ def main():
                 # Don't skip - let the normal flow generate a response to the PARENT
                 # The super user is asking us to reply to whoever they're replying to
                 # Override: treat as if the parent author sent a chat trigger
-                if reply.get('parent_text'):
-                    # Generate response to the parent message
+                # Use parent_text if available, otherwise use the instruction itself
+                prompt_text = reply.get('parent_text') or reply['text']
+                if True:  # Always generate response
                     result = generate_chat_response(
-                        reply.get('parent_text', ''),
-                        context_text,
-                        None,  # No session
-                        forecast_context
+                        prompt_text,
+                        reply['text'],  # Include super user instruction as context
+                        None,
+                        forecast_context,
+                        is_super_user=True
                     )
                     claude_calls += 1
                     if result.get('should_respond'):
