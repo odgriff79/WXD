@@ -1051,6 +1051,18 @@ LANGUAGE:
 - AVOID sensational terms: dramatic, slammed, plunged, locked in, major shift
 - No jargon like "regime", "synoptic", "conviction"
 
+MET OFFICE WARNINGS - STRICT RULES:
+- NEVER mention Met Office warnings unless explicit warning data is provided in this prompt
+- If NO warning data appears below, do NOT mention warnings at all - not even "no warnings"
+- If warning data IS provided, you MUST include ALL of:
+  * Type of warning (Yellow/Amber/Red for Rain/Snow/Wind/Ice/Fog etc)
+  * Issuer: Met Office
+  * Valid period: exact from/until dates and times
+  * Region: specific area affected (e.g. "SE England", "NW Scotland", "Wales")
+- NEVER fabricate, assume, or infer warning details
+- NEVER say "warnings expected" or "warnings likely" - only state ACTUAL warnings
+- If you cannot verify all warning details from the data, do NOT mention the warning
+
 ANALYSIS CONTEXT:
 {analysis_context}
 
