@@ -409,7 +409,11 @@ def analyze_run_diff_ensemble(data: dict) -> Optional[dict]:
 def analyze_run_diff_deterministic(data: dict) -> Optional[dict]:
     """Compare current run to previous run for deterministic models.
 
+    CRITICAL: Compares by MATCHING VALID TIME, not array index.
+    This prevents false shift claims when forecast naturally changes over time.
+    
     Returns dict with shift, direction, date if significant shift found.
+    Returns confirming=True if runs agree (no significant shift).
     """
     runs = data.get("runs", [])
     if len(runs) < 2:
@@ -420,33 +424,56 @@ def analyze_run_diff_deterministic(data: dict) -> Optional[dict]:
 
     curr_vals = current.get("values", [])
     prev_vals = previous.get("values", [])
+    curr_ts = current.get("timestamps", [])
+    prev_ts = previous.get("timestamps", [])
 
-    if not curr_vals or not prev_vals:
+    if not curr_vals or not prev_vals or not curr_ts or not prev_ts:
         return None
 
-    # Find max difference in overlapping range
-    min_len = min(len(curr_vals), len(prev_vals))
-    max_diff = 0
-    max_diff_idx = 0
+    # Build timestamp->value maps for matching by valid time
+    # Use first 13 chars of timestamp (YYYY-MM-DDTHH) for hourly matching
+    curr_map = {}
+    for i, ts in enumerate(curr_ts):
+        if i < len(curr_vals) and curr_vals[i] is not None:
+            curr_map[ts[:13]] = curr_vals[i]
+    
+    prev_map = {}
+    for i, ts in enumerate(prev_ts):
+        if i < len(prev_vals) and prev_vals[i] is not None:
+            prev_map[ts[:13]] = prev_vals[i]
 
-    for i in range(min_len):
-        if curr_vals[i] is not None and prev_vals[i] is not None:
-            diff = curr_vals[i] - prev_vals[i]
+    # Find max difference at MATCHING timestamps only
+    max_diff = 0
+    max_diff_ts = None
+    matching_count = 0
+
+    for ts_key in curr_map:
+        if ts_key in prev_map:
+            matching_count += 1
+            diff = curr_map[ts_key] - prev_map[ts_key]
             if abs(diff) > abs(max_diff):
                 max_diff = diff
-                max_diff_idx = i
+                max_diff_ts = ts_key
+
+    if matching_count == 0:
+        return None
 
     if abs(max_diff) >= SIGNIFICANT_SHIFT:
-        timestamps = current.get("timestamps", [])
-        date = timestamps[max_diff_idx][:10] if max_diff_idx < len(timestamps) else "unknown"
+        date = max_diff_ts[:10] if max_diff_ts else "unknown"
         direction = "warmer" if max_diff > 0 else "colder"
         return {
             "shift": round(max_diff, 1),
             "direction": direction,
-            "date": date
+            "date": date,
+            "confirming": False
         }
-
-    return None
+    else:
+        # Runs agree - this is a confirming signal, not a shift
+        return {
+            "shift": round(max_diff, 1),
+            "direction": "steady",
+            "confirming": True
+        }
 
 
 def check_cold_threshold_ensemble(data: dict) -> Optional[dict]:
