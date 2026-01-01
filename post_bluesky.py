@@ -706,7 +706,7 @@ def calculate_signal_strength(cold_info: dict, persistence_info: dict) -> dict:
     Calculate signal strength based on model agreement + run persistence.
 
     Returns dict with:
-        - level: 'locked' | 'strong' | 'emerging' | 'weak'
+        - level: 'high_confidence' | 'strong' | 'emerging' | 'weak'
         - models_agreeing: int (how many models show cold signal)
         - run_count: int (consecutive runs with signal)
         - label: str (human-readable label for context)
@@ -728,8 +728,8 @@ def calculate_signal_strength(cold_info: dict, persistence_info: dict) -> dict:
 
     # Determine signal level
     if models_agreeing >= 4 and run_count >= 5:
-        level = 'locked'
-        label = f"Signal locked ({models_agreeing}/4 models, run {run_count})"
+        level = 'high_confidence'
+        label = f"High confidence ({models_agreeing}/4 models, run {run_count})"
     elif models_agreeing >= 3 or run_count >= 3:
         level = 'strong'
         label = f"Strong signal ({models_agreeing}/4 models, run {run_count})"
@@ -1022,10 +1022,10 @@ STYLE:
 - Can mention ONE key temperature to anchor the story
 
 SIGNAL AND TIMING FRAMEWORK:
-- SIGNAL tells you event confidence: "locked" = certain it's happening, "strong" = very likely, "emerging" = developing
+- SIGNAL tells you event confidence: "high_confidence" = certain it's happening, "strong" = very likely, "emerging" = developing
 - TIMING tells you the date window and spread (e.g., "Jan 3-5, ±2 days")
-- NEVER say "confidence low" when SIGNAL is "locked" - the event IS happening, only timing varies
-- When signal is locked/strong, lead with certainty: "Cold locked in for next week" not "Cold possible"
+- NEVER say "confidence low" when SIGNAL is "high_confidence" - the event IS happening, only timing varies
+- When signal is high_confidence/strong, lead with certainty: "Cold highly likely for next week" not "Cold possible"
 - Use the TIMING window as a range: "coldest period Jan 3-5" not "coldest on Jan 4"
 - If models agree on event but differ on exact day, that's NORMAL for 5+ day forecasts - not low confidence
 
@@ -1043,6 +1043,12 @@ FORMAT:
 TONE:
 - FACTUAL and measured - not tabloid headlines
 - PLAIN LANGUAGE for casual weather fans
+LANGUAGE:
+- Use varied, natural phrasing - avoid repetition
+- Confidence synonyms: highly likely, well-supported, consistently shown, strongly indicated
+- Change synonyms: adjustment, shift, revision, movement
+- Magnitude synonyms: marked, notable, significant, appreciable
+- AVOID sensational terms: dramatic, slammed, plunged, locked in, major shift
 - No jargon like "regime", "synoptic", "conviction"
 
 ANALYSIS CONTEXT:
