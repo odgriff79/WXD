@@ -22,6 +22,8 @@ Weather ensemble data pipeline with automated Bluesky posting. Multiple trackers
 
 Automated reply handling with cost controls and abuse prevention. **Full architecture: [`docs/REPLY_SYSTEM.md`](docs/REPLY_SYSTEM.md)**
 
+n**Automation Architecture:** [](docs/AUTOMATION_ARCHITECTURE.md) - Maps post types to source code files for debugging user feedback.
+
 Key points:
 - **Two-step engagement**: First reply gets canned "reply 'chat' to continue", Claude only invoked after opt-in
 - **User tiers**: Blocked → Non-follower → Follower → Trusted (different limits)

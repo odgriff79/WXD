@@ -1,0 +1,34 @@
+WXD ntfy listener started
+Commands:
+  Tracker A: "preview" (quick) or "fresh" (fetch new)
+  Tracker B: "icon" (quick) or "icon-fresh" (fetch new)
+  Tracker C: "mogreps" (quick) or "mogreps-fresh" (fetch new)
+  Tracker D: "ukmo" (quick) or "ukmo-fresh" (fetch new)
+  Daily: "summary" (Met Office summary preview)
+  Engagement: "engagement" (preview)
+  Replies: "check" (dry-run) or "respond" (live)
+Send to: https://ntfy.sh/wxd-cmd
+WXD ntfy listener started
+Commands:
+  Tracker A: "preview" (quick) or "fresh" (fetch new)
+  Tracker B: "icon" (quick) or "icon-fresh" (fetch new)
+  Tracker C: "mogreps" (quick) or "mogreps-fresh" (fetch new)
+  Tracker D: "ukmo" (quick) or "ukmo-fresh" (fetch new)
+  Daily: "summary" (Met Office summary preview)
+  Engagement: "engagement" (preview)
+  Replies: "check" (dry-run) or "respond" (live)
+  Status: "status" (quick system overview)
+Send to: https://ntfy.sh/wxd-cmd
+WXD ntfy listener started
+Commands:
+  Tracker A: "preview" (quick) or "fresh" (fetch new)
+  Tracker B: "icon" (quick) or "icon-fresh" (fetch new)
+  Tracker C: "mogreps" (quick) or "mogreps-fresh" (fetch new)
+  Tracker D: "ukmo" (quick) or "ukmo-fresh" (fetch new)
+  Daily: "summary" (Met Office summary preview)
+  Engagement: "engagement" (preview)
+  Replies: "check" (dry-run) or "respond" (live)
+  Status: "status" (quick system overview)
+Send to: https://ntfy.sh/wxd-cmd
+Status requested at 10:55:04
+Response sent to wxd-alerts

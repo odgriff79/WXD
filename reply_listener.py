@@ -990,6 +990,19 @@ def main():
             new_processed.append(reply['uri'])
             continue
 
+        # =================================================================
+        # REPLY TARGET CHECK - Only respond to replies directed at WXD
+        # If parent_uri is not a WXD post, this is a user-to-user reply
+        # =================================================================
+        parent_uri = reply.get('parent_uri', '')
+        is_reply_to_wxd = parent_uri.startswith(f'at://{own_did}/')
+        
+        if not is_reply_to_wxd and parent_uri:
+            # This is a reply to another user in a WXD thread
+            print(f"    [SKIP] Reply to another user, not WXD")
+            new_processed.append(reply['uri'])
+            continue
+
         # Get session for this user
         session = get_session(state, author_did)
 
