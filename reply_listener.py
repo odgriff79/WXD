@@ -90,11 +90,11 @@ SUPER_USER_HANDLES = [
 # TEST MODE / LOCKDOWN
 # Set to empty list for normal operation, or add handles for lockdown testing
 # =============================================================================
-TEST_MODE_USERS = [
-    "winchesterweather.bsky.social",  # Steve - primary tester
-    "sarahhants.bsky.social",          # Sarah - trusted follower, training data
-]
-# TEST_MODE_USERS = []  # Set to empty list for normal operation
+# TEST_MODE_USERS = [
+#     "winchesterweather.bsky.social",  # Steve - primary tester
+#     "sarahhants.bsky.social",          # Sarah - trusted follower, training data
+# ]
+TEST_MODE_USERS = []  # LIVE MODE - all followers can chat
 
 # =============================================================================
 # CANNED RESPONSES
