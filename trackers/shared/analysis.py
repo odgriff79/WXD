@@ -98,7 +98,7 @@ def update_trend_persistence(
         # Note: warm detection would need mean temps passed in
 
     # Update shift direction persistence
-    if run_diff:
+    if run_diff and not run_diff.get("confirming"):
         direction = run_diff.get("direction")
         if direction == trend_state.get("shift_direction"):
             trend_state["shift_runs"] = trend_state.get("shift_runs", 0) + 1
@@ -357,8 +357,9 @@ def format_timing_context(timing_analysis: dict) -> str:
 
 def analyze_run_diff_ensemble(data: dict) -> Optional[dict]:
     """Compare current run to previous run for ensemble models.
-
-    Returns dict with shift, direction, date if significant shift found.
+    
+    Compares by MATCHING VALID TIME, not array index.
+    Returns confirming=True if runs agree (forecast unchanged).
     """
     runs = data.get("runs", [])
     if len(runs) < 2:
@@ -369,33 +370,40 @@ def analyze_run_diff_ensemble(data: dict) -> Optional[dict]:
 
     curr_mean = current.get("mean", [])
     prev_mean = previous.get("mean", [])
+    curr_ts = current.get("timestamps", [])
+    prev_ts = previous.get("timestamps", [])
 
-    if not curr_mean or not prev_mean:
+    if not curr_mean or not prev_mean or not curr_ts or not prev_ts:
         return None
 
-    # Find max difference in overlapping range
-    min_len = min(len(curr_mean), len(prev_mean))
-    max_diff = 0
-    max_diff_idx = 0
+    # Build timestamp->value maps for matching by valid time
+    curr_map = {ts[:13]: curr_mean[i] for i, ts in enumerate(curr_ts) 
+                if i < len(curr_mean) and curr_mean[i] is not None}
+    prev_map = {ts[:13]: prev_mean[i] for i, ts in enumerate(prev_ts)
+                if i < len(prev_mean) and prev_mean[i] is not None}
 
-    for i in range(min_len):
-        if curr_mean[i] is not None and prev_mean[i] is not None:
-            diff = curr_mean[i] - prev_mean[i]
+    # Find max difference at MATCHING timestamps only
+    max_diff = 0
+    max_diff_ts = None
+    matching_count = 0
+    
+    for ts_key in curr_map:
+        if ts_key in prev_map:
+            matching_count += 1
+            diff = curr_map[ts_key] - prev_map[ts_key]
             if abs(diff) > abs(max_diff):
                 max_diff = diff
-                max_diff_idx = i
+                max_diff_ts = ts_key
+
+    if matching_count < 3:
+        return None
 
     if abs(max_diff) >= SIGNIFICANT_SHIFT:
-        timestamps = current.get("timestamps", [])
-        date = timestamps[max_diff_idx][:10] if max_diff_idx < len(timestamps) else "unknown"
+        date = max_diff_ts[:10] if max_diff_ts else "unknown"
         direction = "warmer" if max_diff > 0 else "colder"
-        return {
-            "shift": round(max_diff, 1),
-            "direction": direction,
-            "date": date
-        }
-
-    return None
+        return {"shift": round(max_diff, 1), "direction": direction, "date": date, "confirming": False}
+    else:
+        return {"shift": round(max_diff, 1), "direction": "steady", "confirming": True}
 
 
 def analyze_run_diff_deterministic(data: dict) -> Optional[dict]:
@@ -539,8 +547,8 @@ def calculate_signal_strength(cold_info: dict, trend_analysis: dict) -> dict:
     has_cold = cold_info is not None and cold_info.get('temp') is not None
 
     if has_cold and run_count >= 5:
-        level = 'locked'
-        label = f"Signal locked (run {run_count})"
+        level = 'high_confidence'
+        label = f"High confidence (run {run_count})"
     elif has_cold and run_count >= 3:
         level = 'strong'
         label = f"Strong signal (run {run_count})"
@@ -671,8 +679,10 @@ def run_full_analysis(
     if timing_window:
         context_parts.append(f"TIMING: {timing_window['label']}")
 
-    if run_diff:
+    if run_diff and not run_diff.get("confirming"):
         context_parts.append(f"SHIFT: Model moved {abs(run_diff['shift'])}C {run_diff['direction']} since last run around {run_diff['date']}")
+    elif run_diff and run_diff.get("confirming"):
+        context_parts.append("CONSISTENCY: Latest run confirms previous forecast (no significant change)")
 
     if cold_info:
         context_parts.append(f"COLD: Mean hits {cold_info['temp']}C on {cold_info['date']}")

@@ -158,10 +158,10 @@ STYLE:
 - Can mention ONE key temperature to anchor the story
 
 SIGNAL AND TIMING FRAMEWORK:
-- SIGNAL tells you event confidence: "locked" = certain it's happening, "strong" = very likely, "emerging" = developing
+- SIGNAL tells you event confidence: "strongly supported" = certain it's happening, "strong" = very likely, "emerging" = developing
 - TIMING tells you the date window and spread (e.g., "Jan 3-5, +/-2 days")
-- NEVER say "confidence low" when SIGNAL is "locked" - the event IS happening, only timing varies
-- When signal is locked/strong, lead with certainty: "Cold locked in for next week" not "Cold possible"
+- NEVER say "confidence low" when SIGNAL is "strongly supported" - the event IS happening, only timing varies
+- When signal is strongly supported/strong, lead with certainty: "Cold highly likely for next week" not "Cold possible"
 - Use the TIMING window as a range: "coldest period Jan 3-5" not "coldest on Jan 4"
 - If models agree on event but differ on exact day, that's NORMAL for 5+ day forecasts - not low confidence
 
@@ -169,6 +169,12 @@ CLARITY ON TIMEFRAMES:
 - If PERIODS shows uniform pattern (cold/mild throughout), say that
 - If PERIODS shows divergent pattern, mention short-term vs mid/extended outlook
 - Mention ensemble spread if relevant (high agreement vs wide spread)
+LANGUAGE:
+- Use varied, natural language - avoid repetitive phrasing
+- Synonyms for confidence: highly likely, well-supported, consistently shown, strongly indicated
+- Synonyms for change: adjustment, shift, revision, movement
+- Synonyms for notable: marked, significant, appreciable, considerable
+- Avoid sensational terms: dramatic, slammed, plunged, locked in
 
 ANALYSIS:
 {full_context}
