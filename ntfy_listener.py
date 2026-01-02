@@ -54,6 +54,7 @@ print('  Daily: "summary" (Met Office summary preview)')
 print('  Engagement: "engagement" (preview)')
 print('  Replies: "check" (dry-run) or "respond" (live)')
 print('  Status: "status" (quick system overview)')
+print('  Clear: "clear-feedback" (clear dashboard feedback queue)')
 print('Send to: https://ntfy.sh/wxd-cmd')
 
 # Use ntfy JSON stream API
@@ -212,6 +213,17 @@ def handle_respond():
     return output
 
 
+def handle_clear_feedback():
+    """Clear the feedback queue."""
+    print(f'Clear feedback requested at {time.strftime("%H:%M:%S")}')
+    result = subprocess.run(
+        ['python3', 'reply_listener.py', '--clear-feedback'],
+        cwd='/home/ubuntu/wxd',
+        capture_output=True,
+        text=True
+    )
+    return result.stdout or result.stderr or 'Feedback queue cleared'
+
 def handle_status():
     """Quick system status summary."""
     import json
@@ -327,6 +339,8 @@ while True:
                             output = handle_respond()
                         elif cmd == 'status':
                             output = handle_status()
+                        elif cmd == 'clear-feedback':
+                            output = handle_clear_feedback()
 
                         if output:
                             # Clean up output for ntfy
