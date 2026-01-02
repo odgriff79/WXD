@@ -2,6 +2,12 @@
 
 Quick reference for ntfy commands, cron schedules, and common operations.
 
+## Status Dashboard
+
+**URL:** http://YOUR_VM_IP:8080
+
+Shows: Cron jobs, model runs, tracker status, recent feedback.
+
 ## ntfy Commands (from Windows)
 
 ```powershell
@@ -23,6 +29,9 @@ powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_C
 | `mogreps-fresh` | MOGREPS - fetch new data + preview |
 | `summary` | Daily Met Office summary preview |
 | `engagement` | Engagement post preview |
+| `check` | Reply listener dry-run |
+| `respond` | Reply listener live |
+| `status` | Quick system status |
 
 ```powershell
 # Tracker A
@@ -109,6 +118,37 @@ crontab -e
 
 # Sunday and Wednesday at 18:00
 0 18 * * 0,3 /path/to/script.py
+```
+
+## Reply System
+
+```bash
+# Reply listener (dry-run - default)
+python reply_listener.py
+
+# Reply listener (live posting)
+python reply_listener.py --post
+
+# Force run (bypass adaptive polling)
+python reply_listener.py --post --force
+
+# Clear feedback queue (dashboard cleanup)
+python reply_listener.py --clear-feedback
+```
+
+### ntfy Reply Commands
+
+| Trigger | Description |
+|---------|-------------|
+| `check` | Check replies NOW (dry-run) |
+| `respond` | Check AND respond NOW (live) |
+
+```powershell
+# Check replies (dry-run)
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'check'"
+
+# Respond to replies (live)
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'respond'"
 ```
 
 ## Common VM Commands
