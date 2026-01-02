@@ -32,6 +32,7 @@ powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_C
 | `check` | Reply listener dry-run |
 | `respond` | Reply listener live |
 | `status` | Quick system status |
+| `clear-feedback` | Clear dashboard feedback queue |
 
 ```powershell
 # Tracker A
