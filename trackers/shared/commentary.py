@@ -362,6 +362,7 @@ def post_thread_to_bluesky(
 
 
 def build_alert_posts(
+    is_ensemble: bool,
     model_name: str,
     cold_info: dict,
     percentile_analysis: dict = None,
@@ -426,7 +427,7 @@ def generate_full_thread(
     main_posts = split_for_posting(main_text)
 
     # Build alert posts
-    alerts = build_alert_posts(model_name, cold_info, percentile_analysis, trend_analysis)
+    alerts = build_alert_posts(is_ensemble, model_name, cold_info, percentile_analysis, trend_analysis)
 
     # Combine all posts
     all_posts = main_posts + alerts

@@ -89,3 +89,87 @@ Quick reference for debugging automated posts based on user feedback.
 **Use:** highly likely, well-supported, notable, marked, significant
 
 **Avoid:** locked, dramatic, slammed, plunged, major shift
+
+---
+
+## Status Dashboard
+
+### Access
+- **URL:** http://144.21.62.133:8080
+- **File:** status_web.py
+- **Service:** uvicorn on port 8080
+
+### Dashboard Sections
+
+| Section | Shows | Data Source |
+|---------|-------|-------------|
+| Cron Jobs | All scheduled jobs, status, last run | Log file parsing + state file |
+| Model Runs Today | Main fetch completion per run time | cron.log parsing |
+| Tracker Status | ICON/MOGREPS/UKMO/engagement | tracker_state.json |
+| Recent Feedback | User feedback from reply_listener | reply_listener_state.json |
+
+### State Tracking System
+
+**File:** tracker_state.py
+**State file:** data/tracker_state.json
+
+Records success/failure for each tracker run. Dashboard reads this for accurate status display (instead of parsing logs which can be misleading).
+
+```bash
+# Record success after posting
+python tracker_state.py success ICON
+python tracker_state.py success MOGREPS
+python tracker_state.py success UKMO
+python tracker_state.py success engagement
+
+# Record failure
+python tracker_state.py failure ICON "error message"
+
+# View all states
+python tracker_state.py
+```
+
+### Cron Scripts Integration
+
+Each tracker cron script (cron_icon.sh, cron_mogreps.sh, cron_ukmo.sh) now:
+1. Runs fetch.py
+2. Runs post.py
+3. Records success via tracker_state.py
+4. On error: trap records failure
+
+### API Endpoints
+
+| Endpoint | Returns |
+|----------|---------|
+| / | HTML dashboard |
+| /api/status | JSON status data |
+| /api/feedback | JSON feedback logs |
+
+---
+
+## Workflow Status Mapping
+
+```
+Cron triggers → fetch.py → post.py → tracker_state.py → Dashboard reads state
+                                ↓
+                        Bluesky post
+                                ↓
+                    reply_listener.py monitors
+                                ↓
+                    Feedback → training_log
+                                ↓
+                    Dashboard shows feedback
+```
+
+### Job Schedule Overview
+
+| Job | Schedule (UTC) | Log File | State Key |
+|-----|----------------|----------|-----------|
+| Main Fetch | 08:30, 20:30 | cron.log | - |
+| Daily Summary | 09:30 | cron_daily_summary.log | - |
+| ICON | 04,10,16,22:00 | trackers/icon/cron.log | ICON |
+| MOGREPS | 03,09,15,21:00 | trackers/mogreps/cron.log | MOGREPS |
+| UKMO | 07,19:00 | trackers/ukmo/cron.log | UKMO |
+| Reply Listener | */15 | cron_replies.log | - |
+| Engagement | Tue/Fri 12:00 | engagement/cron.log | engagement |
+| Chart Sync | 10:15, 22:15 | cron_sync.log | - |

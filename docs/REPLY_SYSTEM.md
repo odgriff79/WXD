@@ -564,3 +564,42 @@ Never assume which tracker based on feedback keywords alone. Always trace the UR
 - Assuming "ensemble" feedback is about ICON when it might be UKMO wrongly labeled
 - Fixing the wrong post.py file
 - Not checking shared/commentary.py which is used by multiple trackers
+
+---
+
+## Feedback Tracing Workflow
+
+**CRITICAL:** When analyzing user feedback on automated posts, ALWAYS trace to the source before attempting fixes.
+
+### Step 1: Fetch Feedback with Parent Context
+
+
+
+### Step 2: Identify Source Tracker
+
+Map parent post content to tracker:
+
+| Post Content Contains | Tracker | Code Location |
+|----------------------|---------|---------------|
+| "UKMO" or "UK Met Office" | UKMO Deterministic | trackers/ukmo/post.py |
+| "ICON" or "German" | ICON Ensemble | trackers/icon/post.py |
+| "MOGREPS" | MOGREPS Ensemble | trackers/mogreps/post.py |
+| "GFS", "ECM", "AIFS", "GEM" together | 4-Way Ensemble | post_bluesky.py |
+| "UK Daily" or Met Office summary | Daily Summary | daily_summary.py |
+
+### Step 3: Check is_ensemble Flag
+
+- UKMO:  (deterministic)
+- ICON:  (40 members)
+- MOGREPS:  (18 members)
+- 4-Way:  (multi-model ensemble)
+
+### Step 4: Fix in Correct Location
+
+Never assume which tracker based on feedback keywords alone. Always trace the URI.
+
+**Common Mistakes to Avoid:**
+- Assuming "ensemble" feedback is about ICON when it might be UKMO wrongly labeled
+- Fixing the wrong post.py file
+- Not checking shared/commentary.py which is used by multiple trackers
+

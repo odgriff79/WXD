@@ -34,6 +34,7 @@ CRON_JOBS = [
     ("UKMO Tracker", "/home/ubuntu/wxd/trackers/ukmo/cron.log", "07/19 UTC", r"Complete|===", ["07:00", "19:00"]),
     ("Reply Listener", "/home/ubuntu/wxd/cron_replies.log", "Every 15 min", r"Summary|processed", None),
     ("Chart Sync", "/home/ubuntu/wxd/cron_sync.log", "10:15, 22:15 UTC", r"Pushing|commit|No chart changes|nothing to commit", ["10:15", "22:15"]),
+    ("Engagement", "/home/ubuntu/wxd/engagement/cron.log", "Tue/Fri 12:00 UTC", r"posted successfully|Thread posted", ["12:00"]),
 ]
 
 
@@ -472,3 +473,42 @@ async def api_feedback(limit: int = 100):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)
+
+
+# Import Met Office fetcher
+import sys
+sys.path.insert(0, '/home/ubuntu/wxd')
+try:
+    from daily_summary import fetch_metoffice_narrative
+    HAS_METOFFICE = True
+except ImportError:
+    HAS_METOFFICE = False
+
+
+def get_metoffice_summary() -> dict:
+    """Fetch current Met Office summary for dashboard."""
+    if not HAS_METOFFICE:
+        return {"error": "Met Office fetcher not available"}
+    
+    try:
+        data = fetch_metoffice_narrative()
+        return {
+            "uk_warnings": data.get("uk_warnings", "No warnings data"),
+            "long_range_warning": data.get("long_range_warning", ""),
+            "today_tomorrow": data.get("today_tomorrow", "")[:200] if data.get("today_tomorrow") else "",
+            "fetched": True
+        }
+    except Exception as e:
+        return {"error": str(e), "fetched": False}
+
+
+def get_tracker_state() -> dict:
+    """Read tracker state from state file."""
+    state_file = Path('/home/ubuntu/wxd/data/tracker_state.json')
+    if not state_file.exists():
+        return {}
+    try:
+        with open(state_file) as f:
+            return json.load(f)
+    except:
+        return {}

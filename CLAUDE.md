@@ -1,5 +1,24 @@
 # CLAUDE.md - WXD Project
 
+---
+## ⚠️ MANDATORY: VM CONNECTION - READ FIRST ⚠️
+
+**WXD-VM IP: 144.21.62.133** — This is the ONLY VM for WXD work.
+
+Before ANY SSH command:
+1. Read `.vm_config` to get the correct IP
+2. **NEVER use 132.145.50.77** — that is EVO-VM (wrong project)
+3. If context was compacted/lost, RE-READ this file and `.vm_config`
+
+```
+# Correct SSH pattern for WXD:
+ssh -i "KEY_PATH" ubuntu@144.21.62.133 "cd ~/wxd && ..."
+```
+
+**If you are unsure which VM to use, STOP and ASK.**
+
+---
+
 **Read this file at the start of every session.**
 
 ## Project Summary
@@ -22,7 +41,7 @@ Weather ensemble data pipeline with automated Bluesky posting. Multiple trackers
 
 Automated reply handling with cost controls and abuse prevention. **Full architecture: [`docs/REPLY_SYSTEM.md`](docs/REPLY_SYSTEM.md)**
 
-n**Automation Architecture:** [](docs/AUTOMATION_ARCHITECTURE.md) - Maps post types to source code files for debugging user feedback.
+**Automation Architecture:** [docs/AUTOMATION_ARCHITECTURE.md](docs/AUTOMATION_ARCHITECTURE.md) - Maps post types to source code, cron schedules, **status dashboard** (http://144.21.62.133:8080), and state tracking system.
 
 Key points:
 - **Two-step engagement**: First reply gets canned "reply 'chat' to continue", Claude only invoked after opt-in

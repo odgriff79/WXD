@@ -432,7 +432,10 @@ def select_topic(state: dict, weather_context: dict = None) -> tuple:
     # Build list of available topics (not recently used)
     available_topics = []
     for cat, cat_info in TOPIC_CATEGORIES.items():
-        if cat in recent_categories[-2:]:
+        # During extreme weather, allow cold_relevant and myth_busting even if recently used
+        anomaly_strength = weather_context.get("anomaly_strength", "normal")
+        priority_cats = ["cold_relevant", "myth_busting"] if weather_context.get("cold_anomaly", 0) > weather_context.get("warm_anomaly", 0) else ["warm_relevant"]
+        if cat in recent_categories[-2:] and not (anomaly_strength == "extreme" and cat in priority_cats):
             continue
         # Skip seasonal categories when not relevant
         if cat == "cold_relevant" and season == "summer":
@@ -838,4 +841,11 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())
+    import traceback
+    try:
+        code = main()
+    except Exception as e:
+        print(f"FATAL ERROR: {e}")
+        traceback.print_exc()
+        code = 1
+    exit(code)

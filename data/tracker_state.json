@@ -1,0 +1,22 @@
+{
+  "MOGREPS": {
+    "last_success": "2026-01-02T16:25:05.235978+00:00",
+    "run_id": null,
+    "status": "success"
+  },
+  "ICON": {
+    "last_success": "2026-01-02T16:25:05.263960+00:00",
+    "run_id": null,
+    "status": "success"
+  },
+  "UKMO": {
+    "last_success": "2026-01-02T16:25:05.292345+00:00",
+    "run_id": null,
+    "status": "success"
+  },
+  "engagement": {
+    "last_success": "2026-01-02T16:25:05.320273+00:00",
+    "run_id": null,
+    "status": "success"
+  }
+}
