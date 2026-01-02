@@ -435,7 +435,14 @@ def analyze_percentile_framing(data_dir: Path) -> dict:
 
 
 def find_peak_percentile(percentile_data: dict) -> dict:
-    """Find the peak percentile (most members below threshold) across all models."""
+    """Find the peak percentile (most members below threshold) across all models.
+
+    Only considers FUTURE dates (from now onwards) - past dates are irrelevant.
+    """
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    today_str = now.strftime('%Y-%m-%d')
+
     peak = {'model': None, 'date': None, 'pct': 0, 'threshold': 'cold'}
 
     for model_key, data in percentile_data.items():
@@ -444,11 +451,16 @@ def find_peak_percentile(percentile_data: dict) -> dict:
         pct_extreme = data.get('pct_below_extreme', [])
 
         for i, ts in enumerate(timestamps):
+            date_str = ts[:10]
+            # Skip past dates - only report future forecasts
+            if date_str < today_str:
+                continue
+
             # Check extreme first
             if i < len(pct_extreme) and pct_extreme[i] > peak['pct']:
                 peak = {
                     'model': format_model_name(model_key),
-                    'date': ts[:10],
+                    'date': date_str,
                     'pct': pct_extreme[i],
                     'threshold': 'extreme'
                 }
@@ -456,7 +468,7 @@ def find_peak_percentile(percentile_data: dict) -> dict:
             elif i < len(pct_cold) and pct_cold[i] > peak['pct']:
                 peak = {
                     'model': format_model_name(model_key),
-                    'date': ts[:10],
+                    'date': date_str,
                     'pct': pct_cold[i],
                     'threshold': 'cold'
                 }

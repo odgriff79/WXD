@@ -510,3 +510,57 @@ wxd/
 |------|--------|
 | 2025-12-31 | Initial architecture design |
 | 2025-12-31 | v2 implementation: adaptive polling, test mode, training logs, uncertainty handling, dynamic limits, ntfy triggers |
+
+
+---
+
+## Feedback Tracing Workflow
+
+**CRITICAL:** When analyzing user feedback on automated posts, ALWAYS trace to the source before attempting fixes.
+
+### Step 1: Fetch Feedback with Parent Context
+
+```python
+from atproto import Client
+
+# Get feedback notification
+notifs = client.app.bsky.notification.list_notifications({"limit": 50})
+for n in notifs.notifications:
+    if n.reason == "reply":
+        feedback_text = n.record.text
+        parent_uri = n.record.reply.parent.uri  # ALWAYS get this
+
+        # Fetch the actual parent post
+        thread = client.get_post_thread(parent_uri, depth=0)
+        parent_text = thread.thread.post.record.text
+        print(f"FEEDBACK: {feedback_text}")
+        print(f"PARENT POST: {parent_text}")
+```
+
+### Step 2: Identify Source Tracker
+
+Map parent post content to tracker:
+
+| Post Content Contains | Tracker | Code Location |
+|----------------------|---------|---------------|
+| "UKMO" or "UK Met Office" | UKMO Deterministic | trackers/ukmo/post.py |
+| "ICON" or "German" | ICON Ensemble | trackers/icon/post.py |
+| "MOGREPS" | MOGREPS Ensemble | trackers/mogreps/post.py |
+| "GFS", "ECM", "AIFS", "GEM" together | 4-Way Ensemble | post_bluesky.py |
+| "UK Daily" or Met Office summary | Daily Summary | daily_summary.py |
+
+### Step 3: Check is_ensemble Flag
+
+- UKMO: `is_ensemble=False` (deterministic)
+- ICON: `is_ensemble=True` (40 members)
+- MOGREPS: `is_ensemble=True` (18 members)
+- 4-Way: `is_ensemble=True` (multi-model ensemble)
+
+### Step 4: Fix in Correct Location
+
+Never assume which tracker based on feedback keywords alone. Always trace the URI.
+
+**Common Mistakes to Avoid:**
+- Assuming "ensemble" feedback is about ICON when it might be UKMO wrongly labeled
+- Fixing the wrong post.py file
+- Not checking shared/commentary.py which is used by multiple trackers

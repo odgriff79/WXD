@@ -31,6 +31,14 @@ Key points:
 - **Session limits**: 5 msgs/session (standard), 10 msgs (trusted), 72h expiry
 - **Corrections**: Always require human approval via ntfy
 
+**CRITICAL - Feedback Analysis Workflow:**
+When reviewing user feedback on automated posts, ALWAYS follow `docs/REPLY_SYSTEM.md` → "Feedback Tracing Workflow":
+1. Fetch parent URI from the feedback reply
+2. Get the actual parent post text
+3. Identify which tracker generated it (UKMO/ICON/MOGREPS/4-way)
+4. Fix the correct code file
+**Never assume which tracker based on feedback text alone.**
+
 Scripts:
 - `reply_listener.py` - Main processor (cron every 4h)
 - `fetch_own_posts.py` - Post history for audit
