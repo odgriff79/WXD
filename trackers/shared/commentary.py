@@ -272,7 +272,8 @@ FORMAT: Plain text, no emojis, use C for temps. Start immediately with the story
     if cold_info:
         temp = cold_info.get('temp', '?')
         date = cold_info.get('date', 'soon')
-        return f"Cold signal in {model_name} data - ensemble mean reaches {temp}C around {date}. More details in the analysis below.", True
+        temp_desc = "ensemble mean" if is_ensemble else "forecast"
+        return f"Cold signal in {model_name} data - {temp_desc} reaches {temp}C around {date}. More details in the analysis below.", True
     elif run_diff:
         shift = abs(run_diff.get('shift', 0))
         direction = run_diff.get('direction', 'changed')
@@ -379,7 +380,8 @@ def build_alert_posts(
         extreme = cold_info.get('extreme', False)
 
         if extreme:
-            alerts.append(f"Extreme cold signal: {model_name} ensemble mean drops to {temp}C around {date}. This is below the -8C threshold for notable cold.")
+            temp_desc = "ensemble mean" if is_ensemble else "forecast"
+            alerts.append(f"Extreme cold signal: {model_name} {temp_desc} drops to {temp}C around {date}. This is below the -8C threshold for notable cold.")
         elif temp is not None and temp < COLD_THRESHOLD:
             alerts.append(f"Cold alert: {model_name} shows {temp}C around {date}, crossing the -5C threshold.")
 
