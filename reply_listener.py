@@ -435,6 +435,16 @@ def get_notification_replies(client: Client, own_did: str, limit: int = 50) -> l
             reply_text = record.text if hasattr(record, 'text') else ''
             created_at = record.created_at if hasattr(record, 'created_at') else None
 
+            # SAFEGUARD: Skip messages from before today to prevent backlog spam
+            if created_at:
+                try:
+                    msg_time = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                    age_hours = (datetime.now(timezone.utc) - msg_time).total_seconds() / 3600
+                    if msg_time.date() < datetime.now(timezone.utc).date():
+                        continue  # Skip old messages
+                except:
+                    pass
+
             # Get parent reference (what they're replying to)
             parent_uri = None
             parent_cid = None
@@ -816,7 +826,27 @@ def main():
                         help=f'Number of recent posts to check (default: {DEFAULT_POSTS_TO_CHECK})')
     parser.add_argument('--max-replies', '-m', type=int, default=DEFAULT_MAX_REPLIES,
                         help=f'Max replies to send per run (default: {DEFAULT_MAX_REPLIES})')
+    parser.add_argument('--clear-feedback', action='store_true', 
+                        help='Clear the feedback/training queue and exit')
     args = parser.parse_args()
+    
+    # Handle --clear-feedback before anything else
+    if args.clear_feedback:
+        import json
+        state_file = os.path.join(os.path.dirname(__file__), 'data', 'reply_listener_state.json')
+        try:
+            with open(state_file, 'r') as f:
+                state = json.load(f)
+            old_count = len(state.get('training_log', []))
+            state['training_log'] = []
+            with open(state_file, 'w') as f:
+                json.dump(state, f, indent=2)
+            print(f'Cleared {old_count} entries from feedback queue')
+        except FileNotFoundError:
+            print('No state file found - nothing to clear')
+        except Exception as e:
+            print(f'Error: {e}')
+        return 0
 
     dry_run = not args.post
 
@@ -977,9 +1007,23 @@ def main():
 
             # Super user can say 'chat' to start a conversation like anyone else
             if is_chat_trigger(reply['text']):
-                print(f"    [SUPER USER] 'chat' trigger - starting conversation")
-                # Fall through to normal chat flow below (don't continue)
-                pass
+                print(f"    [SUPER USER] 'chat' trigger - starting session with canned greeting")
+                # Create fresh session and use canned response (don't call Claude)
+                session = create_session(state, author_did, author_handle, reply.get('root_uri', reply['uri']))
+                response_text = CANNED_RESPONSES['chat_greeting']
+                update_session(session)
+                # Post the canned response
+                if not dry_run:
+                    reply_ref = {'uri': reply['uri'], 'cid': reply['cid']}
+                    root_ref = {'uri': reply.get('root_uri', reply['uri']), 'cid': reply.get('root_cid', reply['cid'])}
+                    post_result = post_reply(client, response_text, reply_to=reply_ref, root=root_ref)
+                    if post_result:
+                        print(f"    Posted canned greeting: {post_result['uri']}")
+                        replies_sent += 1
+                else:
+                    print(f"    [DRY RUN] Would post canned greeting")
+                new_processed.append(reply['uri'])
+                continue
             # Check for COMMANDS
             elif msg_lower.startswith(('reply to', 'respond to', 'answer to', 'reply here', 'respond here')):
                 # Command: reply to the parent message
@@ -1212,9 +1256,23 @@ def main():
 
                 # Super user can say 'chat' to start a conversation like anyone else
                 if is_chat_trigger(reply['text']):
-                    print(f"      [SUPER USER] 'chat' trigger - starting conversation")
-                    # Fall through to normal chat flow below
-                    pass
+                    print(f"      [SUPER USER] 'chat' trigger - starting session with canned greeting")
+                    # Create fresh session and use canned response (don't call Claude)
+                    session = create_session(state, author_did, author_handle, post['uri'])
+                    response_text = CANNED_RESPONSES['chat_greeting']
+                    update_session(session)
+                    # Post the canned response
+                    if not dry_run:
+                        reply_ref = {'uri': reply['uri'], 'cid': reply['cid']}
+                        root_ref = {'uri': post['uri'], 'cid': post['cid']}
+                        post_result = post_reply(client, response_text, reply_to=reply_ref, root=root_ref)
+                        if post_result:
+                            print(f"      Posted canned greeting: {post_result['uri']}")
+                            replies_sent += 1
+                    else:
+                        print(f"      [DRY RUN] Would post canned greeting")
+                    new_processed.append(reply['uri'])
+                    continue
                 # Check for COMMANDS
                 elif msg_lower.startswith(('reply to', 'respond to', 'answer to', 'reply here', 'respond here')):
                     print(f"      [SUPER USER CMD] Triggering reply to this thread")
