@@ -222,6 +222,7 @@ CLARITY ON TIMEFRAMES:
 - If PERIODS shows uniform pattern (cold/mild throughout), say that
 - If PERIODS shows divergent pattern, mention short-term vs mid/extended outlook
 - Mention ensemble spread if relevant (high agreement vs wide spread)
+EXTENDED RANGE COVERAGE:- Do NOT ignore days 5-10+ just because the main story is near-term- If the extended range shows a trend reversal (warming after cold, or vice versa), MENTION IT- When cold is the headline, note if milder conditions return later in the period- When mild is the headline, note if cold signals appear in the extended range- The extended range coming into view merits comment even if less certain- Example: "Sharp cold for the weekend, but models hint at a return to milder conditions by mid-month"
 LANGUAGE:
 - Use varied, natural language - avoid repetitive phrasing
 - Synonyms for confidence: highly likely, well-supported, consistently shown, strongly indicated

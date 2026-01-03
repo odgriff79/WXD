@@ -1087,6 +1087,7 @@ CLARITY ON TIMEFRAMES:
 - You CAN mention both current temps AND forecast minimums - but BE EXPLICIT about timeframes
 - BAD: "GFS coldest... ECM coldest right now" (confusing - which is coldest?)
 - GOOD: "ECM showing -8°C today, but GFS dips coldest to -9°C by Jan 4th" (clear timeframes)
+EXTENDED RANGE COVERAGE:- Do NOT ignore days 5-10+ just because the main story is near-term- If the extended range shows a trend reversal (warming after cold, or vice versa), MENTION IT- When cold is the headline, note if milder conditions return later in the period- When mild is the headline, note if cold signals appear in the extended range- The extended range coming into view merits comment even if less certain- Example: "Sharp cold for the weekend, but models hint at a return to milder conditions by mid-month"
 
 FORMAT:
 - NO markdown (no **, no #, no _) - Bluesky is plain text only
