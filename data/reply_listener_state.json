@@ -1,25 +1,28 @@
 {
   "processed_replies": [
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbe3zpu7vs23",
-    "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mbcjjm3iqc2k",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbe5b3fmek23",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbcexofb5s2t",
     "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbe44xre7c23",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbdzvwo5vs23",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbduvvcwac23",
-    "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mbckctkyyk2k",
     "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbclauvifs2i",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbgikk2gms2a",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbcfogpuok2i",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbcvvfgcfk2i",
     "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbhb4skvss2j",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbcevk72422t",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbdzssensk23",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbe45yh33s23",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbgdka2t7c24",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbdzvwo5vs23",
+    "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mbcjjm3iqc2k",
     "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbe2iad3uk23",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbe45yh33s23",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbe3zpu7vs23",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbcvvfgcfk2i",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbcffgnfhs2i",
+    "at://did:plc:wsb6nv5nrnho3flwhgr2xe2l/app.bsky.feed.post/3mbckctkyyk2k",
+    "at://did:plc:cmirdyg2syn4fypt6w742a7y/app.bsky.feed.post/3mbjazj6g5k2w",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbj737dfuc2y",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbcexofb5s2t",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbcevk72422t",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbduvvcwac23",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbgdka2t7c24",
     "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbe42qjm2k23",
-    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbcffgnfhs2i"
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbcfogpuok2i",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbgikk2gms2a",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbj6wj2ny22y",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbe5b3fmek23",
+    "at://did:plc:6kxoyyg5tfcrofeiwnwqzheo/app.bsky.feed.post/3mbdzssensk23"
   ],
   "topic_suggestions": [],
   "flagged_corrections": [],
@@ -48,7 +51,36 @@
     }
   },
   "notified_non_followers": [],
-  "training_log": [],
-  "last_run": "2026-01-02T16:35:35.359466+00:00",
-  "last_reply_received": "2026-01-02T16:35:35.359449+00:00"
+  "training_log": [
+    {
+      "timestamp": "2026-01-03T11:19:03.854351+00:00",
+      "type": "super_user_feedback",
+      "author": "ogriff79.bsky.social",
+      "message": "Look at all the posts in this thread, could have used an extra message to give a bit more focus on later stages, probably deserved mention of warming trend etc",
+      "context": ""
+    },
+    {
+      "timestamp": "2026-01-03T11:19:03.854375+00:00",
+      "type": "super_user_feedback",
+      "author": "ogriff79.bsky.social",
+      "message": "Can't ignore the later stages, coming into range merits a comment",
+      "context": ""
+    },
+    {
+      "timestamp": "2026-01-03T11:19:04.211204+00:00",
+      "type": "super_user_feedback",
+      "author": "ogriff79.bsky.social",
+      "message": "Can't ignore the later stages, coming into range merits a comment",
+      "context": "[1/5] ICON maintains high confidence for severe cold arriving this weekend, with 25 consecutive runs converging on -8 to -10C at 850hPa around Jan 4th. The ensemble shows strong agreement (3C spread) "
+    },
+    {
+      "timestamp": "2026-01-03T11:19:04.738742+00:00",
+      "type": "super_user_feedback",
+      "author": "ogriff79.bsky.social",
+      "message": "Look at all the posts in this thread, could have used an extra message to give a bit more focus on later stages, probably deserved mention of warming trend etc",
+      "context": "[1/4] All four models lock onto significant cold arriving this weekend\u2014GFS most aggressive with -11.5\u00b0C by Saturday, others showing -8 to -9\u00b0C. Met Office has issued Amber warning for Saturday 3 Jan, "
+    }
+  ],
+  "last_run": "2026-01-03T11:19:05.445053+00:00",
+  "last_reply_received": "2026-01-03T11:19:05.445037+00:00"
 }
