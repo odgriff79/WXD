@@ -33,3 +33,4 @@ trackers/*/data/alert_state.json
 # Note: data/*.json files ARE tracked (that's the whole point)
 # Timestamped files: gfs_2025-12-27_0730Z.json
 # Latest symlinks: gfs_latest.json
+.claude/
