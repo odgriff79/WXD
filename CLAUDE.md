@@ -115,9 +115,21 @@ Two VMs exist. They are completely separate. **Never cross-contaminate.**
 | **WXD-VM** | All WXD work | wxd-arm-vm | **ACTIVE** - all development here |
 | **EVO-VM** | Evo_mon only | evohome-monitor | Maintenance only - DO NOT USE for WXD |
 
+### Other Projects on WXD-VM
+The WXD-VM also hosts other ISOLATED projects:
+
+| Project | Path | Port | Notes |
+|---------|------|------|-------|
+| wxd | ~/wxd/ | 8080 | This project |
+| wxd-direct | ~/wxd-direct/ | 8081 | GRIB validation POC |
+| stock-lab | ~/stock-lab/ | 8082 | PRIVATE - do not interact |
+
+**CRITICAL**: These projects are ISOLATED. Never cross-contaminate code, data, or credentials between them.
+
 ### Rules
 - **WXD work goes to WXD-VM only**
 - **EVO-VM is maintenance-only for Evo_mon — do not touch for WXD**
+- **stock-lab is PRIVATE** - do not access its code, data, or details from wxd context
 - Before any remote operation: **STOP → CONFIRM target VM by name → CHECK `.vm_config` → proceed**
 - If uncertain, **ASK**
 
