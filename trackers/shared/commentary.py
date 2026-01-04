@@ -295,7 +295,22 @@ FORMAT: Plain text, no emojis, use C for temps. Start immediately with the story
             for prefix in prefixes_to_remove:
                 if text.startswith(prefix):
                     text = text[len(prefix):].strip()
-            return text[:max_chars], False
+
+            # Truncate at sentence boundary if too long (don't cut mid-sentence)
+            if len(text) > max_chars:
+                # Find last sentence end within limit
+                truncated = text[:max_chars]
+                last_period = truncated.rfind('. ')
+                if last_period > max_chars // 2:
+                    text = truncated[:last_period + 1].strip()
+                else:
+                    # No good sentence break - find last space
+                    last_space = truncated.rfind(' ')
+                    if last_space > max_chars // 2:
+                        text = truncated[:last_space].strip()
+                    # else just use the hard cut
+
+            return text, False
 
     except Exception as e:
         print(f"  Claude CLI error: {e}")
