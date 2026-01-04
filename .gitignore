@@ -34,3 +34,4 @@ trackers/*/data/alert_state.json
 # Timestamped files: gfs_2025-12-27_0730Z.json
 # Latest symlinks: gfs_latest.json
 .claude/
+cron_replies.log
