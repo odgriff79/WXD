@@ -144,6 +144,16 @@ Stored in `.vm_config` (gitignored). **Never hardcode IPs or keys.**
 - **Env file**: ~/.wxd_env (Bluesky credentials)
 - **Migrated**: 2025-12-30
 
+### OCI CLI (Oracle Cloud Infrastructure)
+OCI CLI is installed on VM for managing cloud resources:
+```bash
+export PATH=/home/ubuntu/.local/bin:$PATH
+export SUPPRESS_LABEL_WARNING=True
+oci network security-list get --security-list-id <OCID>  # View firewall rules
+```
+- **Config**: ~/.oci/config (API key auth)
+- **Security list OCID**: ocid1.securitylist.oc1.uk-london-1.aaaaaaaacyudomtyu4p56767gftsqsdyul64khd2ajmkt4qlx74qhlk5xmsa
+
 ## Commands
 
 ```bash
