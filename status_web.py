@@ -68,6 +68,29 @@ def get_cron_job_status() -> list:
                 last_line = lines[-1].strip() if lines else ""
                 job["message"] = last_line[:60]
 
+                # Check tracker_state for explicit success/failure (Main Fetch only)
+                if name == "Main Fetch" and "tracker_a" in tracker_state:
+                    ts = tracker_state["tracker_a"]
+                    ts_status = ts.get("status")
+                    # Check if state is recent (within 12 hours)
+                    ts_time = ts.get("last_success") or ts.get("last_failure", "")
+                    if ts_time:
+                        try:
+                            state_dt = datetime.fromisoformat(ts_time.replace("Z", "+00:00"))
+                            state_hours = (now - state_dt).total_seconds() / 3600
+                            if state_hours < 12:
+                                if ts_status == "failed":
+                                    job["status"] = "failed"
+                                    job["message"] = ts.get("error", "Unknown error")[:60]
+                                    jobs.append(job)
+                                    continue
+                                elif ts_status == "success":
+                                    job["status"] = "complete"
+                                    jobs.append(job)
+                                    continue
+                        except:
+                            pass
+
                 # Determine status based on file freshness and content
                 if re.search(r"error|fail|fatal|exception|traceback", last_line, re.IGNORECASE):
                     job["status"] = "failed"
