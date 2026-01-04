@@ -11,10 +11,11 @@ cd "$WXD_DIR"
 # Load credentials
 [ -f "$HOME/.wxd_env" ] && source "$HOME/.wxd_env"
 
-# Error handler - sends ntfy alert
+# Error handler - sends ntfy alert and records failure in tracker state
 alert_failure() {
     local msg="$1"
     echo "ERROR: $msg" >> cron.log
+    python tracker_state.py failure tracker_a "$msg" 2>/dev/null || true
     if [ -n "$NTFY_CHANNEL" ]; then
         curl -s -d "WXD CRON FAILED: $msg" "ntfy.sh/$NTFY_CHANNEL" > /dev/null 2>&1
     fi
@@ -82,6 +83,9 @@ if [ -n "$BSKY_HANDLE" ] && [ -n "$BSKY_PASSWORD" ]; then
 else
     alert_failure "Bluesky credentials not set"
 fi
+
+# Record success in tracker state
+python tracker_state.py success tracker_a 2>/dev/null || true
 
 echo "=== Complete ===" >> cron.log
 echo "" >> cron.log

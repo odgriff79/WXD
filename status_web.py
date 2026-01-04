@@ -43,6 +43,9 @@ def get_cron_job_status() -> list:
     now = datetime.now(timezone.utc)
     jobs = []
 
+    # Load tracker state for explicit success/failure tracking
+    tracker_state = get_tracker_state()
+
     for name, log_file, schedule, success_pattern, expected_times in CRON_JOBS:
         job = {
             "name": name,

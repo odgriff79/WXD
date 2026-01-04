@@ -8,6 +8,13 @@ Quick reference for ntfy commands, cron schedules, and common operations.
 
 Shows: Cron jobs, model runs, tracker status, recent feedback.
 
+## ntfy Alerts (Automatic)
+
+Cron jobs send push notifications on failure via ntfy.sh:
+- **Alert channel:** Set `NTFY_CHANNEL=wxd-alerts` in `~/.wxd_env`
+- **Subscribe:** Open `https://ntfy.sh/wxd-alerts` or use ntfy app
+- Alerts include failure reason (e.g., "WXD CRON FAILED: git push failed")
+
 ## ntfy Commands (from Windows)
 
 ```powershell

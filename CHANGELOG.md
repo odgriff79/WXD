@@ -2,6 +2,23 @@
 
 All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
+## 2026-01-04: Cron Silent Failure Fix
+
+**Problem:** 08:30 Tracker A post silently failed - no alert, no log, dashboard didn't show failure.
+
+**Root Cause:** `cron_fetch.sh` used `set -e` (exit on error). When `git push` failed due to conflict with local edits being pushed simultaneously, script exited without logging or alerting.
+
+**Fix (cron_fetch.sh):**
+1. Removed `set -e` - explicit error handling instead
+2. Added `git pull --rebase origin main` before push to handle conflicts
+3. Added `alert_failure()` function sending ntfy notification on any failure
+4. All errors now logged to cron.log with "ERROR:" prefix
+5. Added `NTFY_CHANNEL=wxd-alerts` to `~/.wxd_env`
+
+**Lesson:** Never use `set -e` without proper error trapping. Always log errors AND alert.
+
+---
+
 ## 2026-01-04: Extended Range Coverage Fix
 
 **Status: INCOMPLETE** - Logic may not be catching warming trends adequately. Monitoring posts over next 24h before further iteration.
