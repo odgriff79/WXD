@@ -149,10 +149,10 @@ OCI CLI is installed on VM for managing cloud resources:
 ```bash
 export PATH=/home/ubuntu/.local/bin:$PATH
 export SUPPRESS_LABEL_WARNING=True
-oci network security-list get --security-list-id <OCID>  # View firewall rules
+oci network security-list get --security-list-id <SECURITY_LIST_OCID>
 ```
 - **Config**: ~/.oci/config (API key auth)
-- **Security list OCID**: ocid1.securitylist.oc1.uk-london-1.aaaaaaaacyudomtyu4p56767gftsqsdyul64khd2ajmkt4qlx74qhlk5xmsa
+- **Security list OCID**: See `oci network vcn list` to find your VCN, then check default-security-list-id
 
 ## Commands
 
