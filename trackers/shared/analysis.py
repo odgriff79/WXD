@@ -862,9 +862,9 @@ def analyze_by_period(data: dict, is_ensemble: bool = True) -> dict:
                 patterns.append("neutral")
     
     # Check TREND across periods: are means rising or falling?
-    st_mean = result.get("short_term", {}).get("mean")
-    mr_mean = result.get("mid_range", {}).get("mean")
-    ext_mean = result.get("extended", {}).get("mean") if result.get("extended") else None
+    st_mean = (result.get("short_term") or {}).get("mean")
+    mr_mean = (result.get("mid_range") or {}).get("mean")
+    ext_mean = (result.get("extended") or {}).get("mean")
 
     trend_warming = False
     trend_cooling = False
@@ -956,8 +956,8 @@ def format_period_context(period_analysis: dict) -> str:
     if period_analysis.get("uniform") and "recovering" not in summary:
         # Simple summary for truly uniform patterns (no warming)
         if summary == "cold_throughout":
-            st = period_analysis.get("short_term", {})
-            ext = period_analysis.get("extended", {})
+            st = period_analysis.get("short_term") or {}
+            ext = period_analysis.get("extended") or {}
             st_range = f"{st.get('min', '?')} to {st.get('max', '?')}" if st else "?"
             ext_range = f"{ext.get('min', '?')} to {ext.get('max', '?')}" if ext else "?"
             parts.append(f"PERIODS: Cold throughout - days 1-3 range {st_range}C, day 7+ range {ext_range}C")
@@ -988,12 +988,12 @@ def format_period_context(period_analysis: dict) -> str:
 
     # Add cross-period TREND info
     if period_analysis.get("trend_warming"):
-        st = period_analysis.get("short_term", {}).get("mean", "?")
-        ext = period_analysis.get("extended", {}).get("mean") or period_analysis.get("mid_range", {}).get("mean", "?")
+        st = (period_analysis.get("short_term") or {}).get("mean", "?")
+        ext = (period_analysis.get("extended") or {}).get("mean") or (period_analysis.get("mid_range") or {}).get("mean", "?")
         parts.append(f"TREND: Warming through forecast period ({st}C → {ext}C) - MUST MENTION")
     elif period_analysis.get("trend_cooling"):
-        st = period_analysis.get("short_term", {}).get("mean", "?")
-        ext = period_analysis.get("extended", {}).get("mean") or period_analysis.get("mid_range", {}).get("mean", "?")
+        st = (period_analysis.get("short_term") or {}).get("mean", "?")
+        ext = (period_analysis.get("extended") or {}).get("mean") or (period_analysis.get("mid_range") or {}).get("mean", "?")
         parts.append(f"TREND: Cooling through forecast period ({st}C → {ext}C) - MUST MENTION")
 
     return "\n".join(parts)
