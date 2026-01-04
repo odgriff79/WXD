@@ -1087,7 +1087,23 @@ CLARITY ON TIMEFRAMES:
 - You CAN mention both current temps AND forecast minimums - but BE EXPLICIT about timeframes
 - BAD: "GFS coldest... ECM coldest right now" (confusing - which is coldest?)
 - GOOD: "ECM showing -8°C today, but GFS dips coldest to -9°C by Jan 4th" (clear timeframes)
-EXTENDED RANGE COVERAGE:- Do NOT ignore days 5-10+ just because the main story is near-term- If the extended range shows a trend reversal (warming after cold, or vice versa), MENTION IT- When cold is the headline, note if milder conditions return later in the period- When mild is the headline, note if cold signals appear in the extended range- The extended range coming into view merits comment even if less certain- Example: "Sharp cold for the weekend, but models hint at a return to milder conditions by mid-month"
+
+EXTENDED RANGE COVERAGE - CRITICAL:
+- Do NOT ignore days 5-10+ just because the main story is near-term
+- If the extended range shows a trend reversal (warming after cold, or vice versa), MENTION IT
+- When cold is the headline, note if milder conditions return later in the period
+- When mild is the headline, note if cold signals appear in the extended range
+- If "recovering" pattern detected, YOU MUST mention the warming trend
+- Check the RANGE for each period - if max temp is much higher than min, that's warming
+- NEVER describe a period as just "cold" if the max shows significant warming
+- Example: "Sharp cold for the weekend, but models hint at a return to milder conditions by mid-month"
+
+TEMPERATURE OSCILLATIONS - IMPORTANT:
+- A forecast may show multiple significant temperature swings: cold→warm→cold or warm→cold→warm
+- If PATTERN shows oscillation (e.g., "cold -> recovering -> cold"), describe ALL transitions
+- Example: "Sharp cold early week, brief warming mid-week to -1C, then another cold dip by weekend"
+- Each significant swing (>3C) deserves mention if it indicates a trend shift
+- Don't just pick the coldest point - show the journey through the forecast period
 
 FORMAT:
 - NO markdown (no **, no #, no _) - Bluesky is plain text only

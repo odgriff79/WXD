@@ -833,34 +833,52 @@ def analyze_by_period(data: dict, is_ensemble: bool = True) -> dict:
     }
     
     # Determine if pattern is uniform or divergent
+    # IMPORTANT: Check both MIN (cold_signal) and MAX to detect warming within cold periods
     patterns = []
     for period_name in ["short_term", "mid_range", "extended"]:
         stats = result.get(period_name)
         if stats:
-            if stats["cold_signal"]:
+            has_cold = stats["cold_signal"]  # min < -5C
+            has_warming = stats["max"] > -2  # max above -2C indicates recovering
+
+            if has_cold and has_warming:
+                patterns.append("recovering")  # Cold min but warming max
+            elif has_cold:
                 patterns.append("cold")
             elif stats["mean"] > 5:
                 patterns.append("mild")
             else:
                 patterns.append("neutral")
     
-    # Check uniformity
-    if len(set(patterns)) <= 1:
+    # Check uniformity - handle "recovering" as distinct from pure "cold"
+    result["patterns"] = patterns  # Store for debugging
+    unique_patterns = set(patterns)
+
+    if len(unique_patterns) <= 1:
         result["uniform"] = True
         if patterns and patterns[0] == "cold":
             result["summary"] = "cold_throughout"
+        elif patterns and patterns[0] == "recovering":
+            result["summary"] = "cold_but_recovering"  # Shows warming throughout
         elif patterns and patterns[0] == "mild":
             result["summary"] = "mild_throughout"
         else:
             result["summary"] = "neutral_throughout"
     else:
         result["uniform"] = False
-        # Determine pattern type
-        if patterns[0] == "cold" and patterns[-1] != "cold":
+        # Determine pattern type - handle "recovering" explicitly
+        if "recovering" in patterns:
+            if patterns[-1] == "cold":
+                result["summary"] = "cold_recovering_then_cold"  # Warming mid-period then cold again
+            elif patterns[0] == "cold" or patterns[0] == "recovering":
+                result["summary"] = "cold_early_recovering"  # Cold start, warming later
+            else:
+                result["summary"] = "mixed_with_recovery"
+        elif patterns[0] == "cold" and patterns[-1] != "cold":
             result["summary"] = "cold_early_recovering"
         elif patterns[0] != "cold" and patterns[-1] == "cold":
             result["summary"] = "cold_delayed"
-        elif patterns[0] == "cold" and patterns[1] != "cold" and len(patterns) > 2 and patterns[2] == "cold":
+        elif patterns[0] == "cold" and len(patterns) > 2 and patterns[1] != "cold" and patterns[2] == "cold":
             result["summary"] = "cold_interrupted"
         else:
             result["summary"] = "mixed_pattern"
@@ -869,42 +887,61 @@ def analyze_by_period(data: dict, is_ensemble: bool = True) -> dict:
 
 
 def format_period_context(period_analysis: dict) -> str:
-    """Format period analysis for Claude prompt context."""
+    """Format period analysis for Claude prompt context.
+
+    IMPORTANT: Always show RANGE (min to max) not just min, so warming trends are visible.
+    """
     if not period_analysis:
         return ""
-    
+
     parts = []
     summary = period_analysis.get("summary", "")
-    
-    if period_analysis.get("uniform"):
-        # Simple summary for uniform patterns
+    patterns = period_analysis.get("patterns", [])
+
+    # Always show pattern for debugging
+    if patterns:
+        parts.append(f"PATTERN: {' -> '.join(patterns)} ({summary.replace('_', ' ')})")
+
+    # Helper to format period with FULL RANGE
+    def format_period(name: str, data: dict, label: str) -> str:
+        if not data:
+            return ""
+        signal = "COLD" if data.get("cold_signal") else "OK"
+        # ALWAYS show range to reveal warming within cold periods
+        range_str = f"{data['min']}C to {data['max']}C"
+        return f"  {label}: mean {data['mean']}C, range {range_str} [{signal}]"
+
+    if period_analysis.get("uniform") and "recovering" not in summary:
+        # Simple summary for truly uniform patterns (no warming)
         if summary == "cold_throughout":
             st = period_analysis.get("short_term", {})
             ext = period_analysis.get("extended", {})
-            st_min = st.get("min", "?") if st else "?"
-            ext_min = ext.get("min", "?") if ext else "?"
-            parts.append(f"PERIODS: Cold throughout forecast - short-term min {st_min}C, extended min {ext_min}C")
+            st_range = f"{st.get('min', '?')} to {st.get('max', '?')}" if st else "?"
+            ext_range = f"{ext.get('min', '?')} to {ext.get('max', '?')}" if ext else "?"
+            parts.append(f"PERIODS: Cold throughout - days 1-3 range {st_range}C, day 7+ range {ext_range}C")
         elif summary == "mild_throughout":
             parts.append("PERIODS: Mild throughout forecast")
         else:
             parts.append("PERIODS: Near-normal throughout")
     else:
-        # Detailed breakdown for divergent patterns
-        parts.append(f"PERIOD BREAKDOWN ({summary.replace('_', ' ')}):")
-        
+        # Detailed breakdown showing FULL RANGE for each period
+        # This makes warming trends visible even within cold periods
+        parts.append("EXTENDED RANGE COVERAGE:")
+
         st = period_analysis.get("short_term")
         if st:
-            signal = "COLD" if st.get("cold_signal") else "OK"
-            parts.append(f"  Days 1-3: mean {st['mean']}C, min {st['min']}C [{signal}]")
-        
+            parts.append(format_period("short_term", st, "Days 1-3"))
+
         mr = period_analysis.get("mid_range")
         if mr:
-            signal = "COLD" if mr.get("cold_signal") else "OK"
-            parts.append(f"  Days 4-6: mean {mr['mean']}C, min {mr['min']}C [{signal}]")
-        
+            parts.append(format_period("mid_range", mr, "Days 4-6"))
+
         ext = period_analysis.get("extended")
         if ext:
-            signal = "COLD" if ext.get("cold_signal") else "OK"
-            parts.append(f"  Day 7+: mean {ext['mean']}C, min {ext['min']}C [{signal}]")
-    
+            parts.append(format_period("extended", ext, "Day 7+"))
+
+        # CRITICAL: Explicit guidance for Claude on recovery patterns
+        if "recovering" in patterns or "recovery" in summary:
+            parts.append("NOTE: Recovery pattern detected - mention warming trend in commentary")
+
     return "\n".join(parts)
