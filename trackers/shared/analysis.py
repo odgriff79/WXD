@@ -861,6 +861,30 @@ def analyze_by_period(data: dict, is_ensemble: bool = True) -> dict:
             else:
                 patterns.append("neutral")
     
+    # Check TREND across periods: are means rising or falling?
+    st_mean = result.get("short_term", {}).get("mean")
+    mr_mean = result.get("mid_range", {}).get("mean")
+    ext_mean = result.get("extended", {}).get("mean") if result.get("extended") else None
+
+    trend_warming = False
+    trend_cooling = False
+    if st_mean is not None and mr_mean is not None:
+        # Compare short_term to mid_range
+        if mr_mean > st_mean + 1.5:  # >1.5C warming
+            trend_warming = True
+        elif mr_mean < st_mean - 1.5:  # >1.5C cooling
+            trend_cooling = True
+
+        # Also check extended if available
+        if ext_mean is not None:
+            if ext_mean > st_mean + 2:  # Significant warming trend
+                trend_warming = True
+            elif ext_mean < st_mean - 2:  # Significant cooling trend
+                trend_cooling = True
+
+    result["trend_warming"] = trend_warming
+    result["trend_cooling"] = trend_cooling
+
     # Check uniformity - handle "recovering" as distinct from pure "cold"
     result["patterns"] = patterns  # Store for debugging
     unique_patterns = set(patterns)
@@ -961,5 +985,15 @@ def format_period_context(period_analysis: dict) -> str:
         # CRITICAL: Explicit guidance for Claude on recovery patterns
         if "recovering" in patterns or "recovery" in summary:
             parts.append("NOTE: Recovery pattern detected - mention warming trend in commentary")
+
+    # Add cross-period TREND info
+    if period_analysis.get("trend_warming"):
+        st = period_analysis.get("short_term", {}).get("mean", "?")
+        ext = period_analysis.get("extended", {}).get("mean") or period_analysis.get("mid_range", {}).get("mean", "?")
+        parts.append(f"TREND: Warming through forecast period ({st}C → {ext}C) - MUST MENTION")
+    elif period_analysis.get("trend_cooling"):
+        st = period_analysis.get("short_term", {}).get("mean", "?")
+        ext = period_analysis.get("extended", {}).get("mean") or period_analysis.get("mid_range", {}).get("mean", "?")
+        parts.append(f"TREND: Cooling through forecast period ({st}C → {ext}C) - MUST MENTION")
 
     return "\n".join(parts)
