@@ -255,6 +255,9 @@ ssh -i "$SSH_KEY" ubuntu@$VM_IP "cd ~/wxd && source venv/bin/activate && source 
 - Include SSH key paths, VM IPs, or ntfy channels in committed files
 - Create cheatsheets or docs with real infrastructure details in public repos
 - Post multi-message threads without `[X/Y]` numbering on EVERY message
+- Run reply_listener.py with --post when debugging (use dry-run only, --post consumes test data)
+- Use git stash/pop carelessly (can lose DB data and state files)
+- Process live data when testing fixes (verify with dry-run first, preserve test cases)
 
 
 ## WXD-Direct Project (~/wxd-direct/)
