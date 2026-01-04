@@ -2,6 +2,37 @@
 
 All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
+## 2026-01-04: Extended Range Coverage Fix
+
+**Problem:** MOGREPS and ICON posts weren't mentioning warming trends even when data showed recovery.
+
+**Root Causes Found:**
+1. Pattern detection only checked `max` of mean temps, not `ensemble_max` (warmest members)
+   - MOGREPS mid_range had mean max=-4.2C but ensemble_max=**4.8C** - significant warming missed!
+2. No cross-period trend detection - didn't compare short_term→mid_range→extended means
+3. Prompt guidance added but analysis context didn't flag warming strongly enough
+
+**Fixes Applied (analysis.py):**
+1. `ensemble_warming` check: if `ensemble_max > -2`, flag as recovering
+2. Cross-period `trend_warming`/`trend_cooling` detection:
+   - mid_range mean > short_term mean + 1C → warming
+   - extended mean > short_term mean + 1.5C → warming
+3. Context output now includes:
+   - `(members: -10.2C to 4.8C)` showing ensemble spread
+   - `TREND: Warming through forecast period (-6.9C → -5.1C) - MUST MENTION`
+   - `NOTE: Recovery pattern detected - mention warming trend in commentary`
+
+**Files Changed:**
+- `trackers/shared/analysis.py` - pattern detection + format_period_context
+- `trackers/shared/commentary.py` - EXTENDED RANGE COVERAGE prompt
+- `post_bluesky.py` - same prompt additions
+
+**Future Work:**
+- Sample every Nth hour through forecast to catch intra-period rises/falls
+- Current approach uses period summaries which may miss significant swings
+
+---
+
 ## [Unreleased]
 
 ### WXD-Direct: Phase 5 - Add MOGREPS, UKMO, ICON
