@@ -4,6 +4,8 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ## 2026-01-04: Extended Range Coverage Fix
 
+**Status: INCOMPLETE** - Logic may not be catching warming trends adequately. Monitoring posts over next 24h before further iteration.
+
 **Problem:** MOGREPS and ICON posts weren't mentioning warming trends even when data showed recovery.
 
 **Root Causes Found:**
