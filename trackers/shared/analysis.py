@@ -870,16 +870,16 @@ def analyze_by_period(data: dict, is_ensemble: bool = True) -> dict:
     trend_cooling = False
     if st_mean is not None and mr_mean is not None:
         # Compare short_term to mid_range
-        if mr_mean > st_mean + 1.5:  # >1.5C warming
+        if mr_mean > st_mean + 1:  # >1C warming to mid_range
             trend_warming = True
-        elif mr_mean < st_mean - 1.5:  # >1.5C cooling
+        elif mr_mean < st_mean - 1:  # >1C cooling
             trend_cooling = True
 
-        # Also check extended if available
+        # Also check extended if available - cumulative change matters
         if ext_mean is not None:
-            if ext_mean > st_mean + 2:  # Significant warming trend
+            if ext_mean > st_mean + 1.5:  # >1.5C warming by extended
                 trend_warming = True
-            elif ext_mean < st_mean - 2:  # Significant cooling trend
+            elif ext_mean < st_mean - 1.5:  # >1.5C cooling by extended
                 trend_cooling = True
 
     result["trend_warming"] = trend_warming
