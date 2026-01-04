@@ -839,7 +839,9 @@ def analyze_by_period(data: dict, is_ensemble: bool = True) -> dict:
         stats = result.get(period_name)
         if stats:
             has_cold = stats["cold_signal"]  # min < -5C
-            has_warming = stats["max"] > -2  # max above -2C indicates recovering
+            # Detect warming: either max above -3C OR range > 4C indicates significant swing
+            temp_range = stats["max"] - stats["min"]
+            has_warming = stats["max"] > -3 or temp_range > 4
 
             if has_cold and has_warming:
                 patterns.append("recovering")  # Cold min but warming max
