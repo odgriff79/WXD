@@ -35,12 +35,16 @@ if ! python fetch.py >> cron.log 2>&1; then
 fi
 
 # Pull before push to avoid conflicts with local edits
+# Stash any local changes first (data files from fetch)
 echo "Syncing with remote..." >> cron.log
+git stash -q >> cron.log 2>&1 || true
 if ! git pull --rebase origin main >> cron.log 2>&1; then
+    git stash pop -q >> cron.log 2>&1 || true
     alert_failure "git pull --rebase failed"
     echo "=== Failed ===" >> cron.log
     exit 1
 fi
+git stash pop -q >> cron.log 2>&1 || true
 
 # Commit and push data files
 cd "$WXD_DIR"
