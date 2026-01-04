@@ -834,14 +834,23 @@ def analyze_by_period(data: dict, is_ensemble: bool = True) -> dict:
     
     # Determine if pattern is uniform or divergent
     # IMPORTANT: Check both MIN (cold_signal) and MAX to detect warming within cold periods
+    # For ensembles: also check ensemble_max - warmest members may show warming the mean hides
     patterns = []
     for period_name in ["short_term", "mid_range", "extended"]:
         stats = result.get(period_name)
         if stats:
             has_cold = stats["cold_signal"]  # min < -5C
-            # Detect warming: either max above -3C OR range > 4C indicates significant swing
+
+            # Detect warming from MEAN temps
             temp_range = stats["max"] - stats["min"]
-            has_warming = stats["max"] > -3 or temp_range > 4
+            mean_warming = stats["max"] > -3 or temp_range > 4
+
+            # For ensembles: check if warmest MEMBERS show warming (ensemble_max)
+            # This catches cases where mean is cold but some members show recovery
+            ens_max = stats.get("ensemble_max")
+            ensemble_warming = ens_max is not None and ens_max > -2  # Members reaching near-freezing
+
+            has_warming = mean_warming or ensemble_warming
 
             if has_cold and has_warming:
                 patterns.append("recovering")  # Cold min but warming max
@@ -904,14 +913,21 @@ def format_period_context(period_analysis: dict) -> str:
     if patterns:
         parts.append(f"PATTERN: {' -> '.join(patterns)} ({summary.replace('_', ' ')})")
 
-    # Helper to format period with FULL RANGE
+    # Helper to format period with FULL RANGE including ensemble spread
     def format_period(name: str, data: dict, label: str) -> str:
         if not data:
             return ""
         signal = "COLD" if data.get("cold_signal") else "OK"
         # ALWAYS show range to reveal warming within cold periods
         range_str = f"{data['min']}C to {data['max']}C"
-        return f"  {label}: mean {data['mean']}C, range {range_str} [{signal}]"
+        result = f"  {label}: mean {data['mean']}C, range {range_str} [{signal}]"
+
+        # For ensembles: show member spread if available - this reveals warming in outliers
+        ens_min = data.get("ensemble_min")
+        ens_max = data.get("ensemble_max")
+        if ens_min is not None and ens_max is not None:
+            result += f" (members: {ens_min}C to {ens_max}C)"
+        return result
 
     if period_analysis.get("uniform") and "recovering" not in summary:
         # Simple summary for truly uniform patterns (no warming)
