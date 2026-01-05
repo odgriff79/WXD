@@ -262,13 +262,13 @@ def get_weather_context() -> dict:
 
 def generate_community_request() -> str:
     """Generate Sunday community request post asking for topic suggestions."""
-    return """What weather or forecasting topics would you like WXD to explain?
+    return """What weather or forecasting topics would you like WXD to discuss?
 
-Follow us and reply with your questions - we can only see replies from followers. Popular topics covered Tuesday and Friday.
+Follow us and reply with your suggestions - we can only see replies from followers. Popular topics covered Tuesday and Friday.
 
 ---
 
-We're building automated community engagement so your questions shape our content. Models, forecasts, tabloid myth-busting - what interests you?"""
+We're building automated community engagement so your input shapes our content. Models, forecasts, tabloid myth-busting - what interests you?"""
 
 
 def load_state(state_path: Path) -> dict:
@@ -596,7 +596,7 @@ def add_community_cta(posts: list) -> list:
     Asks followers for topic suggestions, turning every educational
     post into a question collector.
     """
-    cta = "What weather or forecasting topics would you like WXD to explain? Reply with your questions - we read every response and use them to shape future posts."
+    cta = "What weather or forecasting topics would you like WXD to discuss? Reply with your suggestions - we read every response and use them to shape future posts."
     return posts + [cta]
 
 

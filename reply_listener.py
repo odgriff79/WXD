@@ -479,6 +479,68 @@ def get_notification_replies(client: Client, own_did: str, limit: int = 50) -> l
     return replies
 
 
+def get_notification_mentions(client: Client, own_did: str, limit: int = 50) -> list:
+    """Get @mentions from notifications API - catches when someone tags WXD in a new post.
+
+    This handles the case where a user @mentions WXD in their own post (not a reply to WXD).
+    We respond with chat_invitation to invite them to start a conversation.
+    """
+    mentions = []
+
+    try:
+        response = client.app.bsky.notification.list_notifications({'limit': limit})
+
+        if not hasattr(response, 'notifications'):
+            return mentions
+
+        for notif in response.notifications:
+            # Only process mention notifications (not replies, likes, follows, etc.)
+            if notif.reason != 'mention':
+                continue
+
+            author_did = notif.author.did if hasattr(notif.author, 'did') else None
+
+            # Skip self-mentions
+            if author_did == own_did:
+                continue
+
+            # Skip blocked accounts
+            if author_did in BLOCKLIST:
+                continue
+
+            # Extract mention info from the notification record
+            record = notif.record if hasattr(notif, 'record') else None
+            if not record:
+                continue
+
+            mention_text = record.text if hasattr(record, 'text') else ''
+            created_at = record.created_at if hasattr(record, 'created_at') else None
+
+            # SAFEGUARD: Skip messages from before today to prevent backlog spam
+            if created_at:
+                try:
+                    msg_time = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                    if msg_time.date() < datetime.now(timezone.utc).date():
+                        continue  # Skip old messages
+                except:
+                    pass
+
+            mentions.append({
+                'uri': notif.uri,
+                'cid': notif.cid,
+                'text': mention_text,
+                'author_handle': notif.author.handle if hasattr(notif.author, 'handle') else 'unknown',
+                'author_did': author_did,
+                'created_at': created_at,
+                'is_mention': True,  # Flag to identify as mention (not reply)
+            })
+
+    except Exception as e:
+        print(f"  Error fetching mentions: {e}")
+
+    return mentions
+
+
 def get_metoffice_warnings() -> str:
     """Fetch current Met Office warnings - GROUND TRUTH for any warning claims."""
     if not HAS_METOFFICE or not fetch_metoffice_narrative:
@@ -909,6 +971,48 @@ def main():
         print(f"ERROR: Authentication failed: {e}")
         return 1
 
+    # Initialize counters early (needed for PHASE 0)
+    replies_sent = 0
+    new_processed = []
+    claude_calls = 0
+
+    # =================================================================
+    # PHASE 0: Check for @mentions (someone tagging WXD in their own post)
+    # These get chat_invitation response to start a conversation
+    # =================================================================
+    print()
+    print("Checking notifications for @mentions...")
+    notification_mentions = get_notification_mentions(client, own_did, limit=50)
+    print(f"  Found {len(notification_mentions)} mention notifications")
+
+    # Filter to only unprocessed mentions
+    new_mentions = [m for m in notification_mentions if m['uri'] not in processed_set]
+    print(f"  {len(new_mentions)} new mentions to process")
+
+    mentions_responded = 0
+    for mention in new_mentions:
+        author_handle = mention['author_handle']
+        mention_text = mention['text'][:80] + ('...' if len(mention['text']) > 80 else '')
+        print(f"\n  @mention from {author_handle}: {mention_text}")
+
+        # Send chat invitation
+        response_text = CANNED_RESPONSES['chat_invitation']
+
+        if not dry_run:
+            # Reply to the mention - no parent/root since it's a standalone post
+            reply_ref = {'uri': mention['uri'], 'cid': mention['cid']}
+            post_result = post_reply(client, response_text, reply_to=reply_ref, root=reply_ref)
+            if post_result:
+                print(f"    Posted chat invitation: {post_result['uri']}")
+                mentions_responded += 1
+                new_processed.append(mention['uri'])
+        else:
+            print(f"    [DRY RUN] Would post chat invitation")
+            new_processed.append(mention['uri'])
+
+    if new_mentions:
+        print(f"\n  Mentions processed: {len(new_mentions)}, responses sent: {mentions_responded}")
+
     # =================================================================
     # PHASE 1: Check notifications for threaded conversation replies
     # This catches replies to WXD's own replies, not just to original posts
@@ -959,10 +1063,6 @@ def main():
     # =================================================================
     print()
     print("Processing replies...")
-
-    replies_sent = 0
-    new_processed = []
-    claude_calls = 0
 
     # Build a quick lookup for post context
     post_context_cache = {p['uri']: p['text'] for p in posts}
@@ -1482,6 +1582,7 @@ def main():
     print()
     print("=" * 50)
     print("Summary:")
+    print(f"  Mentions processed: {len(new_mentions)}")
     print(f"  Threaded replies processed: {len(threaded_replies)}")
     print(f"  Posts checked: {len(posts_with_replies)}")
     print(f"  New replies found: {len(new_processed)}")

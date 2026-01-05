@@ -2,6 +2,34 @@
 
 All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
+## 2026-01-05: @Mention Handling + Engagement Language
+
+### @Mention Handling Added
+
+**Problem:** When followers @mentioned WXD in their own posts (not replies to WXD posts), the reply_listener ignored them. User winchesterweather asked a question via @mention and got no response.
+
+**Fix (reply_listener.py):**
+1. Added `get_notification_mentions()` function to fetch @mention notifications
+2. Added PHASE 0 before reply processing - handles mentions first
+3. Any @mention gets `chat_invitation` response (same as first-time repliers)
+4. Flow: @mention → chat_invitation → user replies 'chat' → session starts
+
+**Safeguards:**
+- Same blocklist filtering as replies
+- Only processes today's mentions (prevents backlog spam)
+- Mentions marked as processed to avoid duplicate responses
+
+### Engagement Language Updated
+
+**Problem:** Engagement posts used "explain" language which talks down to enthusiast audience.
+
+**Fix (engagement/engagement_post.py):**
+- "explain" → "discuss"
+- "your questions" → "your suggestions" / "your input"
+- Treats followers as peers, not students
+
+---
+
 ## 2026-01-04: Cron Silent Failure Fix
 
 **Problem:** 08:30 Tracker A post silently failed - no alert, no log, dashboard didn't show failure.
