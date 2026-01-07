@@ -172,7 +172,8 @@ def generate_commentary(
     cold_info: dict,
     trend_analysis: dict,
     run_diff: dict = None,
-    is_ensemble: bool = True
+    is_ensemble: bool = True,
+    previous_post: str = None
 ) -> Tuple[str, bool]:
     """Generate Claude CLI commentary with story-first prompt.
 
@@ -183,6 +184,7 @@ def generate_commentary(
         trend_analysis: Trend persistence result
         run_diff: Run-on-run shift result
         is_ensemble: Whether this is an ensemble model
+        previous_post: Text of the previous post from this tracker (for narrative continuity)
 
     Returns:
         Tuple of (commentary_text, is_fallback)
@@ -197,7 +199,23 @@ def generate_commentary(
 
     # Fetch current Met Office warnings
     warnings_data = fetch_current_warnings()
-    
+
+    # Build previous post context for narrative continuity
+    if previous_post:
+        previous_post_section = f"""
+YOUR PREVIOUS POST (for narrative continuity):
+{previous_post}
+
+NARRATIVE CONTINUITY - CRITICAL:
+- Build on what you said before - don't repeat the same story
+- If previous post mentioned warming/recovery later, KEEP mentioning it unless data changed
+- If previous post highlighted a feature, show how it evolved (strengthened/weakened/shifted)
+- Vary your language - don't use the same phrases as before
+- Show the EVOLUTION: "Cold persisting as expected" or "Warming signal now clearer" or "Pattern shifted since last update"
+"""
+    else:
+        previous_post_section = ""
+
     # Get current date for prompt context
     now_for_prompt = datetime.now(timezone.utc)
     today_str = now_for_prompt.strftime("%A %d %B %Y")  # e.g., "Sunday 04 January 2026"
@@ -276,7 +294,7 @@ MET OFFICE WARNINGS - STRICT RULES:
 ANALYSIS:
 {full_context}
 {warnings_data}
-
+{previous_post_section}
 FORMAT: Plain text, no emojis, use C for temps. Start immediately with the story."""
 
     try:
@@ -458,16 +476,20 @@ def generate_full_thread(
     trend_analysis: dict,
     percentile_analysis: dict = None,
     run_diff: dict = None,
-    is_ensemble: bool = True
+    is_ensemble: bool = True,
+    previous_post: str = None
 ) -> Tuple[List[str], bool]:
     """Generate complete thread with main post and alerts.
+
+    Args:
+        previous_post: Text of previous post from this tracker for narrative continuity
 
     Returns:
         Tuple of (list of numbered posts, is_fallback)
     """
     # Generate main commentary
     main_text, is_fallback = generate_commentary(
-        model_name, full_context, cold_info, trend_analysis, run_diff, is_ensemble
+        model_name, full_context, cold_info, trend_analysis, run_diff, is_ensemble, previous_post
     )
 
     # Split main text if needed

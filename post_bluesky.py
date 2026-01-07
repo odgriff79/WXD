@@ -1028,8 +1028,12 @@ def format_analysis_context(run_diff_text: str, confidence: str,
 def get_claude_commentary(data_path: Path, run_diff_text: str, confidence: str,
                           percentile_info: dict = None, bimodal_info: dict = None,
                           persistence_info: dict = None, timing_info: dict = None,
-                          cold_info: dict = None) -> tuple:
-    """Pipe JSON to Claude CLI and get commentary. Returns (text, is_fallback)."""
+                          cold_info: dict = None, previous_post: str = None) -> tuple:
+    """Pipe JSON to Claude CLI and get commentary. Returns (text, is_fallback).
+
+    Args:
+        previous_post: Text of previous post from this tracker for narrative continuity
+    """
     import time
 
     # Calculate period analysis from data
@@ -1039,10 +1043,26 @@ def get_claude_commentary(data_path: Path, run_diff_text: str, confidence: str,
         period_info = analyze_by_period(data, is_ensemble=True)
     except:
         period_info = None
+    # Build previous post context for narrative continuity
+    if previous_post:
+        previous_post_section = f"""
+YOUR PREVIOUS POST (for narrative continuity):
+{previous_post}
+
+NARRATIVE CONTINUITY - CRITICAL:
+- Build on what you said before - don't repeat the same story
+- If previous post mentioned warming/recovery later, KEEP mentioning it unless data changed
+- If previous post highlighted a feature, show how it evolved (strengthened/weakened/shifted)
+- Vary your language - don't use the same phrases as before
+- Show the EVOLUTION: "Cold persisting as expected" or "Warming signal now clearer" or "Pattern shifted since last update"
+"""
+    else:
+        previous_post_section = ""
+
     # Build analysis context
     # Fetch current Met Office warnings
     warnings_data = fetch_current_warnings()
-    
+
     analysis_context = format_analysis_context(
         run_diff_text, confidence,
         percentile_info, bimodal_info,
@@ -1150,7 +1170,7 @@ ANALYSIS CONTEXT:
 {analysis_context}
 
 {warnings_data}
-
+{previous_post_section}
 Data shows ensemble means from GFS, ECM, AIFS, and GEM models."""
 
     try:
@@ -1760,6 +1780,11 @@ def main():
         print("  (skipping state save in preview mode)")
     print()
 
+    # Load previous post for narrative continuity
+    previous_post = alert_state.get('last_posted_commentary')
+    if previous_post:
+        print(f"  Previous post loaded ({len(previous_post)} chars)")
+
     # Generate main commentary with all analysis context
     print("Generating AI commentary...")
     text, is_fallback = get_claude_commentary(
@@ -1768,7 +1793,8 @@ def main():
         bimodal_info=bimodal_info,
         persistence_info=persistence_info,
         timing_info=timing_info,
-        cold_info=cold_info  # For significant event detection
+        cold_info=cold_info,  # For significant event detection
+        previous_post=previous_post
     )
     if not text:
         print("ERROR: Failed to generate commentary")
@@ -1934,6 +1960,13 @@ def main():
             print("  Chart sync complete")
         except Exception as e:
             print(f"  Chart sync failed: {e}")
+
+        # Save main commentary for narrative continuity
+        # Use the raw text before confidence indicator was appended
+        main_commentary = text if text else ""
+        alert_state['last_posted_commentary'] = main_commentary
+        save_alert_state(state_path, alert_state)
+        print(f"  Saved commentary for next run ({len(main_commentary)} chars)")
 
     print()
     print("Complete")

@@ -31,6 +31,10 @@ except ImportError:
     HAS_ATPROTO = False
 
 
+# Superuser account - replies go to training_log, not engagement topics
+# Never use superuser feedback for public engagement posts
+SUPERUSER_HANDLE = "ogriff79.bsky.social"
+
 # Topic categories with example prompts
 # NOTE: Topics should be reviewed based on current conditions
 # Cold pattern active = prioritize cold_relevant and myth_busting topics
@@ -319,6 +323,10 @@ def get_recent_replies(handle: str, password: str, since_hours: int = 96) -> lis
                     if notif_time < cutoff:
                         continue
                 except:
+                    continue
+
+                # Skip superuser - their replies are dev feedback, not engagement topics
+                if notif.author.handle == SUPERUSER_HANDLE:
                     continue
 
                 # Get the post text

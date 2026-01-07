@@ -269,6 +269,18 @@ MOGREPS runs 4x daily. Threaded posts with chart and alerts when significant."""
     run_diff, cold_info, trend_analysis, percentile_analysis, timing_analysis, period_analysis, full_context = \
         run_full_analysis(data, trend_state_path, is_ensemble=True)
 
+    # Load previous post for narrative continuity
+    previous_post = None
+    if trend_state_path.exists():
+        try:
+            with open(trend_state_path, 'r') as f:
+                trend_state = json.load(f)
+                previous_post = trend_state.get('last_posted_commentary')
+                if previous_post:
+                    print(f"  Previous post loaded ({len(previous_post)} chars)")
+        except:
+            pass
+
     # SAFEGUARD: Check for extreme shifts that indicate bad data comparison
     MAX_REASONABLE_SHIFT = 10.0  # More than 10C shift is suspicious (allows for strong pattern changes)
     if run_diff and abs(run_diff['shift']) > MAX_REASONABLE_SHIFT:
@@ -306,7 +318,8 @@ MOGREPS runs 4x daily. Threaded posts with chart and alerts when significant."""
         trend_analysis=trend_analysis,
         percentile_analysis=percentile_analysis,
         run_diff=run_diff,
-        is_ensemble=True
+        is_ensemble=True,
+        previous_post=previous_post
     )
 
     print(f"  Generated {len(posts)} posts:")
@@ -337,6 +350,22 @@ MOGREPS runs 4x daily. Threaded posts with chart and alerts when significant."""
     if success:
         print("  Thread posted successfully")
         save_alert_state(state_path, alert_state)
+        # Save main commentary for narrative continuity (first post without thread numbering)
+        main_commentary = posts[0] if posts else ""
+        # Strip thread numbering [1/X] prefix if present
+        if main_commentary.startswith('['):
+            bracket_end = main_commentary.find('] ')
+            if bracket_end > 0:
+                main_commentary = main_commentary[bracket_end + 2:]
+        try:
+            with open(trend_state_path, 'r') as f:
+                trend_state = json.load(f)
+            trend_state['last_posted_commentary'] = main_commentary
+            with open(trend_state_path, 'w') as f:
+                json.dump(trend_state, f, indent=2)
+            print(f"  Saved commentary for next run ({len(main_commentary)} chars)")
+        except Exception as e:
+            print(f"  Warning: Could not save commentary: {e}")
         # Sync charts to GitHub Pages
         print("  Syncing charts to GitHub...")
         try:

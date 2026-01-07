@@ -1,5 +1,5 @@
 {
-  "last_post": "2025-12-31T07:25:36.488481+00:00",
+  "last_post": "2026-01-06T12:00:15.467664+00:00",
   "topic_history": [
     {
       "category": "cold_relevant",
@@ -10,9 +10,21 @@
       "category": "myth_busting",
       "topic": "Reading weather maps critically - spotting sensationalism",
       "time": "2025-12-31T07:25:36.488497+00:00"
+    },
+    {
+      "category": "qa",
+      "topic": "Community Q&A",
+      "time": "2026-01-06T12:00:15.467678+00:00"
     }
   ],
-  "collected_questions": [],
-  "posts_count": 2,
+  "collected_questions": [
+    {
+      "text": "Any change for Winchesters snow chances? looks more like sleet next week .",
+      "author": "winchesterweather.bsky.social",
+      "time": "2026-01-03T11:01:20.423Z",
+      "uri": "at://did:plc:cmirdyg2syn4fypt6w742a7y/app.bsky.feed.post/3mbjazj6g5k2w"
+    }
+  ],
+  "posts_count": 3,
   "last_community_request": "2026-01-04T12:00:06.056784+00:00"
 }
