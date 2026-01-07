@@ -1049,12 +1049,14 @@ def get_claude_commentary(data_path: Path, run_diff_text: str, confidence: str,
 YOUR PREVIOUS POST (for narrative continuity):
 {previous_post}
 
-NARRATIVE CONTINUITY - CRITICAL:
-- Build on what you said before - don't repeat the same story
-- If previous post mentioned warming/recovery later, KEEP mentioning it unless data changed
-- If previous post highlighted a feature, show how it evolved (strengthened/weakened/shifted)
+NARRATIVE CONTINUITY - DATA IS TRUTH:
+- Previous post is CONTEXT only - current ANALYSIS data is the source of truth
+- Compare what you said before against what the data NOW shows
+- If data confirms previous forecast: "Cold persisting as expected" / "Warming signal strengthening"
+- If data contradicts previous post: acknowledge the change - "Models have shifted warmer/colder since last update"
+- If previous post mentioned a feature not in current data, DO NOT repeat it - note it has dropped out
 - Vary your language - don't use the same phrases as before
-- Show the EVOLUTION: "Cold persisting as expected" or "Warming signal now clearer" or "Pattern shifted since last update"
+- Show EVOLUTION based on what data supports, not what was said before
 """
     else:
         previous_post_section = ""
