@@ -1299,8 +1299,11 @@ def generate_chart(data_path: Path, output_path: Path) -> bool:
             mins = model_data.get('min', [])
             maxs = model_data.get('max', [])
             if mins and maxs and len(mins) == len(maxs):
+                # Convert None to np.nan for matplotlib compatibility
+                mins_arr = np.array([x if x is not None else np.nan for x in mins], dtype=float)
+                maxs_arr = np.array([x if x is not None else np.nan for x in maxs], dtype=float)
                 ax.fill_between(
-                    dates[:len(mins)], mins, maxs,
+                    dates[:len(mins)], mins_arr, maxs_arr,
                     color=colors.get(model_key, 'white'),
                     alpha=0.1
                 )
@@ -1309,7 +1312,9 @@ def generate_chart(data_path: Path, output_path: Path) -> bool:
         for model_key, model_data in models.items():
             means = model_data.get('mean', [])
             if means:
-                ax.plot(dates[:len(means)], means,
+                # Convert None to np.nan for matplotlib compatibility
+                means_arr = np.array([x if x is not None else np.nan for x in means], dtype=float)
+                ax.plot(dates[:len(means)], means_arr,
                        color=colors.get(model_key, 'white'),
                        label=labels.get(model_key, model_key),
                        linewidth=2)
@@ -1317,7 +1322,9 @@ def generate_chart(data_path: Path, output_path: Path) -> bool:
         # Multi-model mean
         mmm = run.get('multi_model_mean', [])
         if mmm:
-            ax.plot(dates[:len(mmm)], mmm, color='white', label='Multi-model mean',
+            # Convert None to np.nan for matplotlib compatibility
+            mmm_arr = np.array([x if x is not None else np.nan for x in mmm], dtype=float)
+            ax.plot(dates[:len(mmm)], mmm_arr, color='white', label='Multi-model mean',
                    linewidth=3, linestyle='--')
 
         # Threshold lines
