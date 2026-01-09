@@ -113,19 +113,43 @@ def update_trend_persistence(
     return result
 
 
+def _runs_to_duration(runs: int, runs_per_day: float = 2) -> str:
+    """Convert run count to human-readable duration.
+
+    Most models run ~2x daily, so 14 runs ≈ 1 week.
+    Returns phrases like '~3 days', '~1 week', '~2 weeks'.
+    """
+    days = runs / runs_per_day
+    if days < 2:
+        return "since yesterday"
+    elif days < 5:
+        return f"~{int(round(days))} days"
+    elif days < 10:
+        return "~1 week"
+    elif days < 17:
+        return "~2 weeks"
+    else:
+        weeks = int(round(days / 7))
+        return f"~{weeks} weeks"
+
+
 def format_trend_context(trend_analysis: dict) -> str:
     """Format trend persistence for Claude prompt context."""
     parts = []
 
     if trend_analysis["cold_persistence"] >= 2:
-        parts.append(f"PERSISTENCE: Cold signal now showing for {trend_analysis['cold_persistence']} consecutive runs")
+        runs = trend_analysis["cold_persistence"]
+        duration = _runs_to_duration(runs)
+        parts.append(f"PERSISTENCE: Cold signal consistent for {duration} (high confidence)")
         if trend_analysis["trend_strengthening"]:
             parts.append("TREND: Signal strengthening (getting colder)")
         elif trend_analysis["trend_weakening"]:
             parts.append("TREND: Signal weakening (warming back)")
 
     if trend_analysis["shift_persistence"] >= 2:
-        parts.append(f"DRIFT: Model has shifted same direction for {trend_analysis['shift_persistence']} consecutive runs")
+        runs = trend_analysis["shift_persistence"]
+        duration = _runs_to_duration(runs)
+        parts.append(f"DRIFT: Model trending same direction for {duration}")
 
     return "\n".join(parts) if parts else ""
 
@@ -573,12 +597,15 @@ def calculate_signal_strength(cold_info: dict, trend_analysis: dict) -> dict:
     run_count = trend_analysis.get('cold_persistence', 0) if trend_analysis else 0
     has_cold = cold_info is not None and cold_info.get('temp') is not None
 
+    # Use human-readable duration instead of run counts
+    duration = _runs_to_duration(run_count) if run_count >= 2 else ""
+
     if has_cold and run_count >= 5:
         level = 'high_confidence'
-        label = f"High confidence (run {run_count})"
+        label = f"High confidence ({duration})" if duration else "High confidence"
     elif has_cold and run_count >= 3:
         level = 'strong'
-        label = f"Strong signal (run {run_count})"
+        label = f"Strong signal ({duration})" if duration else "Strong signal"
     elif has_cold:
         level = 'emerging'
         label = "Emerging signal"
@@ -588,7 +615,7 @@ def calculate_signal_strength(cold_info: dict, trend_analysis: dict) -> dict:
 
     return {
         'level': level,
-        'run_count': run_count,
+        'run_count': run_count,  # Keep internal for logic, but don't expose in labels
         'label': label
     }
 

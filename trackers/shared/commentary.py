@@ -202,9 +202,14 @@ def generate_commentary(
 
     # Build previous post context for narrative continuity
     if previous_post:
+        # Strip run count noise from previous post (legacy cleanup)
+        import re
+        cleaned_prev = re.sub(r'\d+ consecutive runs( now)?', 'consistent signal', previous_post)
+        cleaned_prev = re.sub(r'run #?\d+', 'latest run', cleaned_prev)
+
         previous_post_section = f"""
 YOUR PREVIOUS POST (for narrative continuity):
-{previous_post}
+{cleaned_prev}
 
 NARRATIVE CONTINUITY - DATA IS TRUTH:
 - Previous post is CONTEXT only - current ANALYSIS data is the source of truth
@@ -280,6 +285,7 @@ LANGUAGE:
 - Synonyms for change: adjustment, shift, revision, movement
 - Synonyms for notable: marked, significant, appreciable, considerable
 - Avoid sensational terms: dramatic, slammed, plunged, locked in
+- NEVER mention run counts like "47 consecutive runs" or "run 48" - these are noise. If signal is consistent, say "consistent signal" or "well-supported pattern"
 
 MET OFFICE WARNINGS - STRICT RULES:
 - NEVER mention Met Office warnings unless explicit warning data is provided in this prompt
@@ -463,10 +469,13 @@ def build_alert_posts(
         elif level == 'low':
             alerts.append(f"Wide ensemble spread: {spread}C range at coldest point indicates higher uncertainty. Expect adjustments in coming runs.")
 
-    # Persistence alert
-    if trend_analysis and trend_analysis.get('cold_persistence', 0) >= 3:
-        runs = trend_analysis['cold_persistence']
-        alerts.append(f"Signal persistence: Cold signal now showing for {runs} consecutive runs, indicating stable pattern.")
+    # Persistence alert - only at meaningful milestones, not every post
+    # Skip the dedicated persistence post entirely - Claude already has this info
+    # and will mention it naturally when relevant. The constant "run 47, run 48..."
+    # was noise that added no value.
+    #
+    # If we want persistence alerts back, trigger only at milestones:
+    # e.g., if runs in [7, 14, 21, 30] (weekly milestones)
 
     return alerts
 

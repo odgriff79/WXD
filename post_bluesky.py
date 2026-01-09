@@ -776,13 +776,13 @@ def calculate_signal_strength(cold_info: dict, persistence_info: dict) -> dict:
     if persistence_info:
         run_count = persistence_info.get('run_count', 0)
 
-    # Determine signal level
+    # Determine signal level (don't expose run counts - they're noise)
     if models_agreeing >= 4 and run_count >= 5:
         level = 'high_confidence'
-        label = f"High confidence ({models_agreeing}/4 models, run {run_count})"
+        label = f"High confidence ({models_agreeing}/4 models agreeing, consistent pattern)"
     elif models_agreeing >= 3 or run_count >= 3:
         level = 'strong'
-        label = f"Strong signal ({models_agreeing}/4 models, run {run_count})"
+        label = f"Strong signal ({models_agreeing}/4 models agreeing)"
     elif models_agreeing >= 2:
         level = 'emerging'
         label = f"Emerging signal ({models_agreeing}/4 models)"
