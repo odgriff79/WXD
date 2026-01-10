@@ -282,9 +282,43 @@ ssh -i "$SSH_KEY" ubuntu@$VM_IP "cd ~/wxd && source venv/bin/activate && source 
 - Process live data when testing fixes (verify with dry-run first, preserve test cases)
 
 
+## Migration Plan: wxd → wxd-legacy
+
+**Status:** PLANNED - Migration approved, awaiting Phase 1 start
+
+This project will be renamed to `wxd-legacy` and archived. A new unified `wxd` project will replace it, using direct GRIB fetching instead of Open-Meteo.
+
+**Why:**
+- Direct agency data is more reliable (171 validation pairs, <0.3K delta)
+- 67% more data points per day (30 vs 18 runs)
+- Near real-time latency vs 1-2h Open-Meteo delay
+- Full MOGREPS ensemble access (18 members)
+- Removes third-party dependency
+
+**Migration Phases:**
+1. Create new unified repo (becomes `wxd`)
+2. Port analysis layer with JSON→SQLite migration
+3. Port posting/commentary system
+4. Port supporting systems (replies, dashboard, ntfy)
+5. Shadow mode (7+ days parallel running)
+6. Cutover
+7. Archive this project as `wxd-legacy`
+
+**Key Documents (in ~/wxd-direct/):**
+- `docs/MIGRATION_PLAN.md` - Full 7-phase plan with validation requirements
+- `docs/wxd_migration_ai_responses.md` - AI review synthesis
+- `reports/DIRECT_VS_OPENMETEO_COMPARISON.md` - Evidence for migration
+
+**Until Migration:**
+- This project continues as production
+- No new features - stability only
+- All ntfy commands remain here until cutover
+
+**IMPORTANT:** During shadow mode (Phase 5), this project remains authoritative. The new system runs in dry-run only.
+
 ## WXD-Direct Project (~/wxd-direct/)
 
-Parallel POC for fetching 850hPa temperature directly from source agencies via GRIB instead of Open-Meteo.
+Validation POC for direct GRIB fetching. All 7 models proven working. Will be merged into new unified `wxd` project during migration.
 
 **Location:** ~/wxd-direct/ (same VM, separate directory)
 **Details:** See ~/wxd-direct/CLAUDE.md for full project brief, phases, and status.
