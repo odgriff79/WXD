@@ -636,7 +636,7 @@ Focus on:
 Return a concise 3-4 sentence summary of the forecast. Be specific with dates and temperatures."""
 
         result = subprocess.run(
-            ['claude', '--dangerously-skip-permissions', '--model', 'haiku', '-p', prompt],
+            ['claude', '--dangerously-skip-permissions', '--model', 'sonnet', '-p', prompt],
             capture_output=True,
             text=True,
             timeout=30
