@@ -185,12 +185,23 @@ log_lesson(
 
 This appends to `docs/BLUESKY_PUBLISHING.md` - future Claude sessions will see it!
 
+### Hashtags
+
+**See `docs/HASHTAGS.md` for full reference.**
+
+Quick rules:
+- **#ukweather** - major events only, DON'T SPAM
+- **#uksnow** - respect UK Snow Map project
+- Regular posts = NO hashtags
+- Tech posts = #python #claude #opensource
+
 ### DO NOT
 
 - Manually construct facets unless necessary (module auto-detects URLs)
 - Assume links will auto-link (they won't!)
 - Try to edit a post (delete and repost instead)
 - Forget to activate venv and source `~/.wxd_env` first
+- Spam hashtags on routine posts
 
 ## Shared Analysis Module
 
