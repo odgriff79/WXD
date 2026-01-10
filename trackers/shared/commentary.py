@@ -51,25 +51,19 @@ def fetch_current_warnings() -> str:
         mo_data = fetch_metoffice_narrative()
         
         warnings_parts = []
-        
-        # UK warnings with dates and regions
+
+        # UK warnings with dates and regions (from dedicated warnings page - reliable)
         uk_warn = mo_data.get("uk_warnings", "")
         if uk_warn and "No warnings" not in uk_warn:
-            warnings_parts.append("ACTIVE UK WARNINGS: " + uk_warn)
-        
-        # Long range warning
-        lr_warn = mo_data.get("long_range_warning", "")
-        if lr_warn:
-            warnings_parts.append("LONG RANGE WARNING: " + lr_warn)
-        
+            warnings_parts.append("ACTIVE UK WARNINGS (Met Office): " + uk_warn)
+
+        # NOTE: long_range_warning REMOVED - was producing false positives by
+        # incorrectly linking generic warning banners with unrelated date ranges
+
         if warnings_parts:
-            return "MET OFFICE WARNINGS (VERIFIED): " + " | ".join(warnings_parts)
+            return "MET OFFICE WARNINGS (VERIFIED FROM OFFICIAL SOURCE): " + " | ".join(warnings_parts)
         else:
-            return "MET OFFICE WARNINGS: None currently in force."
-            
-    except Exception as e:
-        print(f"  Warning fetch error: {e}")
-        return ""
+            return "MET OFFICE WARNINGS: None currently in force. DO NOT invent or assume warnings."
 
     except Exception as e:
         print(f"  Warning fetch error: {e}")
@@ -287,17 +281,27 @@ LANGUAGE:
 - Avoid sensational terms: dramatic, slammed, plunged, locked in
 - NEVER mention run counts like "47 consecutive runs" or "run 48" - these are noise. If signal is consistent, say "consistent signal" or "well-supported pattern"
 
-MET OFFICE WARNINGS - STRICT RULES:
-- NEVER mention Met Office warnings unless explicit warning data is provided in this prompt
-- If NO warning data appears below, do NOT mention warnings at all - not even "no warnings"
-- If warning data IS provided, you MUST include ALL of:
-  * Type of warning (Yellow/Amber/Red for Rain/Snow/Wind/Ice/Fog etc)
-  * Issuer: Met Office
-  * Valid period: exact from/until dates and times
-  * Region: specific area affected (e.g. "SE England", "NW Scotland", "Wales")
-- NEVER fabricate, assume, or infer warning details
-- NEVER say "warnings expected" or "warnings likely" - only state ACTUAL warnings
-- If you cannot verify all warning details from the data, do NOT mention the warning
+MET OFFICE WARNINGS - ABSOLUTE RULES (VIOLATION = MISINFORMATION):
+- ONLY mention warnings if the text "MET OFFICE WARNINGS (VERIFIED" appears in this prompt
+- If warning data says "None currently in force" - DO NOT mention warnings AT ALL
+- If warning data IS provided with actual warnings, you MUST include:
+  * Type: Yellow/Amber/Red
+  * Hazard: Snow/Ice/Rain/Wind etc
+  * Issuer: "Met Office" (ALWAYS attribute)
+  * Dates: exact dates from the data (e.g., "Sat 10 Jan - Sun 11 Jan")
+  * Regions: as listed in the data
+- NEVER fabricate, extrapolate, or assume warning details beyond what's explicitly provided
+- NEVER mention "long-range warnings" unless explicitly stated in the data
+- NEVER say "warnings expected", "warnings likely", or "warnings issued for [future date]"
+- If you cannot quote the exact warning from the data, DO NOT mention any warning
+
+EVIDENCE-BASED CLAIMS - CRITICAL:
+- Every factual claim must be traceable to the ANALYSIS data below
+- If you state a temperature, it must appear in the data
+- If you state a date range, it must appear in the data
+- If you mention model agreement/disagreement, it must be in the data
+- DO NOT infer, extrapolate, or assume information not explicitly provided
+- When uncertain, be vaguer rather than more specific
 
 ANALYSIS:
 {full_context}

@@ -139,13 +139,18 @@ def fetch_metoffice_narrative() -> dict:
             soup = BeautifulSoup(resp.text, 'html.parser')
             text = soup.get_text(" ", strip=True)
 
-            # Extract warning info (Yellow/Amber/Red warning)
-            warning_match = re.search(
-                r'(Yellow|Amber|Red)\s+warning[^.]*in force[^.]*\.?\s*([A-Z][a-z]{2,8}\s+\d{1,2}\s+[A-Z][a-z]{2}\s*-\s*[A-Z][a-z]{2,8}\s+\d{1,2}\s+[A-Z][a-z]{2})',
-                text, re.IGNORECASE
-            )
-            if warning_match:
-                result["long_range_warning"] = f"{warning_match.group(1)} warning: {warning_match.group(2)}"
+            # NOTE: Long-range warning parsing DISABLED (2026-01-10)
+            # The regex was incorrectly linking generic "warnings in force" banners
+            # (referring to current short-term warnings) with unrelated forecast date
+            # ranges, causing false claims like "Yellow warning 14-23 Jan" when no
+            # such warning exists. Use uk_warnings from the dedicated warnings page
+            # for reliable warning data instead.
+            #
+            # Original flawed regex:
+            # warning_match = re.search(
+            #     r'(Yellow|Amber|Red)\s+warning[^.]*in force[^.]*\.?\s*([A-Z][a-z]{2,8}\s+\d{1,2}\s+[A-Z][a-z]{2}\s*-\s*[A-Z][a-z]{2,8}\s+\d{1,2}\s+[A-Z][a-z]{2})',
+            #     text, re.IGNORECASE
+            # )
 
             # Extract forecast paragraphs (look for substantive content)
             paragraphs = []

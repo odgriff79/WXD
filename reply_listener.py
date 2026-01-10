@@ -550,15 +550,14 @@ def get_metoffice_warnings() -> str:
         mo_data = fetch_metoffice_narrative()
 
         warnings_parts = []
-        if mo_data.get("long_range_warning"):
-            warnings_parts.append(f"ACTIVE: {mo_data['long_range_warning']}")
+        # NOTE: long_range_warning REMOVED - was producing false positives
         if mo_data.get("uk_warnings"):
-            warnings_parts.append(f"UK: {mo_data['uk_warnings']}")
+            warnings_parts.append(f"UK (Met Office): {mo_data['uk_warnings']}")
 
         if warnings_parts:
-            return "MET OFFICE WARNINGS:\n" + "\n".join(warnings_parts)
+            return "MET OFFICE WARNINGS (VERIFIED):\n" + "\n".join(warnings_parts)
         else:
-            return "MET OFFICE WARNINGS: None currently in force"
+            return "MET OFFICE WARNINGS: None currently in force. DO NOT invent warnings."
     except Exception as e:
         print(f"    Error fetching Met Office warnings: {e}")
         return ""
