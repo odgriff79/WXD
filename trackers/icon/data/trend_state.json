@@ -1,9 +1,9 @@
 {
-  "cold_signal_runs": 5,
+  "cold_signal_runs": 6,
   "warm_signal_runs": 0,
   "shift_direction": null,
   "shift_runs": 0,
-  "last_min_temp": -7.0,
-  "last_mean_temp": -6.2,
-  "last_posted_commentary": "Met Office Yellow warnings active today 10th-Sun 11th across all UK regions. Current cold persists through today with ensemble mean -6.2C, but ICON now shows quicker recovery: days 4-6 averaging 0.6C (range -0.7C to 2.5C) suggesting milder conditions arriving around Wed 15th."
+  "last_min_temp": -6.9,
+  "last_mean_temp": -6.3,
+  "last_posted_commentary": "Met Office Amber warning upgraded for Sunday 11th alongside Yellow warnings Sat 10th-Mon 12th across England, Scotland, Northern Ireland. Today remains the coldest point at -6.3C as forecast, but ICON shows rapid recovery ahead: days 4-6 now averaging -0.3C (range -1.7C to 0.4C),..."
 }

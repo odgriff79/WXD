@@ -360,8 +360,8 @@ def get_claude_comparison(metoffice: dict, model_summary: str) -> str:
         mo_parts.append(f"Today/Tomorrow: {metoffice['today_tomorrow'][:300]}")
     if metoffice.get("days_3_5"):
         mo_parts.append(f"Days 3-5: {metoffice['days_3_5'][:300]}")
-    if metoffice.get("long_range"):
-        mo_parts.append(f"Long range: {metoffice['long_range']}")
+    if metoffice.get("long_range_detail"):
+        mo_parts.append(f"Long range: {metoffice['long_range_detail'][:300]}")
 
     mo_text = "\n".join(mo_parts) if mo_parts else "Met Office narrative not available"
 
@@ -427,8 +427,10 @@ def generate_metoffice_longrange_post(metoffice: dict) -> str:
     if metoffice.get("days_3_5"):
         parts.append(f"Days 3-5: {metoffice['days_3_5']}")
 
-    if metoffice.get("long_range"):
-        parts.append(f"Long range: {metoffice['long_range']}")
+    # Use long_range_detail from dedicated /long-range-forecast page (actual content)
+    # NOT long_range from main page (just a useless weekend headline)
+    if metoffice.get("long_range_detail"):
+        parts.append(f"Long range: {metoffice['long_range_detail']}")
 
     if not parts:
         return None
@@ -539,16 +541,16 @@ def generate_warnings_post(metoffice: dict) -> str:
     """
     # Check if we have any warning info
     has_warning = (metoffice.get("long_range_warning") or
-                   (metoffice.get("uk_warnings") and "No warnings" not in metoffice.get("uk_warnings", "")))
+                   (metoffice.get("uk_warnings") and "No warnings" not in (metoffice.get("uk_warnings") or "")))
 
     if not has_warning:
         return None
 
     # Determine warning level
     warning_level = "Yellow"
-    all_text = (metoffice.get("long_range_warning", "") + " " +
-                metoffice.get("uk_warnings", "") + " " +
-                metoffice.get("long_range_detail", ""))
+    all_text = ((metoffice.get("long_range_warning") or "") + " " +
+                (metoffice.get("uk_warnings") or "") + " " +
+                (metoffice.get("long_range_detail") or ""))
 
     if "Amber" in all_text:
         warning_level = "Amber"
@@ -557,7 +559,7 @@ def generate_warnings_post(metoffice: dict) -> str:
 
     # Extract date range from long_range_warning or long_range_detail
     date_range = None
-    for text in [metoffice.get("long_range_warning", ""), metoffice.get("long_range_detail", "")]:
+    for text in [(metoffice.get("long_range_warning") or ""), (metoffice.get("long_range_detail") or "")]:
         range_match = re.search(
             r'(Sat(?:urday)?|Sun(?:day)?|Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?)\s+\d{1,2}\s+\w{3,9}\s*[-–]\s*(Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)\s+\d{1,2}\s+\w{3,9}',
             text
@@ -586,7 +588,7 @@ def generate_warnings_post(metoffice: dict) -> str:
         lines.append(f"Affects: {', '.join(nations_affected)}")
 
     # Add brief context - just the hazard type
-    detail = metoffice.get("long_range_detail", "")
+    detail = metoffice.get("long_range_detail") or ""
     hazards = []
     for hazard in ['snow', 'ice', 'icy', 'frost', 'cold', 'wind', 'rain', 'fog']:
         if hazard in detail.lower():

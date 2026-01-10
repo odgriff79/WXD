@@ -1,9 +1,9 @@
 {
-  "cold_signal_runs": 31,
+  "cold_signal_runs": 32,
   "warm_signal_runs": 0,
-  "shift_direction": "colder",
-  "shift_runs": 1,
+  "shift_direction": null,
+  "shift_runs": 0,
   "last_min_temp": null,
   "last_mean_temp": -7.5,
-  "last_posted_commentary": "Cold spell continuing through Sunday 11th with UKMO holding -7C for Saturday 10th as forecast, though recovery now delayed\u2014warming trend pushed back vs yesterday's run. Yellow warnings active across UK through Sunday for ice/snow."
+  "last_posted_commentary": "Cold holding through Sunday 11th as UKMO confirms -7C early, but recovery signal now showing\u2014model shifts milder for mid-week with temps climbing to 3C by Tuesday 14th. Amber warning Sun 11th (ice/snow) across England/Scotland/NI, Yellow warnings active Sat 10th and Mon 12th."
 }
