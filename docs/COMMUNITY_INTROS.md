@@ -70,75 +70,87 @@ More tags for discovery:
 
 ---
 
-## Tech/Coding Community - PENDING
+## Tech/Coding Community - POSTED
 
-**Target hashtags:** #python #coding #programming #opensource #github #claudecode
+**Date:** 2026-01-10
+**URL:** https://bsky.app/profile/wxd-london.bsky.social/post/3mc32ci7ati2l
 
-### Angle
-- Python automation
-- Open source project
-- Oracle Cloud free tier
-- GRIB data processing
-- Bluesky API integration
-
-### Draft Content
-*(To be approved)*
+### Content
 
 **[1/4]**
 ```
-[Content about WXD from Python/automation perspective]
+WXD is a Python automation project that fetches weather model data from 7 global agencies, processes GRIB files, and posts AI-generated commentary to Bluesky 4x daily.
+
+Runs unattended on Oracle Cloud free tier ARM VM.
 ```
 
 **[2/4]**
 ```
-[Technical details coders care about]
+The stack: Python + eccodes for GRIB parsing, xarray for ensemble stats, atproto for Bluesky API, Claude CLI for natural language generation.
+
+Cron orchestration with ntfy.sh for remote monitoring and control.
 ```
 
 **[3/4]**
 ```
-[Open source, contribute, etc + hashtags]
+Challenges solved: Bluesky facets for clickable links, 850hPa ensemble aggregation, run-on-run trend persistence, adaptive polling for replies.
+
+Open source - code handles real-world edge cases you won't find in tutorials.
 ```
 
 **[4/4]**
 ```
-[Additional discovery hashtags]
+#python #coding #programming #opensource #github #claudecode
+
+More: #anthropic #automation #api #linux #bot #sideproject #oracle #arm64
 ```
+
+### Hashtags Used
+| Message | Tags |
+|---------|------|
+| [4/4] | #python #coding #programming #opensource #github #claudecode #anthropic #automation #api #linux #bot #sideproject #oracle #arm64 |
 
 ---
 
-## AI/ML Community - PENDING
+## AI/ML Community - POSTED
 
-**Target hashtags:** #claude #anthropic #llm #genai #machinelearning #aiagents #claudecode
+**Date:** 2026-01-10
+**URL:** https://bsky.app/profile/wxd-london.bsky.social/post/3mc32nap5iv2u
 
-### Angle
-- Claude AI generates commentary
-- Automated decision-making
-- LLM in production
-- Cost optimization
-- Real-world AI application
-
-### Draft Content
-*(To be approved)*
+### Content
 
 **[1/4]**
 ```
-[Content about WXD from AI/Claude perspective]
+WXD uses Claude to generate weather commentary from raw ensemble data. 4x daily, fully automated - no human in the loop for routine posts.
+
+Real LLM in production, not a demo.
 ```
 
 **[2/4]**
 ```
-[How Claude is used, what it does]
+Claude receives structured context: model agreement, run-on-run shifts, anomaly strength, trend persistence. It decides what's noteworthy and writes accordingly.
+
+Different prompts for different scenarios - cold snaps, heatwaves, high uncertainty, boring consensus.
 ```
 
 **[3/4]**
 ```
-[Production AI, lessons learned + hashtags]
+All Sonnet, all the time. Pre-filters catch spam before any Claude call. Session limits prevent runaway costs from chatty users.
+
+6 months in production, consistent quality.
 ```
 
 **[4/4]**
 ```
-[Additional discovery hashtags]
+#claude #anthropic #llm #genai #machinelearning #aiagents #claudecode
+
+More: #ai #automation #python #production #weather #bot
 ```
+
+### Hashtags Used
+| Message | Tags |
+|---------|------|
+| [4/4] | #claude #anthropic #llm #genai #machinelearning #aiagents #claudecode #ai #automation #python #production #weather #bot |
 
 ---
 
