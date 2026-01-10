@@ -406,6 +406,36 @@ for result in results:
     client.delete(result['uri'])
 ```
 
+## Hashtag Etiquette
+
+**DO NOT SPAM HASHTAGS** - followers will get annoyed.
+
+### Known UK Weather Community Tags
+
+| Tag | Notes | Use Sparingly? |
+|-----|-------|----------------|
+| #ukweather | Main UK weather community - DON'T SPAM | Yes - major posts only |
+| #uksnow | Used by UK Snow Map project (excellent automated service) | Respect their space |
+| #stormhour | Weather community hour | Check timing |
+| #loveukweather | Enthusiast community | Occasional |
+
+### When to Use Hashtags
+
+| Post Type | Hashtags? |
+|-----------|-----------|
+| Regular 4x daily posts | NO - spam |
+| Major weather events | Yes, 1-2 relevant |
+| Educational threads | Maybe #weather |
+| Tech/AI deep dives | #python #claude #opensource |
+| Project announcements | #claudecode #automation |
+
+### Rules
+
+1. **Max 2-3 hashtags per post** - more looks spammy
+2. **Don't tag every post** - only when adding value to a community
+3. **Respect existing projects** - #uksnow has an established automated map
+4. **Earn the tag** - contribute value before expecting visibility
+
 ## Lessons Learned (grows from mistakes)
 
 **This section captures errors and fixes so they don't repeat.**
