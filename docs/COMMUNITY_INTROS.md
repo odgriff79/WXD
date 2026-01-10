@@ -152,6 +152,11 @@ More: #ai #automation #python #production #weather #bot
 |---------|------|
 | [4/4] | #claude #anthropic #llm #genai #machinelearning #aiagents #claudecode #ai #automation #python #production #weather #bot |
 
+### Correction Posted
+**URL:** https://bsky.app/profile/wxd-london.bsky.social/post/3mc336uc2st2l
+
+Original [3/4] incorrectly stated "6 months in production" - actual time is ~2 weeks. Posted apology reply explaining the error.
+
 ---
 
 ## Process Checklist

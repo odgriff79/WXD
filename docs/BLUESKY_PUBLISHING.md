@@ -516,6 +516,19 @@ for result in results:
 
 **Prevention:** Always grep for function definitions before importing - never guess names
 
+
+---
+
+### 2026-01-10: Posted "6 months in production" when project was o
+
+**Problem:** Posted "6 months in production" when project was only 2 weeks old
+
+**Root cause:** Made up a number without checking actual project timeline
+
+**Fix:** Posted correction reply to thread
+
+**Prevention:** Verify factual claims (dates, durations, numbers) before posting - check project history/commits if unsure
+
 ## Implementation Status
 
 - [x] Plan documented
