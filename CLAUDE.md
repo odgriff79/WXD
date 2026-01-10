@@ -388,6 +388,20 @@ ssh -i "$SSH_KEY" ubuntu@$VM_IP "cd ~/wxd && source venv/bin/activate && source 
 - Process live data when testing fixes (verify with dry-run first, preserve test cases)
 - Guess function/class names when importing - always grep for actual definition first
 
+## NEVER MAKE THINGS UP
+
+**This is mandatory. Violation requires public correction.**
+
+Before stating ANY fact in public posts or documentation:
+- **Durations/timelines**: Check git log, CHANGELOG, or project start date
+- **Numbers/statistics**: Verify from actual data, code, or logs
+- **Feature claims**: Confirm code actually does what you're claiming
+- **Dates**: Check calendar, commits, or documentation
+
+If unsure, say "approximately" or "I believe" - or ask the user to confirm.
+
+**2026-01-10 incident**: Claimed "6 months in production" when project was 2 weeks old. Required public apology on Bluesky.
+
 
 ## Migration Plan: wxd → wxd-legacy
 

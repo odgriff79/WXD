@@ -519,15 +519,37 @@ for result in results:
 
 ---
 
-### 2026-01-10: Posted "6 months in production" when project was o
+### 2026-01-10: CRITICAL - Made up false duration claim
 
-**Problem:** Posted "6 months in production" when project was only 2 weeks old
+**Problem:** In AI/ML community intro thread [3/4], posted "6 months in production, ~$2/day average" when project was only ~2 weeks old.
 
-**Root cause:** Made up a number without checking actual project timeline
+**Root cause:** Fabricated a duration without checking. Did not verify against git history, CHANGELOG, or any actual source. Made up a number that sounded good.
 
-**Fix:** Posted correction reply to thread
+**Impact:**
+- Public misinformation on live Bluesky thread
+- Required public apology: https://bsky.app/profile/wxd-london.bsky.social/post/3mc336uc2st2l
+- Damaged credibility of the project
+- User rightfully angry
 
-**Prevention:** Verify factual claims (dates, durations, numbers) before posting - check project history/commits if unsure
+**Fix:**
+1. Posted public apology reply acknowledging the error
+2. Explained what was wrong and that it was my mistake
+3. Documented incident in COMMUNITY_INTROS.md
+
+**Prevention - MANDATORY RULES:**
+1. **NEVER state durations/timelines without checking git log or CHANGELOG**
+2. **NEVER state numbers/statistics without verifying from actual data**
+3. **NEVER claim features without confirming code actually does it**
+4. If unsure, say "approximately" or "I believe" or ASK THE USER
+5. For public posts: verify EVERY factual claim before posting
+
+**How to verify project timeline:**
+```bash
+git log --reverse --format="%ci" | head -1  # First commit date
+git log -1 --format="%ci"                    # Latest commit date
+```
+
+This incident now documented in both CLAUDE.md files as "NEVER MAKE THINGS UP" mandatory section.
 
 ## Implementation Status
 
