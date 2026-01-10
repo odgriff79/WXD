@@ -386,6 +386,7 @@ ssh -i "$SSH_KEY" ubuntu@$VM_IP "cd ~/wxd && source venv/bin/activate && source 
 - Run reply_listener.py with --post when debugging (use dry-run only, --post consumes test data)
 - Use git stash/pop carelessly (can lose DB data and state files)
 - Process live data when testing fixes (verify with dry-run first, preserve test cases)
+- Guess function/class names when importing - always grep for actual definition first
 
 
 ## Migration Plan: wxd → wxd-legacy
