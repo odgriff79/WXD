@@ -503,6 +503,19 @@ for result in results:
 
 **Prevention:** NEVER change approved content. If structure needs changing, ASK FIRST.
 
+
+---
+
+### 2026-01-10: ImportError when testing - guessed wrong function 
+
+**Problem:** ImportError when testing - guessed wrong function name
+
+**Root cause:** Assumed function was called get_weather_forecast instead of checking actual name fetch_location_forecast
+
+**Fix:** Used grep to find actual function name before importing
+
+**Prevention:** Always grep for function definitions before importing - never guess names
+
 ## Implementation Status
 
 - [x] Plan documented
