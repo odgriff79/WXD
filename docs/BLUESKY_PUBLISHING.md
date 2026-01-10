@@ -490,6 +490,19 @@ for result in results:
 **Prevention:** How to avoid in future?
 ```
 
+
+---
+
+### 2026-01-10: Changed approved message structure without permiss
+
+**Problem:** Changed approved message structure without permission
+
+**Root cause:** Moved hashtags from end to start of thread, restructured without asking
+
+**Fix:** Post was live - couldn't fix. User had to see wrong version.
+
+**Prevention:** NEVER change approved content. If structure needs changing, ASK FIRST.
+
 ## Implementation Status
 
 - [x] Plan documented
