@@ -274,6 +274,39 @@ tracker.log_topic("weather_education", "Why forecasts change between model runs"
 | myth_busting | Tabloid hype, polar vortex myths, sensationalism |
 | ai_tech | Claude, automation, how WXD works |
 | project_updates | New features, changes, announcements |
+| seasonal_transition | Spring/autumn arrival, season change signals |
+| tech_deep_dive | Python, VMs, infrastructure, coding techniques |
+
+### Seasonal Content Strategy
+
+**Weather drives content priority:**
+
+| Weather Pattern | Priority Topics |
+|-----------------|-----------------|
+| **Extreme cold** (freeze, snow) | cold_relevant, myth_busting (tabloid hype) |
+| **Extreme heat** (heatwave) | warm_relevant, myth_busting |
+| **Season turning** (spring/autumn signals) | seasonal_transition, weather_education |
+| **Boring/mild** (wet, unremarkable) | ai_tech, tech_deep_dive, project_updates |
+
+**Logic:**
+- Extreme weather = high engagement, lean into it
+- Season transitions = educational opportunity, explain what data shows
+- Long mild/wet spells = pivot to tech content (AI, automation, Python, VM)
+
+**Tech topics for quiet periods:**
+- How Claude generates WXD commentary
+- Python automation patterns used in WXD
+- Running weather bots on Oracle Cloud VMs
+- GRIB data processing with eccodes/xarray
+- Ensemble statistics and aggregation
+- atproto/Bluesky API quirks and solutions
+- Cost optimization (Claude API, compute resources)
+
+**Detecting boring weather:**
+```python
+# If 850hPa has been between 0-8C for 5+ days with no significant
+# model disagreement, weather is "boring" - good time for tech posts
+```
 
 ### Automated vs Manual Posts
 
@@ -371,6 +404,60 @@ If a thread fails mid-way:
 # Delete a partial thread
 for result in results:
     client.delete(result['uri'])
+```
+
+## Lessons Learned (grows from mistakes)
+
+**This section captures errors and fixes so they don't repeat.**
+
+### 2026-01-10: URLs not clickable
+
+**Problem:** Posted a thread with URL, link wasn't clickable.
+
+**Root cause:** Bluesky requires "facets" (byte-position annotations) to make links clickable. URLs don't auto-link like on Twitter.
+
+**Fix:** Created `lib/bluesky.py` with auto-facet detection. Module now automatically detects URLs and creates proper facets.
+
+**Prevention:** Always use `BlueskyClient.post()` which handles facets automatically.
+
+---
+
+### 2026-01-10: Delete API error "repo must be valid did"
+
+**Problem:** `client.delete_post(rkey)` failed with "repo must be valid did".
+
+**Root cause:** Was passing just the rkey, not the full URI.
+
+**Fix:** Pass the full `at://` URI from the post result, not just the rkey.
+
+**Prevention:** Module's `delete()` method handles this correctly.
+
+---
+
+### 2026-01-10: Repeated engagement topic
+
+**Problem:** Posted topic that felt familiar - might have been used recently.
+
+**Root cause:** Manual posts from Claude sessions weren't tracked in engagement_state.json.
+
+**Fix:** Added `EngagementTracker` class. ALWAYS call `tracker.log_topic()` after manual posts.
+
+**Prevention:** Check `tracker.is_topic_recent()` before posting, log after.
+
+---
+
+### Template for new lessons
+
+```
+### YYYY-MM-DD: Brief title
+
+**Problem:** What went wrong?
+
+**Root cause:** Why did it happen?
+
+**Fix:** How was it fixed?
+
+**Prevention:** How to avoid in future?
 ```
 
 ## Implementation Status
