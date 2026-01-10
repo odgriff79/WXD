@@ -130,6 +130,31 @@ TOPIC_CATEGORIES = {
             "Open data initiatives making weather more accessible",
             "Climate patterns affecting current forecasts",
         ]
+    },
+    "tech_deep_dive": {
+        "name": "Technical Deep Dives (for quiet weather periods)",
+        "topics": [
+            "How Claude AI generates WXD weather commentary",
+            "Python automation patterns used in weather tracking",
+            "Running weather bots on Oracle Cloud free tier",
+            "GRIB data processing with eccodes and xarray",
+            "Ensemble statistics - why we track spread not just mean",
+            "Bluesky API quirks and how we handle them",
+            "Cost optimization - running Claude affordably at scale",
+            "Why we built our own ECMWF fetcher instead of using APIs",
+            "The architecture behind 4x daily automated posts",
+            "How we validate direct GRIB data against Open-Meteo",
+        ]
+    },
+    "seasonal_transition": {
+        "name": "Season Change Topics",
+        "topics": [
+            "Reading the signals - how 850hPa data shows season turning",
+            "Spring arrival patterns in the models",
+            "Why autumn transitions are harder to forecast than spring",
+            "The jet stream role in season changes",
+            "How ensemble spread changes between seasons",
+        ]
     }
 }
 
@@ -257,6 +282,28 @@ def get_weather_context() -> dict:
             context["anomaly_strength"] = "moderate"
         else:
             context["anomaly_strength"] = "normal"
+
+        # Detect "boring weather" - good opportunity for tech content
+        # Boring = normal anomaly + high model agreement + temps in mild range
+        is_boring = (
+            context["anomaly_strength"] == "normal" and
+            context.get("model_agreement") == "high" and
+            context.get("mean_min") is not None and
+            0 <= context["mean_min"] <= 8  # Mild range at 850hPa
+        )
+        context["boring_weather"] = is_boring
+
+        # Detect season transition signals
+        # Spring: warming trend in Feb-Apr, temps crossing above seasonal normal
+        # Autumn: cooling trend in Sep-Nov, temps crossing below seasonal normal
+        month = utcnow().month
+        is_transition_period = month in [2, 3, 4, 9, 10, 11]
+        if is_transition_period and context.get("mean_min") is not None:
+            # Check if temps are near seasonal normal (within 2 degrees)
+            near_normal = abs(max_anomaly) <= 2
+            context["seasonal_transition"] = near_normal
+        else:
+            context["seasonal_transition"] = False
 
     except Exception as e:
         print(f"  Warning: Could not read weather context: {e}")
@@ -468,16 +515,35 @@ def select_topic(state: dict, weather_context: dict = None) -> tuple:
         print(f"  Claude selected: {result[0]} - {result[1][:50]}...")
         return result
 
-    # Fallback: weighted random selection based on anomaly
+    # Fallback: weighted random selection based on weather context
     print("  Falling back to weighted random selection...")
     cold_anomaly = weather_context.get("cold_anomaly", 0)
     warm_anomaly = weather_context.get("warm_anomaly", 0)
     anomaly_strength = weather_context.get("anomaly_strength", "normal")
+    boring_weather = weather_context.get("boring_weather", False)
+    seasonal_transition = weather_context.get("seasonal_transition", False)
 
     weighted = []
     for cat, topic in available_topics:
         weight = 1
-        if cold_anomaly > warm_anomaly:
+
+        # BORING WEATHER = prioritize tech content (AI, automation, Python, VMs)
+        if boring_weather:
+            if cat in ["tech_deep_dive", "ai_tech", "project_updates"]:
+                weight = 5
+            elif cat in ["weather_education"]:
+                weight = 2
+            # Don't boost weather-specific content during boring periods
+
+        # SEASONAL TRANSITION = prioritize transition topics
+        elif seasonal_transition:
+            if cat == "seasonal_transition":
+                weight = 5
+            elif cat == "weather_education":
+                weight = 3
+
+        # EXTREME WEATHER = prioritize relevant weather content
+        elif cold_anomaly > warm_anomaly:
             if anomaly_strength in ["extreme", "significant"]:
                 if cat in ["cold_relevant", "myth_busting"]:
                     weight = 5
