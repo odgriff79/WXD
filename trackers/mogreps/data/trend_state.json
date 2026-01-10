@@ -1,8 +1,9 @@
 {
-  "cold_signal_runs": 45,
+  "cold_signal_runs": 57,
   "warm_signal_runs": 0,
   "shift_direction": null,
   "shift_runs": 0,
-  "last_min_temp": -9.0,
-  "last_mean_temp": -6.6
+  "last_min_temp": -7.5,
+  "last_mean_temp": -6.9,
+  "last_posted_commentary": "Cold snap peaks today (Sat 10th) at -6.9C mean, matching yesterday's signal. Yellow warnings active through Sunday 11th across all UK nations. But models show notable recovery ahead - ensemble warming from -6.9C today through to -0.7C by mid-next week (around 17th-18th)."
 }

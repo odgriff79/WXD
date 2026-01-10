@@ -1,8 +1,9 @@
 {
-  "cold_signal_runs": 25,
+  "cold_signal_runs": 31,
   "warm_signal_runs": 0,
   "shift_direction": "colder",
   "shift_runs": 1,
   "last_min_temp": null,
-  "last_mean_temp": -7.8
+  "last_mean_temp": -7.5,
+  "last_posted_commentary": "Cold spell continuing through Sunday 11th with UKMO holding -7C for Saturday 10th as forecast, though recovery now delayed\u2014warming trend pushed back vs yesterday's run. Yellow warnings active across UK through Sunday for ice/snow."
 }

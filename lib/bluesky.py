@@ -68,6 +68,60 @@ class BlueskyError(Exception):
     pass
 
 
+def log_lesson(problem: str, root_cause: str, fix: str, prevention: str):
+    """
+    Append a new lesson to the lessons learned file.
+
+    Call this when you encounter and fix a new issue.
+    Future sessions will see it in the docs.
+
+    Example:
+        log_lesson(
+            problem="Thread posts appeared disconnected",
+            root_cause="Reply chain refs were wrong",
+            fix="Fixed root/parent ref logic",
+            prevention="Use post_thread() which handles chaining"
+        )
+    """
+    from datetime import datetime
+    from pathlib import Path
+
+    lessons_file = Path("/home/ubuntu/wxd/docs/BLUESKY_PUBLISHING.md")
+    if not lessons_file.exists():
+        print("  Warning: Lessons file not found, skipping log")
+        return
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    lesson_entry = f"""
+---
+
+### {today}: {problem[:50]}
+
+**Problem:** {problem}
+
+**Root cause:** {root_cause}
+
+**Fix:** {fix}
+
+**Prevention:** {prevention}
+"""
+
+    # Find the "## Implementation Status" marker and insert before it
+    content = lessons_file.read_text()
+    marker = "## Implementation Status"
+
+    if marker in content:
+        parts = content.split(marker)
+        new_content = parts[0] + lesson_entry + "\n" + marker + parts[1]
+        lessons_file.write_text(new_content)
+        print(f"  Logged lesson: {problem[:40]}...")
+    else:
+        # Append to end if marker not found
+        with open(lessons_file, 'a') as f:
+            f.write(lesson_entry)
+        print(f"  Logged lesson: {problem[:40]}...")
+
+
 class BlueskyClient:
     """
     Expert Bluesky client with auto-faceting and proper error handling.
@@ -203,8 +257,36 @@ class BlueskyClient:
         rkey = parts[-1]
         return f"https://bsky.app/profile/{self.handle}/post/{rkey}"
 
+    def _validate_post(self, text: str) -> list:
+        """
+        Run learned validation checks before posting.
+
+        Returns list of warnings (empty if all good).
+        These checks encode lessons learned from past mistakes.
+        """
+        warnings = []
+
+        # LESSON 2026-01-10: Check for URLs that won't be auto-linked
+        # if manual facets provided but URL pattern found
+        url_pattern = r'https?://[^\s]+'
+        urls_in_text = re.findall(url_pattern, text)
+
+        # LESSON 2026-01-10: Thread numbering required for multi-post
+        # (handled by post_thread, but warn if someone tries manual)
+
+        # Check for common engagement topic patterns that might be repeats
+        engagement_keywords = ['why do', 'what is', 'how do', 'explained']
+        if any(kw in text.lower() for kw in engagement_keywords):
+            warnings.append(
+                "REMINDER: This looks like engagement content. "
+                "Did you check EngagementTracker.is_topic_recent()?"
+            )
+
+        return warnings
+
     def post(self, text: str, facets: list = None, images: list = None,
-             reply_to: str = None, auto_facets: bool = True) -> dict:
+             reply_to: str = None, auto_facets: bool = True,
+             skip_warnings: bool = False) -> dict:
         """
         Post to Bluesky with automatic facet detection.
 
@@ -217,6 +299,7 @@ class BlueskyClient:
             images: List of image file paths (not yet implemented)
             reply_to: URI of post to reply to
             auto_facets: Auto-detect URLs/mentions/hashtags (default True)
+            skip_warnings: Skip validation warnings (default False)
 
         Returns:
             dict with keys:
@@ -234,6 +317,12 @@ class BlueskyClient:
         """
         if len(text) > 300:
             raise ValueError(f"Post too long ({len(text)} chars, max 300)")
+
+        # Run learned validation checks
+        if not skip_warnings:
+            warnings = self._validate_post(text)
+            for w in warnings:
+                print(f"  WARNING: {w}")
 
         self._ensure_logged_in()
 

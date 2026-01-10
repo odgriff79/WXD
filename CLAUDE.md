@@ -169,6 +169,22 @@ source ~/.wxd_env  # Sets BSKY_HANDLE and BSKY_PASSWORD
 | Link not clickable | Facets missing | Module auto-detects - if manual, check byte positions |
 | Thread not connected | Reply chain broken | Use `post_thread()` which handles chaining |
 
+### When You Make a Mistake - LOG IT
+
+```python
+from lib.bluesky import log_lesson
+
+# After fixing any Bluesky issue, log it for future sessions:
+log_lesson(
+    problem="What went wrong",
+    root_cause="Why it happened",
+    fix="How you fixed it",
+    prevention="How to avoid in future"
+)
+```
+
+This appends to `docs/BLUESKY_PUBLISHING.md` - future Claude sessions will see it!
+
 ### DO NOT
 
 - Manually construct facets unless necessary (module auto-detects URLs)

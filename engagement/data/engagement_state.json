@@ -1,5 +1,5 @@
 {
-  "last_post": "2026-01-06T12:00:15.467664+00:00",
+  "last_post": "2026-01-09T12:00:23.281439+00:00",
   "topic_history": [
     {
       "category": "cold_relevant",
@@ -15,6 +15,16 @@
       "category": "qa",
       "topic": "Community Q&A",
       "time": "2026-01-06T12:00:15.467678+00:00"
+    },
+    {
+      "category": "cold_relevant",
+      "topic": "What -8C at 850hPa actually means for temperatures at ground level",
+      "time": "2026-01-09T12:00:23.281455+00:00"
+    },
+    {
+      "category": "weather_education",
+      "topic": "Why do different weather models sometimes disagree",
+      "time": "2026-01-10T12:10:24.938488+00:00"
     }
   ],
   "collected_questions": [
@@ -25,6 +35,6 @@
       "uri": "at://did:plc:cmirdyg2syn4fypt6w742a7y/app.bsky.feed.post/3mbjazj6g5k2w"
     }
   ],
-  "posts_count": 3,
+  "posts_count": 5,
   "last_community_request": "2026-01-04T12:00:06.056784+00:00"
 }
