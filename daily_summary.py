@@ -429,16 +429,43 @@ def generate_metoffice_longrange_post(metoffice: dict) -> str:
 
     # Use long_range_detail from dedicated /long-range-forecast page (actual content)
     # NOT long_range from main page (just a useless weekend headline)
+    # Summarize to key info: date range + first 1-2 sentences (max ~200 chars)
     if metoffice.get("long_range_detail"):
-        parts.append(f"Long range: {metoffice['long_range_detail']}")
+        detail = metoffice['long_range_detail']
+        # Extract date range if present (e.g., "Thursday 15 Jan - Saturday 24 Jan")
+        date_match = re.search(
+            r'([A-Z][a-z]+day\s+\d{1,2}\s+[A-Z][a-z]{2}\s*[-–]\s*[A-Z][a-z]+day\s+\d{1,2}\s+[A-Z][a-z]{2})',
+            detail
+        )
+        date_range = date_match.group(1) if date_match else ""
+
+        # Get the forecast text after date range, take first ~200 chars at sentence boundary
+        if date_match:
+            forecast_text = detail[date_match.end():].strip()
+        else:
+            forecast_text = detail
+
+        # Keep it short - one sentence max (~120 chars) to fit in single post with date range
+        if len(forecast_text) > 120:
+            # Look for first sentence end
+            for end_char in ['. ', '! ', '? ']:
+                pos = forecast_text.find(end_char)
+                if pos > 0 and pos < 150:
+                    forecast_text = forecast_text[:pos + 1].strip()
+                    break
+            else:
+                # No sentence end found, truncate at word boundary
+                forecast_text = forecast_text[:120].rsplit(' ', 1)[0] + "..."
+
+        if date_range:
+            parts.append(f"Long range ({date_range}): {forecast_text}")
+        else:
+            parts.append(f"Long range: {forecast_text}")
 
     if not parts:
         return None
 
     text = "\n".join(parts)
-    if False:  # Removed truncation - let split_content handle it
-        text = text[:277] + "..."
-
     return text
 
 
