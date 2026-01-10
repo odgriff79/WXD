@@ -91,11 +91,90 @@ wxd/
 │       └── cron_ukmo.sh
 ├── engagement/
 │   └── engagement_post.py # Community engagement posts
+├── lib/
+│   └── bluesky.py        # Shared Bluesky publishing module (cross-project)
 └── docs/
     ├── REPLY_SYSTEM.md   # Reply system architecture
     ├── index.html        # GitHub Pages chart gallery
     └── charts/           # Published charts
 ```
+
+## Bluesky Publishing - EXPERT MODULE
+
+**Full docs:** `docs/BLUESKY_PUBLISHING.md`
+**Module:** `lib/bluesky.py`
+
+### CRITICAL KNOWLEDGE (read before any Bluesky work)
+
+1. **URLs DO NOT auto-link** - Bluesky requires "facets" to make links clickable
+2. **Bluesky has NO edit** - must delete and repost
+3. **Facets use BYTE positions** - not character positions (UTF-8!)
+4. **Max 300 characters** per post
+5. **Threads need [X/Y] numbering** - MANDATORY
+
+### Quick Reference
+
+```python
+# From ANY wxd project on this VM:
+import sys
+sys.path.insert(0, '/home/ubuntu/wxd')
+from lib.bluesky import BlueskyClient
+
+client = BlueskyClient()  # Reads from BSKY_HANDLE, BSKY_PASSWORD env vars
+
+# Post (URLs auto-linked!)
+result = client.post("Check this: https://example.com")
+# result = {'uri': 'at://...', 'cid': '...', 'url': 'https://bsky.app/...'}
+
+# Thread (auto-numbered)
+results = client.post_thread(["Part 1...", "Part 2...", "Part 3..."])
+
+# Delete
+client.delete(result['uri'])
+
+# List recent posts
+for p in client.get_recent_posts(10):
+    print(f"{p['text'][:50]}...")
+
+# Find posts to delete
+posts = client.find_posts_containing("[1/5]")
+
+# Replace (delete + repost - WARNING: loses engagement)
+client.replace(old_uri, "Corrected text")
+
+# ENGAGEMENT TOPIC TRACKING - prevents repeats!
+from lib.bluesky import EngagementTracker
+tracker = EngagementTracker()
+
+# Check before posting engagement content
+if tracker.is_topic_recent("Why forecasts change"):
+    print("Too recent - pick different topic!")
+
+# ALWAYS log after manual engagement posts
+tracker.log_topic("weather_education", "Topic text here")
+```
+
+### Environment Setup
+
+```bash
+# Must be run before using BlueskyClient:
+source ~/.wxd_env  # Sets BSKY_HANDLE and BSKY_PASSWORD
+```
+
+### Common Errors and Fixes
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `BadRequestError repo must be valid did` | Wrong URI format for delete | Use full `at://` URI from post result |
+| Link not clickable | Facets missing | Module auto-detects - if manual, check byte positions |
+| Thread not connected | Reply chain broken | Use `post_thread()` which handles chaining |
+
+### DO NOT
+
+- Manually construct facets unless necessary (module auto-detects URLs)
+- Assume links will auto-link (they won't!)
+- Try to edit a post (delete and repost instead)
+- Forget to activate venv and source `~/.wxd_env` first
 
 ## Shared Analysis Module
 
