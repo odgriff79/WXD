@@ -236,10 +236,13 @@ DATE REFERENCES - CRITICAL:
 
 STYLE:
 - NO PREFIX - don't start with "{model_name}:" or "London 850hPa..." or similar. Just start talking.
-- Lead with the STORY: what's happening, what's changing, what it means
-- Commentary first, not data dump - avoid leading with specific temperatures
-- Example good: "Cold air arriving Tuesday 7th as {model_name} now shows a significant drop."
-- Example bad: "{model_name} shows -7.2C..." or "London temps..." (wastes characters)
+- FORECAST FOCUS: The value is predicting what's COMING, not reporting current weather
+- If today matches what we've been tracking, acknowledge briefly then pivot to what's NEXT
+- Today as context: "Cold holding as forecast, models now show recovery by Thursday 16th"
+- Today as revelation (BAD): "Cold peak arriving today!" - we knew this was coming, that's not news
+- NEVER use "arriving" for something we've tracked for days/weeks - use "holding", "as forecast", "as tracked"
+- Don't parrot the example phrases verbatim every time - vary your language with natural synonyms that don't sound pretentious
+- The chart shows days 1-7+, your commentary should cover that range
 - Mention model agreement/disagreement and what changed since last run
 - Can mention ONE key temperature to anchor the story
 

@@ -749,6 +749,22 @@ def calculate_timing_uncertainty(data: dict) -> dict:
     }
 
 
+def _runs_to_duration(runs: int, runs_per_day: float = 2) -> str:
+    """Convert run count to human-readable duration."""
+    days = runs / runs_per_day
+    if days < 2:
+        return "since yesterday"
+    elif days < 5:
+        return f"~{int(round(days))} days"
+    elif days < 10:
+        return "~1 week"
+    elif days < 17:
+        return "~2 weeks"
+    else:
+        weeks = int(round(days / 7))
+        return f"~{weeks} weeks"
+
+
 def calculate_signal_strength(cold_info: dict, persistence_info: dict) -> dict:
     """
     Calculate signal strength based on model agreement + run persistence.
@@ -774,10 +790,13 @@ def calculate_signal_strength(cold_info: dict, persistence_info: dict) -> dict:
     if persistence_info:
         run_count = persistence_info.get('run_count', 0)
 
+    # Convert run count to duration for context
+    duration = _runs_to_duration(run_count) if run_count >= 4 else ""
+
     # Determine signal level (don't expose run counts - they're noise)
     if models_agreeing >= 4 and run_count >= 5:
         level = 'high_confidence'
-        label = f"High confidence ({models_agreeing}/4 models agreeing, consistent pattern)"
+        label = f"High confidence ({models_agreeing}/4 models, tracked {duration})"
     elif models_agreeing >= 3 or run_count >= 3:
         level = 'strong'
         label = f"Strong signal ({models_agreeing}/4 models agreeing)"
@@ -1100,10 +1119,13 @@ DATE REFERENCES - CRITICAL:
 
 STYLE:
 - NO PREFIX - don't start with "London 850hPa..." or similar. Just start talking.
-- Lead with the STORY: what's happening, what's changing, what it means
-- Commentary first, not data dump - avoid leading with specific temperatures
-- Example good: "Cold air arriving Tuesday 7th as all models now agree on a significant drop."
-- Example bad: "ECM shows -7.2°C..." or "London temps..." (wastes characters)
+- FORECAST FOCUS: The value is predicting what's COMING, not reporting current weather
+- If today matches what we've been tracking, acknowledge briefly then pivot to what's NEXT
+- Today as context: "Cold holding as forecast, models now show recovery by Thursday 16th"
+- Today as revelation (BAD): "Cold peak arriving today!" - we knew this was coming, that's not news
+- NEVER use "arriving" for something we've tracked for days/weeks - use "holding", "as forecast", "as tracked"
+- Don't parrot the example phrases verbatim every time - vary your language with natural synonyms that don't sound pretentious
+- The chart shows days 1-7+, your commentary should cover that range
 - Mention model agreement/disagreement and what changed since last run
 - Can mention ONE key temperature to anchor the story
 
