@@ -573,6 +573,31 @@ AttributeError: 'BlueskyClient' object has no attribute 'get_own_posts'. Did you
 
 ---
 
+### 2026-01-11: PEAK TIMING logic in wrong scope
+
+**Problem:** ICON posted "Cold peak holding at -5 to -6C through Tuesday 14th" when the cold peak was YESTERDAY and temperatures were actually WARMING. User feedback: "Peak has been this is garbage"
+
+**Root cause:** The PEAK TIMING context generation was inside an `if cold_info:` block in `trackers/shared/analysis.py`. When temperatures were above the -5C threshold, cold_info was None, so the PEAK TIMING logic never ran. The commentary had no context about whether we were before/at/after the coldest point.
+
+**Data reality:**
+- Coldest point: -4.76C at 2026-01-11T00:00 (midnight - PAST)
+- At 12:00 same day: -0.51C (warmed 4 degrees)
+- Tomorrow: +3.5C (clearly warming)
+
+**Impact:** Complete garbage commentary claiming "peak holding" when we were clearly in a warming trend.
+
+**Fix:** Moved PEAK TIMING logic OUTSIDE the `if cold_info:` block. Now calculates from raw forecast data regardless of threshold:
+1. Find coldest point in mean/values array
+2. Determine if peak_date is PAST, TODAY, or FUTURE relative to today
+3. Add explicit context like "PEAK TIMING: PAST - coldest point was Sat 11, we are now WARMING"
+
+**Prevention:**
+1. Any context that affects temporal language (past/present/future) must run unconditionally
+2. Don't nest critical logic inside threshold checks
+3. Test with data where thresholds are NOT met to catch missing context
+
+---
+
 ## Implementation Status
 
 - [x] Plan documented

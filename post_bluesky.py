@@ -252,6 +252,57 @@ def check_cold_threshold(data: dict) -> dict:
     }
 
 
+def get_peak_timing_from_raw(data: dict) -> str:
+    """Get PEAK TIMING context from raw data, regardless of cold threshold.
+
+    This finds the coldest point across all models and determines if it's
+    PAST, TODAY, or FUTURE relative to today.
+
+    Returns context string or None.
+    """
+    runs = data.get('runs', [])
+    if not runs:
+        return None
+
+    current = runs[0]
+    models = current.get('models', {})
+    timestamps = current.get('timestamps', [])
+
+    if not models or not timestamps:
+        return None
+
+    # Find coldest point across all models
+    overall_coldest = {'temp': 999, 'date': None}
+
+    for model_key, model_data in models.items():
+        means = model_data.get('mean', [])
+        for i, val in enumerate(means):
+            if val is not None and val < overall_coldest['temp']:
+                overall_coldest['temp'] = val
+                if i < len(timestamps):
+                    overall_coldest['date'] = timestamps[i][:10]
+
+    if not overall_coldest['date']:
+        return None
+
+    try:
+        today = datetime.now(timezone.utc).date()
+        peak_date = datetime.strptime(overall_coldest['date'], '%Y-%m-%d').date()
+
+        if peak_date < today:
+            return f"PEAK TIMING: PAST - coldest point ({overall_coldest['temp']:.1f}C) was {peak_date.strftime('%a %d')}, we are now WARMING. Do NOT say 'peak holding' or 'cold persisting'."
+        elif peak_date == today:
+            return f"PEAK TIMING: TODAY - coldest point ({overall_coldest['temp']:.1f}C) is today, warming follows."
+        else:
+            days_away = (peak_date - today).days
+            if days_away <= 2:
+                return f"PEAK TIMING: SOON - coldest ({overall_coldest['temp']:.1f}C) arrives {peak_date.strftime('%a %d')}, still cooling."
+            else:
+                return f"PEAK TIMING: FUTURE - coldest ({overall_coldest['temp']:.1f}C) on {peak_date.strftime('%a %d')}, {days_away} days away."
+    except:
+        return None
+
+
 def check_model_divergence(data: dict) -> dict:
     """Check for strong model disagreement (>4°C) at any forecast time."""
     runs = data.get('runs', [])
@@ -976,9 +1027,11 @@ def generate_fallback_post(data: dict) -> str:
 def format_analysis_context(run_diff_text: str, confidence: str,
                            percentile_info: dict, bimodal_info: dict,
                            persistence_info: dict, timing_info: dict,
-                           cold_info: dict = None, period_info: dict = None) -> str:
+                           cold_info: dict = None, period_info: dict = None,
+                           data: dict = None) -> str:
     """Format all analysis results into context for Claude CLI prompt."""
     context_parts = []
+    peak_timing_set = False  # Track if PEAK TIMING was added
 
     # NEW: Signal strength (replaces old confidence)
     signal_strength = calculate_signal_strength(cold_info, persistence_info)
@@ -995,6 +1048,37 @@ def format_analysis_context(run_diff_text: str, confidence: str,
         models = cold_info['models']
         ranked = ", ".join([f"{m['model']} {m['temp']}°C on {m['date']}" for m in models])
         context_parts.append(f"COLD RANKING (coldest first): {ranked}")
+
+        # CRITICAL: Check if peak is PAST, TODAY, or FUTURE
+        today = datetime.now(timezone.utc).date()
+        peak_dates = []
+        for m in models:
+            try:
+                peak_date = datetime.strptime(m['date'][:10], '%Y-%m-%d').date()
+                peak_dates.append(peak_date)
+            except:
+                pass
+
+        if peak_dates:
+            earliest_peak = min(peak_dates)
+            latest_peak = max(peak_dates)
+
+            if latest_peak < today:
+                context_parts.append(f"PEAK TIMING: PAST - coldest point was {latest_peak.strftime('%a %d')}, we are now WARMING. Do NOT say 'peak holding'.")
+                peak_timing_set = True
+            elif earliest_peak <= today <= latest_peak:
+                context_parts.append(f"PEAK TIMING: NOW - coldest point is around today ({today.strftime('%a %d')}), transition imminent.")
+                peak_timing_set = True
+            else:
+                context_parts.append(f"PEAK TIMING: FUTURE - coldest point arrives {earliest_peak.strftime('%a %d')}, we are still COOLING.")
+                peak_timing_set = True
+
+    # CRITICAL: If cold_info didn't provide peak timing, calculate from raw data
+    # This prevents "peak holding" garbage when we're actually warming
+    if not peak_timing_set and data:
+        raw_peak_timing = get_peak_timing_from_raw(data)
+        if raw_peak_timing:
+            context_parts.append(raw_peak_timing)
 
     # Run-to-run shifts
     if run_diff_text:
@@ -1087,7 +1171,8 @@ NARRATIVE CONTINUITY - DATA IS TRUTH:
         percentile_info, bimodal_info,
         persistence_info, timing_info,
         cold_info=cold_info,
-        period_info=period_info
+        period_info=period_info,
+        data=data  # For peak timing calculation regardless of cold threshold
     )
 
     # Determine if this is a significant event (multi-model agreement, high percentile)

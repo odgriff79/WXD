@@ -743,6 +743,37 @@ def run_full_analysis(
         if cold_info.get('min_temp'):
             context_parts.append(f"COLDEST MEMBER: {cold_info['min_temp']}C")
 
+    # CRITICAL: Check if coldest point is PAST, TODAY, or FUTURE - regardless of cold threshold
+    # This prevents saying "cold holding" when we're actually warming
+    today = utcnow().date()
+    runs = data.get("runs", [])
+    if runs:
+        current = runs[0]
+        timestamps = current.get("timestamps", [])
+        temps = current.get("mean", current.get("values", []))
+
+        if temps and timestamps:
+            # Find coldest point in forecast
+            valid_temps = [(i, t) for i, t in enumerate(temps) if t is not None]
+            if valid_temps:
+                min_idx, min_temp = min(valid_temps, key=lambda x: x[1])
+                try:
+                    peak_ts = timestamps[min_idx]
+                    peak_date = datetime.fromisoformat(peak_ts.replace('Z', '+00:00')).date()
+
+                    if peak_date < today:
+                        context_parts.append(f"PEAK TIMING: PAST - coldest point ({min_temp:.1f}C) was {peak_date.strftime('%a %d')}, we are now WARMING. Do NOT say 'peak holding' or 'cold persisting'.")
+                    elif peak_date == today:
+                        context_parts.append(f"PEAK TIMING: TODAY - coldest point ({min_temp:.1f}C) is today, warming follows.")
+                    else:
+                        days_away = (peak_date - today).days
+                        if days_away <= 2:
+                            context_parts.append(f"PEAK TIMING: SOON - coldest ({min_temp:.1f}C) arrives {peak_date.strftime('%a %d')}, still cooling.")
+                        else:
+                            context_parts.append(f"PEAK TIMING: FUTURE - coldest ({min_temp:.1f}C) on {peak_date.strftime('%a %d')}, {days_away} days away.")
+                except:
+                    pass
+
     # Add period breakdown - KEY for commentary
     period_ctx = format_period_context(period_analysis)
     if period_ctx:
