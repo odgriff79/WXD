@@ -551,6 +551,28 @@ git log -1 --format="%ci"                    # Latest commit date
 
 This incident now documented in both CLAUDE.md files as "NEVER MAKE THINGS UP" mandatory section.
 
+---
+
+### 2026-01-11: REPEAT OFFENSE - Guessed function name AGAIN
+
+**Problem:** When trying to delete a post, guessed `get_own_posts` when actual method is `get_recent_posts`. This is the SAME mistake documented on 2026-01-10.
+
+**Root cause:** Did not check available methods before writing code. Assumed a function name instead of verifying.
+
+**Evidence:**
+```
+AttributeError: 'BlueskyClient' object has no attribute 'get_own_posts'. Did you mean: 'get_recent_posts'?
+```
+
+**Fix:** Used `dir(client)` to list available methods, then used correct one.
+
+**Prevention:**
+1. MANDATORY: Before using any method on BlueskyClient, run `dir(client)` or grep lib/bluesky.py
+2. This is now a REPEAT offense - no more excuses
+3. Add enforcement: check method exists before calling
+
+---
+
 ## Implementation Status
 
 - [x] Plan documented

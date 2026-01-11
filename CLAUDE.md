@@ -1,6 +1,17 @@
 # CLAUDE.md - WXD Project
 
 ---
+## ⚠️ STOP AND READ BEFORE ACTING ⚠️
+
+**Before using ANY module or feature, READ its section in this file FIRST.**
+
+- Bluesky work? Read "Bluesky Publishing - EXPERT MODULE" section first
+- Reply system? Read "Reply System" section first
+- Posting? Read "Mandatory Rules" section first
+
+**DO NOT GUESS.** Check method names, follow documented patterns. Repeat offenses logged.
+
+---
 ## ⚠️ MANDATORY: VM CONNECTION - READ FIRST ⚠️
 
 **WXD-VM IP: 144.21.62.133** — This is the ONLY VM for WXD work.
@@ -111,6 +122,20 @@ wxd/
 3. **Facets use BYTE positions** - not character positions (UTF-8!)
 4. **Max 300 characters** per post
 5. **Threads need [X/Y] numbering** - MANDATORY
+6. **NEVER GUESS METHOD NAMES** - Check Quick Reference below or run `dir(client)` BEFORE calling any method. Repeat offense logged 2026-01-11.
+
+### Available Methods (MEMORIZE - do not guess)
+
+```python
+BlueskyClient methods:
+- post(text, image_path=None)    # Single post
+- post_thread(posts)             # Thread
+- delete(uri)                    # Delete by URI
+- get_recent_posts(limit=20)     # List own posts
+- find_posts_containing(text)    # Search posts
+- replace(uri, new_text)         # Delete + repost
+- get_post(uri)                  # Get single post
+```
 
 ### Quick Reference
 
