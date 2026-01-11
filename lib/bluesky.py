@@ -164,6 +164,16 @@ class BlueskyClient:
         self._client = None
         self._did = None
 
+    def __getattr__(self, name):
+        """Catch incorrect method names and show available methods."""
+        available = ['post', 'post_thread', 'delete', 'get_recent_posts',
+                     'find_posts_containing', 'replace', 'get_post']
+        raise AttributeError(
+            f"BlueskyClient has no method '{name}'.\n"
+            f"Available methods: {', '.join(available)}\n"
+            f"READ CLAUDE.md BEFORE GUESSING METHOD NAMES."
+        )
+
     def _ensure_logged_in(self):
         """Login if not already logged in."""
         if self._client is None:
