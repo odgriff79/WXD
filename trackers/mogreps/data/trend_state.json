@@ -1,9 +1,9 @@
 {
-  "cold_signal_runs": 58,
+  "cold_signal_runs": 0,
   "warm_signal_runs": 0,
   "shift_direction": null,
   "shift_runs": 0,
-  "last_min_temp": -8.2,
-  "last_mean_temp": -7.3,
-  "last_posted_commentary": "Cold snap delivering -7.3C today (Sat 10th) as forecast, but ensemble now shows stronger recovery than yesterday's signal suggested. Met Office has escalated Sunday 11th to Amber warning (Yellow for Scotland, Northern Ireland, England Sat 10th and Mon 12th)."
+  "last_min_temp": -6.5,
+  "last_mean_temp": -6.1,
+  "last_posted_commentary": "Cold snap continues through Monday 12th with temps consistently around -6C as MOGREPS shows high model agreement\u2014but recovery signal now weaker than expected. Previous forecast suggested rapid warming to -1.5C by mid-week, but ensemble now indicates more gradual lift."
 }

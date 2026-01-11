@@ -1,9 +1,9 @@
 {
-  "cold_signal_runs": 6,
+  "cold_signal_runs": 0,
   "warm_signal_runs": 0,
   "shift_direction": null,
   "shift_runs": 0,
   "last_min_temp": -6.9,
   "last_mean_temp": -6.3,
-  "last_posted_commentary": "Met Office Amber warning upgraded for Sunday 11th alongside Yellow warnings Sat 10th-Mon 12th across England, Scotland, Northern Ireland. Today remains the coldest point at -6.3C as forecast, but ICON shows rapid recovery ahead: days 4-6 now averaging -0.3C (range -1.7C to 0.4C),..."
+  "last_posted_commentary": "Cold peak persists through today (11th Jan) as ICON maintains steady signal around -6C with tight ensemble agreement. Amber warning active today, drops to Yellow from Mon 12th (Met Office, England/Scotland/NI affected)."
 }

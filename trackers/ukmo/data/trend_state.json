@@ -1,9 +1,9 @@
 {
-  "cold_signal_runs": 32,
+  "cold_signal_runs": 36,
   "warm_signal_runs": 0,
-  "shift_direction": null,
-  "shift_runs": 0,
+  "shift_direction": "warmer",
+  "shift_runs": 4,
   "last_min_temp": null,
-  "last_mean_temp": -7.5,
-  "last_posted_commentary": "Cold holding through Sunday 11th as UKMO confirms -7C early, but recovery signal now showing\u2014model shifts milder for mid-week with temps climbing to 3C by Tuesday 14th. Amber warning Sun 11th (ice/snow) across England/Scotland/NI, Yellow warnings active Sat 10th and Mon 12th."
+  "last_mean_temp": -5.1,
+  "last_posted_commentary": "Cold trough locked through Tuesday 12th as UKMO confirms -5C by Sunday 11th, but warmer Atlantic air signalled from midweek\u2014models showing 5C shift towards milder conditions around Tuesday 14th. Timing window tightening on recovery phase."
 }
