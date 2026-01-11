@@ -598,6 +598,44 @@ AttributeError: 'BlueskyClient' object has no attribute 'get_own_posts'. Did you
 
 ---
 
+### 2026-01-11: Weekly post reading wrong file
+
+**Problem:** Weekly post was reading `tracker_state.json` instead of `alert_state.json` for cold signal data. Result was missing context or wrong data.
+
+**Root cause:** When implementing `get_weekly_weather_context()`, used the wrong state file path without verifying which file contains the cold signal info.
+
+**Fix:** Changed file path from `tracker_state.json` to `data/alert_state.json`.
+
+**Prevention:** Verify data locations before writing file access code. Don't assume based on similar names.
+
+---
+
+### 2026-01-11: Missing import (timedelta)
+
+**Problem:** `NameError: name 'timedelta' is not defined` when running weekly post.
+
+**Root cause:** Added code using `timedelta` but forgot to add it to the datetime imports.
+
+**Fix:** Added `timedelta` to `from datetime import datetime, timezone, timedelta`.
+
+**Prevention:** When adding new stdlib usage, immediately verify the import exists.
+
+---
+
+### 2026-01-11: Double thread numbering
+
+**Problem:** Thread posts were getting `[1/6] [1/6]` - double numbering. Claude was adding `[X/Y]` and code was also adding it via `post_thread()`.
+
+**Root cause:** Both the prompt told Claude to add numbering AND the `post_thread()` function automatically adds numbering.
+
+**Fix:**
+1. Strip any existing numbering from Claude output with `re.sub(r'^\[\d+/\d+\]\s*', '', post)`
+2. Tell Claude NOT to add numbering in the prompt
+
+**Prevention:** When multiple components touch the same output, clarify who is responsible for what formatting.
+
+---
+
 ## Implementation Status
 
 - [x] Plan documented
