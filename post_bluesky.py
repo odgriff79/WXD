@@ -16,7 +16,7 @@ import json
 import subprocess
 import sys
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from statistics import mean, stdev
 from collections import defaultdict
@@ -1489,8 +1489,8 @@ def post_to_bluesky(text: str, image_path: Path = None, handle: str = None, pass
         return None
 
 
-def get_weekly_commits() -> list:
-    """Get git commits from the past week."""
+def get_weekly_dev_commits() -> list:
+    """Get meaningful dev commits from the past week (filter out automated data updates)."""
     try:
         result = subprocess.run(
             ['git', 'log', '--since=1 week ago', '--oneline', '--no-merges'],
@@ -1498,67 +1498,192 @@ def get_weekly_commits() -> list:
             text=True,
             timeout=30
         )
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip().split('\n')
-        return []
+        if result.returncode != 0 or not result.stdout.strip():
+            return []
+
+        commits = result.stdout.strip().split('\n')
+
+        # Filter out automated commits (data updates, chart syncs)
+        skip_patterns = [
+            'Update chart', 'Data update', 'Update charts',
+            'Sync charts', 'update data', 'Auto-update'
+        ]
+
+        meaningful = []
+        for commit in commits:
+            parts = commit.split(' ', 1)
+            if len(parts) > 1:
+                msg = parts[1]
+                if not any(pattern.lower() in msg.lower() for pattern in skip_patterns):
+                    meaningful.append(msg)
+
+        return meaningful
     except Exception:
         return []
 
 
-def generate_weekly_changelog() -> str:
-    """Generate weekly changelog from git commits."""
-    commits = get_weekly_commits()
+def get_weekly_weather_context() -> dict:
+    """Gather weather tracking context from the past week."""
+    context = {
+        'warnings_tracked': [],
+        'cold_signals': False,
+        'models_tracked': ['GFS', 'ECM', 'AIFS', 'GEM', 'ICON', 'UKMO', 'MOGREPS'],
+        'cold_duration': 0,
+        'cold_temp': None
+    }
 
-    if not commits:
-        return None  # No commits this week, skip posting
+    # Check alert state for cold signal history (correct file!)
+    state_path = Path(__file__).parent / "data" / "alert_state.json"
+    if state_path.exists():
+        try:
+            with open(state_path) as f:
+                state = json.load(f)
+                if state.get('trend_signal') == 'cold':
+                    context['cold_signals'] = True
+                    context['cold_duration'] = state.get('trend_run_count', 0)
+                    context['cold_temp'] = state.get('trend_strength')
+                    context['cold_count'] = state.get('cold_count', 0)
+        except:
+            pass
 
-    # Summarize commits (strip commit hashes, keep messages)
-    messages = []
-    for commit in commits[:5]:  # Max 5 commits to fit in post
-        # Format: "abc1234 Commit message here"
-        parts = commit.split(' ', 1)
-        if len(parts) > 1:
-            messages.append(parts[1])
-
-    if not messages:
-        return None
-
-    # Build summary
-    if len(commits) == 1:
-        summary = f"🔧 WXD this week: {messages[0]}"
-    else:
-        bullet_points = "; ".join(messages[:3])
-        if len(commits) > 3:
-            summary = f"🔧 WXD this week ({len(commits)} updates): {bullet_points}..."
-        else:
-            summary = f"🔧 WXD this week: {bullet_points}"
-
-    # Truncate if needed
-    if len(summary) > 300:
-        summary = summary[:297] + "..."
-
-    return summary
+    return context
 
 
-def post_weekly(handle: str = None, password: str = None) -> int:
-    """Post weekly changelog to Bluesky."""
+def generate_weekly_recap(dry_run: bool = False) -> list:
+    """Generate meaningful weekly recap thread using Claude CLI."""
+
+    dev_commits = get_weekly_dev_commits()
+    weather_ctx = get_weekly_weather_context()
+
+    # Build context for Claude
+    dev_updates = "\n".join(f"- {c}" for c in dev_commits[:10]) if dev_commits else "No significant code changes this week."
+
+    today = datetime.now(timezone.utc)
+    week_start = (today - timedelta(days=7)).strftime('%d %b')
+    week_end = today.strftime('%d %b')
+
+    prompt = f"""You are WXD, writing a weekly recap thread for your Bluesky followers. This is a friendly, informal update about what's been happening with the weather tracking bot.
+
+WEEK: {week_start} - {week_end}
+
+WEATHER CONTEXT THIS WEEK:
+- Models tracked: {', '.join(weather_ctx['models_tracked'])}
+- Cold signal active: {weather_ctx.get('cold_signals', False)}
+- Cold tracking: {weather_ctx.get('cold_duration', 0)} consecutive runs (~{weather_ctx.get('cold_duration', 0)//2} days)
+- Coldest temp tracked: {weather_ctx.get('cold_temp', 'N/A')}°C at 850hPa
+- Cold alerts issued: {weather_ctx.get('cold_count', 0)}
+NOTE: If cold_signals is True with high duration, it was a COLD week with warnings - do NOT say it was mild/quiet!
+
+DEV UPDATES THIS WEEK:
+{dev_updates}
+
+Write 4-6 posts (each max 280 chars). Detail is good - expand on the dev updates.
+
+Post 1: Weather context opener - what the week looked like for tracking (use the stats above)
+Posts 2-5: Dev updates - expand on items from the DEV UPDATES list, one topic per post, go into detail
+Post 6 (optional): Looking ahead if there's something concrete
+
+CRITICAL: Only expand on things in the DEV UPDATES list. Do NOT invent lessons, wisdom, or filler content. Every claim must trace back to a commit message above.
+
+STYLE:
+- Friendly, casual tone - talking to weather enthusiasts
+- No emojis except 🧵 at start of first post to indicate thread
+- Don't list commit messages literally - translate to human-readable updates
+- Be honest about what happened - don't invent events
+- NEVER mention chart updates, data syncs, or automated git commits - these are noise, not news
+- Focus on actual features, fixes, improvements that matter to users
+- Do NOT add [1/6] numbering - that's added automatically later
+
+FORMAT RULES - CRITICAL:
+- Return ONLY the actual post text, nothing else
+- Separate posts with --- on its own line
+- First post MUST start with 🧵
+- NO meta-commentary, NO "let me write", NO explaining what you're doing
+- Just the posts themselves, ready to publish
+
+Example output:
+🧵 Weekly recap: [actual content here]
+---
+[second post content]
+---
+[third post if needed]"""
+
+    try:
+        result = subprocess.run(
+            ['claude', '--dangerously-skip-permissions', '--model', 'sonnet', '-p', prompt],
+            capture_output=True,
+            text=True,
+            timeout=120
+        )
+
+        if result.returncode == 0 and result.stdout.strip():
+            raw = result.stdout.strip()
+            posts = [p.strip() for p in raw.split('---') if p.strip()]
+
+            # Add thread numbering
+            if len(posts) > 1:
+                import re
+                numbered = []
+                for i, post in enumerate(posts):
+                    # Strip any existing numbering Claude might have added
+                    post = re.sub(r'^\[\d+/\d+\]\s*', '', post)
+                    # Truncate if needed
+                    max_len = 280 - len(f"[{i+1}/{len(posts)}] ")
+                    if len(post) > max_len:
+                        post = post[:max_len-3] + "..."
+                    numbered.append(f"[{i+1}/{len(posts)}] {post}")
+                return numbered
+            return posts
+
+    except Exception as e:
+        print(f"Claude CLI error: {e}")
+
+    # Fallback
+    return [f"🧵 WXD weekly recap: Tracked 7 models across {weather_ctx.get('cold_duration', 0)//2 or 7} days of forecasts. More detailed recaps coming soon!"]
+
+
+def post_weekly(handle: str = None, password: str = None, dry_run: bool = False) -> int:
+    """Post weekly recap thread to Bluesky."""
     if not handle or not password:
         print("ERROR: BSKY_HANDLE and BSKY_PASSWORD not set")
         return 1
 
-    summary = generate_weekly_changelog()
-    if not summary:
-        print("No commits this week, skipping post")
-        return 0  # Not an error, just nothing to post
+    print("Generating weekly recap...")
+    posts = generate_weekly_recap(dry_run=dry_run)
 
-    print(f"Posting weekly changelog ({len(summary)} chars):")
-    print(f"  {summary}")
+    if not posts:
+        print("Failed to generate weekly recap")
+        return 1
 
-    if post_to_bluesky(summary, None, handle, password):
-        print("Weekly changelog posted successfully")
+    print(f"Weekly recap thread ({len(posts)} posts):")
+    for i, post in enumerate(posts):
+        print(f"  [{i+1}] ({len(post)} chars): {post[:80]}...")
+
+    if dry_run:
+        print("\n" + "="*50)
+        print("PREVIEW (not posting):")
+        for i, post in enumerate(posts):
+            print(f"\n--- Post {i+1} ---")
+            print(post)
+        print("="*50)
         return 0
-    else:
-        print("Failed to post weekly changelog")
+
+    # Post as thread
+    try:
+        sys.path.insert(0, str(Path(__file__).parent))
+        from lib.bluesky import BlueskyClient
+
+        client = BlueskyClient()
+        results = client.post_thread(posts)
+
+        if results:
+            print("Weekly recap posted successfully")
+            return 0
+        else:
+            print("Failed to post weekly recap")
+            return 1
+    except Exception as e:
+        print(f"Bluesky error: {e}")
         return 1
 
 
@@ -1626,9 +1751,9 @@ def main():
     if args.changelog:
         return post_changelog(args.changelog, bsky_handle, bsky_password)
 
-    # Handle weekly changelog mode
+    # Handle weekly recap mode
     if args.weekly:
-        return post_weekly(bsky_handle, bsky_password)
+        return post_weekly(bsky_handle, bsky_password, dry_run=dry_run)
 
     print(f"WXD Bluesky Poster - {utcnow().isoformat()}")
     print()
