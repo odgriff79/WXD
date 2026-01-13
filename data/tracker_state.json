@@ -1,16 +1,16 @@
 {
   "MOGREPS": {
-    "last_success": "2026-01-12T15:02:52.775189+00:00",
+    "last_success": "2026-01-13T03:02:51.823761+00:00",
     "run_id": null,
     "status": "success"
   },
   "ICON": {
-    "last_success": "2026-01-12T16:00:34.020721+00:00",
+    "last_success": "2026-01-13T04:00:36.750321+00:00",
     "run_id": null,
     "status": "success"
   },
   "UKMO": {
-    "last_success": "2026-01-12T19:00:19.454803+00:00",
+    "last_success": "2026-01-13T07:00:19.168328+00:00",
     "run_id": null,
     "status": "success"
   },
@@ -20,7 +20,7 @@
     "status": "success"
   },
   "tracker_a": {
-    "last_success": "2026-01-12T08:30:25.855791+00:00",
+    "last_success": "2026-01-12T20:30:25.727441+00:00",
     "run_id": null,
     "status": "success"
   }
