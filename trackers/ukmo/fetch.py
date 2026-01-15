@@ -10,10 +10,15 @@ Runs 2x daily: 00z, 12z (with ~4 hour licensing delay)
 
 import argparse
 import json
+import time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from statistics import mean
 import requests
+
+# Retry config for API timeouts
+MAX_RETRIES = 7
+RETRY_DELAYS = [60, 120, 300, 600, 900, 1800, 3600]  # 1m, 2m, 5m, 10m, 15m, 30m, 60m
 
 # London coordinates
 LATITUDE = 51.5074
@@ -66,9 +71,24 @@ def fetch_ukmo_data(data_dir: Path) -> dict:
         "timezone": "UTC"
     }
 
-    print(f"  Fetching from Open-Meteo...")
-    response = requests.get(API_URL, params=params, timeout=60)
-    response.raise_for_status()
+    # Retry loop for API timeouts
+    last_error = None
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            if attempt > 0:
+                delay = RETRY_DELAYS[min(attempt - 1, len(RETRY_DELAYS) - 1)]
+                print(f"  Retry {attempt}/{MAX_RETRIES} after {delay}s...")
+                time.sleep(delay)
+            print(f"  Fetching from Open-Meteo...")
+            response = requests.get(API_URL, params=params, timeout=180)
+            response.raise_for_status()
+            break
+        except (requests.exceptions.Timeout, requests.exceptions.HTTPError) as e:
+            last_error = e
+            if attempt < MAX_RETRIES:
+                print(f"  Failed: {e}")
+                continue
+            raise last_error
 
     data = response.json()
     hourly = data.get("hourly", {})

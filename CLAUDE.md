@@ -29,6 +29,21 @@ ssh -i "KEY_PATH" ubuntu@144.21.62.133 "cd ~/wxd && ..."
 **If you are unsure which VM to use, STOP and ASK.**
 
 ---
+## ⚠️ KNOWN ISSUE: Open-Meteo 504 Timeouts ⚠️
+
+**Problem**: UKMO tracker fails with `504 Gateway Time-out` from Open-Meteo API.
+**Frequency**: Intermittent, seen 14-15 Jan 2026.
+**Solution**: Retry logic in `trackers/ukmo/fetch.py` - 7 retries over 2 hours (1m, 2m, 5m, 10m, 15m, 30m, 60m) with 3min request timeout.
+
+**If user reports UKMO 504 error:**
+1. Check if it's already recovered (API may be back): `curl -s "https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278&hourly=temperature_850hPa&models=ukmo_global_deterministic_10km&forecast_days=7&timezone=UTC" | head -1`
+2. If API works, run: `bash trackers/ukmo/cron_ukmo.sh 2>&1 | tee -a trackers/ukmo/cron.log`
+3. Verify dashboard shows green: `curl -s http://144.21.62.133:8080/ | grep -A2 "UKMO Tracker"`
+4. Send recovery ntfy: `curl -d "UKMO recovered" ntfy.sh/wxd-alerts`
+
+**DO NOT** just run fetch.py and post.py separately - use cron_ukmo.sh so logs update properly.
+
+---
 
 **Read this file at the start of every session.**
 
