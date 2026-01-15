@@ -1214,6 +1214,25 @@ STYLE:
 - Mention model agreement/disagreement and what changed since last run
 - Can mention ONE key temperature to anchor the story
 
+PEAK TIMING - CRITICAL (READ THIS CAREFULLY):
+- The ANALYSIS below contains "PEAK TIMING:" which tells you if the coldest point is PAST, TODAY, or FUTURE
+- If PEAK TIMING says "PAST": STOP. The cold peak HAS ALREADY HAPPENED. You MUST NOT say "peak arriving", "cold holding", "peak persisting". The correct framing is "peak passed [date], now warming" or "cold easing after [date] peak"
+- If PEAK TIMING says "TODAY": The peak is NOW. Say "peak today" or "coldest point today", NOT "peak arriving"
+- If PEAK TIMING says "FUTURE": You CAN say "cold arriving" or "peak approaching"
+- VIOLATION: Any post saying "peak arriving/holding/persisting" when PEAK TIMING is PAST will be WRONG
+
+MULTI-RUN TRENDS - IMPORTANT:
+- If ANALYSIS contains "MULTI-RUN TREND:", this means multiple consecutive runs show the same direction
+- Progressive cooling = each run getting colder - YOU MUST MENTION THIS ("models trending colder over recent runs")
+- Progressive warming = each run getting warmer - YOU MUST MENTION THIS ("models trending warmer over recent runs")
+- This is different from single run-to-run shift - it shows SUSTAINED model drift
+
+END-OF-FORECAST TRENDS - IMPORTANT:
+- If ANALYSIS contains "END-OF-FORECAST:", there's a late trend reversal at the end of the forecast period
+- Late cold return = temps dropping at very end - MENTION THIS ("cold returning by end of period")
+- Late warming = temps rising at very end - MENTION THIS ("warming appearing at end of period")
+- Do NOT ignore the end of the forecast just because the near-term is the main story
+
 SIGNAL AND TIMING FRAMEWORK:
 - SIGNAL tells you event confidence: "high_confidence" = certain it's happening, "strong" = very likely, "emerging" = developing
 - TIMING tells you the date window and spread (e.g., "Jan 3-5, ±2 days")
@@ -1263,17 +1282,19 @@ LANGUAGE:
 
 MET OFFICE WARNINGS - ABSOLUTE RULES (VIOLATION = MISINFORMATION):
 - ONLY mention warnings if the text "MET OFFICE WARNINGS (VERIFIED" appears in this prompt
-- If warning data says "None currently in force" - DO NOT mention warnings AT ALL
-- If warning data IS provided with actual warnings, you MUST include:
-  * Type: Yellow/Amber/Red
-  * Hazard: Snow/Ice/Rain/Wind etc
+- If warning data says "None currently in force" - DO NOT mention warnings AT ALL. Not even "no warnings". Just don't mention warnings.
+- If warning data IS provided with actual warnings, you MUST QUOTE VERBATIM:
+  * Type: Yellow/Amber/Red (exact color from data)
+  * Hazard: Snow/Ice/Rain/Wind (exact hazard from data)
   * Issuer: "Met Office" (ALWAYS attribute)
-  * Dates: exact dates from the data (e.g., "Sat 10 Jan - Sun 11 Jan")
-  * Regions: as listed in the data
+  * Dates: COPY EXACTLY from the data - do not paraphrase
+  * Regions: COPY EXACTLY from the data - do not paraphrase
 - NEVER fabricate, extrapolate, or assume warning details beyond what's explicitly provided
 - NEVER mention "long-range warnings" unless explicitly stated in the data
-- NEVER say "warnings expected", "warnings likely", or "warnings issued for [future date]"
-- If you cannot quote the exact warning from the data, DO NOT mention any warning
+- NEVER say "warnings expected", "warnings likely", "warnings issued for [future date]", or "warnings in place"
+- NEVER say "Yellow warning" without the exact dates and regions from the data
+- If you cannot COPY VERBATIM from the warning data, DO NOT mention any warning
+- TEST: Can you point to the exact text in this prompt that supports your warning claim? If not, DELETE IT.
 
 EVIDENCE-BASED CLAIMS - CRITICAL:
 - Every factual claim must be traceable to the ANALYSIS data below
@@ -1307,14 +1328,26 @@ Data shows ensemble means from GFS, ECM, AIFS, and GEM models."""
         if result.returncode == 0:
             text = result.stdout.strip()
             # For significant events, keep full text for multi-post
-            # For normal posts, truncate to fit single post
+            # For normal posts, truncate to fit single post at word boundary
             if is_significant:
                 # Allow longer - will be split into multiple posts if needed
                 if len(text) > 550:
-                    text = text[:547] + "..."
+                    truncated = text[:547]
+                    last_period = truncated.rfind('. ')
+                    if last_period > 400:
+                        text = truncated[:last_period + 1]
+                    else:
+                        last_space = truncated.rfind(' ')
+                        text = truncated[:last_space] + "..." if last_space > 400 else truncated + "..."
             else:
                 if len(text) > 270:
-                    text = text[:267] + "..."
+                    truncated = text[:267]
+                    last_period = truncated.rfind('. ')
+                    if last_period > 180:
+                        text = truncated[:last_period + 1]
+                    else:
+                        last_space = truncated.rfind(' ')
+                        text = truncated[:last_space] + "..." if last_space > 180 else truncated + "..."
             return text, False
 
         # Check if auth error
@@ -1335,10 +1368,22 @@ Data shows ensemble means from GFS, ECM, AIFS, and GEM models."""
                 text = result.stdout.strip()
                 if is_significant:
                     if len(text) > 550:
-                        text = text[:547] + "..."
+                        truncated = text[:547]
+                        last_period = truncated.rfind('. ')
+                        if last_period > 400:
+                            text = truncated[:last_period + 1]
+                        else:
+                            last_space = truncated.rfind(' ')
+                            text = truncated[:last_space] + "..." if last_space > 400 else truncated + "..."
                 else:
                     if len(text) > 270:
-                        text = text[:267] + "..."
+                        truncated = text[:267]
+                        last_period = truncated.rfind('. ')
+                        if last_period > 180:
+                            text = truncated[:last_period + 1]
+                        else:
+                            last_space = truncated.rfind(' ')
+                            text = truncated[:last_space] + "..." if last_space > 180 else truncated + "..."
                 return text, False
 
             # Still failing - use fallback

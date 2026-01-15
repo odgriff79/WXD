@@ -673,6 +673,86 @@ def format_timing_window(cold_info: dict, timing_analysis: dict) -> dict:
 
 
 # ============================================================================
+# MULTI-RUN TREND DETECTION
+# ============================================================================
+
+def analyze_multi_run_trend(data: dict, is_ensemble: bool = True) -> dict:
+    """Analyze trend across last 4-6 runs to detect progressive cooling/warming.
+
+    This catches patterns like "5 consecutive runs each colder than the last"
+    that single run-to-run comparison misses.
+
+    Returns dict with:
+        direction: 'cooling' | 'warming' | 'stable' | 'oscillating'
+        consecutive_runs: number of runs trending same direction
+        total_shift: cumulative temperature change over the runs
+        label: human-readable description
+    """
+    runs = data.get("runs", [])
+    if len(runs) < 3:
+        return {}
+
+    # Get mean temps at a consistent forecast hour (e.g., 72h out) for each run
+    # This compares apples to apples across runs
+    run_temps = []
+
+    for run in runs[:6]:  # Look at last 6 runs max
+        temps = run.get("mean", run.get("values", []))
+        if temps and len(temps) > 5:
+            # Use temp at ~72h (index 6 for 12-hourly, or middle of array)
+            mid_idx = min(6, len(temps) // 2)
+            if temps[mid_idx] is not None:
+                run_temps.append(temps[mid_idx])
+
+    if len(run_temps) < 3:
+        return {}
+
+    # Analyze direction of changes
+    changes = []
+    for i in range(len(run_temps) - 1):
+        diff = run_temps[i] - run_temps[i + 1]  # Positive = current run colder
+        if diff > 0.5:
+            changes.append('colder')
+        elif diff < -0.5:
+            changes.append('warmer')
+        else:
+            changes.append('stable')
+
+    # Count consecutive same-direction changes
+    if not changes:
+        return {}
+
+    # Check for consistent trend
+    colder_count = changes.count('colder')
+    warmer_count = changes.count('warmer')
+    total_runs = len(changes)
+
+    total_shift = run_temps[0] - run_temps[-1]  # Latest vs oldest
+
+    result = {
+        'total_shift': round(total_shift, 1),
+        'runs_analyzed': len(run_temps)
+    }
+
+    if colder_count >= total_runs * 0.7:  # 70%+ runs trending colder
+        result['direction'] = 'cooling'
+        result['consecutive_runs'] = colder_count
+        result['label'] = f"Progressive cooling: {colder_count} of last {total_runs} runs trending colder ({total_shift:+.1f}C total)"
+    elif warmer_count >= total_runs * 0.7:  # 70%+ runs trending warmer
+        result['direction'] = 'warming'
+        result['consecutive_runs'] = warmer_count
+        result['label'] = f"Progressive warming: {warmer_count} of last {total_runs} runs trending warmer ({total_shift:+.1f}C total)"
+    elif colder_count > 0 and warmer_count > 0:
+        result['direction'] = 'oscillating'
+        result['label'] = "Run-to-run oscillation (no clear trend)"
+    else:
+        result['direction'] = 'stable'
+        result['label'] = "Stable across recent runs"
+
+    return result
+
+
+# ============================================================================
 # FULL ANALYSIS PIPELINE
 # ============================================================================
 
@@ -737,6 +817,11 @@ def run_full_analysis(
         context_parts.append(f"SHIFT: Model moved {abs(run_diff['shift'])}C {run_diff['direction']} since last run around {run_diff['date']}")
     elif run_diff and run_diff.get("confirming"):
         context_parts.append("CONSISTENCY: Latest run confirms previous forecast (no significant change)")
+
+    # NEW: Multi-run trend detection (progressive cooling/warming across 4-6 runs)
+    multi_run_trend = analyze_multi_run_trend(data, is_ensemble)
+    if multi_run_trend and multi_run_trend.get('direction') in ['cooling', 'warming']:
+        context_parts.append(f"MULTI-RUN TREND: {multi_run_trend['label']} - MUST MENTION THIS TREND")
 
     if cold_info:
         context_parts.append(f"COLD: Mean hits {cold_info['temp']}C on {cold_info['date']}")
@@ -943,6 +1028,23 @@ def analyze_by_period(data: dict, is_ensemble: bool = True) -> dict:
     result["trend_warming"] = trend_warming
     result["trend_cooling"] = trend_cooling
 
+    # NEW: End-of-forecast trend check - compare LAST 2 timestamps vs MID timestamps
+    # This catches late cold returns that period-based analysis might miss
+    if len(temps) >= 6:
+        mid_temps = [t for t in temps[len(temps)//3 : 2*len(temps)//3] if t is not None]
+        end_temps = [t for t in temps[-3:] if t is not None]  # Last 3 timestamps
+
+        if mid_temps and end_temps:
+            mid_avg = sum(mid_temps) / len(mid_temps)
+            end_avg = sum(end_temps) / len(end_temps)
+
+            if end_avg < mid_avg - 1.5:  # >1.5C colder at end
+                result["end_cooling"] = True
+                result["end_vs_mid_diff"] = round(end_avg - mid_avg, 1)
+            elif end_avg > mid_avg + 1.5:  # >1.5C warmer at end
+                result["end_warming"] = True
+                result["end_vs_mid_diff"] = round(end_avg - mid_avg, 1)
+
     # Check uniformity - handle "recovering" as distinct from pure "cold"
     result["patterns"] = patterns  # Store for debugging
     unique_patterns = set(patterns)
@@ -1053,5 +1155,13 @@ def format_period_context(period_analysis: dict) -> str:
         st = (period_analysis.get("short_term") or {}).get("mean", "?")
         ext = (period_analysis.get("extended") or {}).get("mean") or (period_analysis.get("mid_range") or {}).get("mean", "?")
         parts.append(f"TREND: Cooling through forecast period ({st}C → {ext}C) - MUST MENTION")
+
+    # NEW: End-of-forecast trend (last few timestamps vs middle)
+    if period_analysis.get("end_cooling"):
+        diff = period_analysis.get("end_vs_mid_diff", 0)
+        parts.append(f"END-OF-FORECAST: Late cold return detected ({diff:+.1f}C vs mid-period) - MENTION THIS")
+    elif period_analysis.get("end_warming"):
+        diff = period_analysis.get("end_vs_mid_diff", 0)
+        parts.append(f"END-OF-FORECAST: Late warming detected ({diff:+.1f}C vs mid-period) - MENTION THIS")
 
     return "\n".join(parts)
