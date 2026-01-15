@@ -1,9 +1,9 @@
 {
-  "cold_signal_runs": 36,
+  "cold_signal_runs": 0,
   "warm_signal_runs": 0,
-  "shift_direction": "warmer",
-  "shift_runs": 4,
+  "shift_direction": null,
+  "shift_runs": 0,
   "last_min_temp": null,
   "last_mean_temp": -5.1,
-  "last_posted_commentary": "Cold trough locked through Tuesday 12th as UKMO confirms -5C by Sunday 11th, but warmer Atlantic air signalled from midweek\u2014models showing 5C shift towards milder conditions around Tuesday 14th. Timing window tightening on recovery phase."
+  "last_posted_commentary": "Cold peak arriving tomorrow (Fri 16th) at -0.7\u00b0C, with Met Office yellow warnings for England and Wales continuing through Friday. UKMO then shows steady warming through next week, reaching near-normal +1.8\u00b0C by Thu 22nd as milder Atlantic air gradually returns."
 }

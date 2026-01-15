@@ -1283,6 +1283,9 @@ LANGUAGE:
 MET OFFICE WARNINGS - ABSOLUTE RULES (VIOLATION = MISINFORMATION):
 - ONLY mention warnings if the text "MET OFFICE WARNINGS (VERIFIED" appears in this prompt
 - If warning data says "None currently in force" - DO NOT mention warnings AT ALL. Not even "no warnings". Just don't mention warnings.
+- CRITICAL: Warnings may be for RAIN, WIND, FOG or other hazards - NOT necessarily cold/snow/ice
+- DO NOT link warnings to cold weather or "cold pattern" unless the warning explicitly mentions "snow" or "ice"
+- If hazard type is unknown, just say "Yellow warnings in force" without implying winter weather
 - If warning data IS provided with actual warnings, you MUST QUOTE VERBATIM:
   * Type: Yellow/Amber/Red (exact color from data)
   * Hazard: Snow/Ice/Rain/Wind (exact hazard from data)

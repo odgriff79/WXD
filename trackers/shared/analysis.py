@@ -697,7 +697,8 @@ def analyze_multi_run_trend(data: dict, is_ensemble: bool = True) -> dict:
     run_temps = []
 
     for run in runs[:6]:  # Look at last 6 runs max
-        temps = run.get("mean", run.get("values", []))
+        # Handle both single-model and multi-model formats
+        temps = run.get("multi_model_mean", run.get("mean", run.get("values", [])))
         if temps and len(temps) > 5:
             # Use temp at ~72h (index 6 for 12-hourly, or middle of array)
             mid_idx = min(6, len(temps) // 2)
@@ -907,12 +908,39 @@ def analyze_by_period(data: dict, is_ensemble: bool = True) -> dict:
     
     current = runs[0]
     timestamps = current.get("timestamps", [])
-    
-    # Use mean for ensemble, values for deterministic
-    temps = current.get("mean", current.get("values", []))
-    min_temps = current.get("min", []) if is_ensemble else []
-    max_temps = current.get("max", []) if is_ensemble else []
-    
+
+    # Handle both single-model and multi-model (4-way tracker) data structures
+    # Multi-model has "multi_model_mean" or "models" dict
+    # Single-model has "mean" or "values" directly
+    if current.get("multi_model_mean"):
+        temps = current["multi_model_mean"]
+        # For multi-model, estimate min/max from individual model means
+        models = current.get("models", {})
+        if models:
+            model_means = [m.get("mean", []) for m in models.values() if m.get("mean")]
+            if model_means:
+                min_temps = []
+                max_temps = []
+                for i in range(len(temps)):
+                    valid_vals = [vals[i] for vals in model_means if i < len(vals) and vals[i] is not None]
+                    if valid_vals:
+                        min_temps.append(min(valid_vals))
+                        max_temps.append(max(valid_vals))
+                    else:
+                        min_temps.append(None)
+                        max_temps.append(None)
+            else:
+                min_temps = []
+                max_temps = []
+        else:
+            min_temps = []
+            max_temps = []
+    else:
+        # Single-model format
+        temps = current.get("mean", current.get("values", []))
+        min_temps = current.get("min", []) if is_ensemble else []
+        max_temps = current.get("max", []) if is_ensemble else []
+
     if not temps or not timestamps:
         return {}
     

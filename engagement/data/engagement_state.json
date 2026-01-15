@@ -1,5 +1,5 @@
 {
-  "last_post": "2026-01-09T12:00:23.281439+00:00",
+  "last_post": "2026-01-13T12:00:20.290381+00:00",
   "topic_history": [
     {
       "category": "cold_relevant",
@@ -25,6 +25,11 @@
       "category": "weather_education",
       "topic": "Why do different weather models sometimes disagree",
       "time": "2026-01-10T12:10:24.938488+00:00"
+    },
+    {
+      "category": "myth_busting",
+      "topic": "Do not trust snow depth charts - why they are unreliable beyond 3 days",
+      "time": "2026-01-13T12:00:20.290397+00:00"
     }
   ],
   "collected_questions": [
@@ -35,6 +40,6 @@
       "uri": "at://did:plc:cmirdyg2syn4fypt6w742a7y/app.bsky.feed.post/3mbjazj6g5k2w"
     }
   ],
-  "posts_count": 5,
-  "last_community_request": "2026-01-04T12:00:06.056784+00:00"
+  "posts_count": 6,
+  "last_community_request": "2026-01-11T12:00:06.430271+00:00"
 }
