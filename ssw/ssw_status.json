@@ -1,7 +1,7 @@
 {
-  "timestamp": "2026-01-17T21:08:07.709550+00:00",
+  "timestamp": "2026-01-17T21:13:25.080833+00:00",
   "model_run": "20260117/12z",
-  "data_age_hours": 9.1,
+  "data_age_hours": 9.2,
   "status": "ok",
   "ssw_probability_pct": 3.2,
   "vulnerable_probability_pct": 3.2,
