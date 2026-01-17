@@ -636,6 +636,19 @@ AttributeError: 'BlueskyClient' object has no attribute 'get_own_posts'. Did you
 
 ---
 
+
+---
+
+### 2026-01-17: Tried to access client.client for ATProto client
+
+**Problem:** Tried to access client.client for ATProto client
+
+**Root cause:** Guessed internal attribute name instead of checking
+
+**Fix:** Use client._client to access underlying ATProto client
+
+**Prevention:** Error message now says available methods and suggests _client
+
 ## Implementation Status
 
 - [x] Plan documented

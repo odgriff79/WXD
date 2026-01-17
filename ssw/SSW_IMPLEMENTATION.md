@@ -1,8 +1,10 @@
 # SSW Monitor Implementation Plan
 
-**Status: WORK IN PROGRESS - NOT LIVE**
+**Status: LIVE**
 
 Last updated: 2026-01-17
+
+Intro thread posted: https://bsky.app/profile/wxd-london.bsky.social/post/3mcninibyl62z
 
 ---
 
@@ -28,7 +30,12 @@ SSW events can bring extended cold spells to the UK 2-4 weeks after the stratosp
 - OpenCharts API: Returns images only, no data endpoint found
 - Open Data Portal: Lacks 10 hPa level (stops at 50 hPa)
 - CDS API: Multi-week delay, not suitable for real-time monitoring
-- **Status**: ECMWF integration being explored for future enhancement
+
+**ECMWF S2S Data - Future Investigation:**
+- Simon Lee (@simonleewx.com) tip: https://apps.ecmwf.int/datasets/data/s2s-realtime-instantaneous-accum-ecmf/levtype=pl/type=cf/
+- 48 hour delay (this is what powers his SSW site)
+- Worth investigating for enhanced monitoring
+- **Status**: To be explored for future enhancement
 
 ---
 
@@ -211,13 +218,15 @@ Current status: 3% (0/31 members showing reversal) - normal winter vortex.
 
 ## TODO
 
-- [ ] Implement state tracking in ssw_monitor.py
-- [ ] Add --post flag with Bluesky integration
-- [ ] Add history.json management
-- [ ] Add Claude commentary generation
-- [ ] Add cron entries (4x fetch, 1x post window)
-- [ ] Owner review of intro post
-- [ ] Go live
+- [x] Implement state tracking in ssw_monitor.py
+- [x] Add --post flag with Bluesky integration
+- [x] Add history.json management
+- [x] Add Claude commentary generation
+- [x] Add cron entries (4x fetch, 1x post window)
+- [x] Owner review of intro post
+- [x] Go live (2026-01-17)
+- [x] Add latency probe for data availability tracking
+- [ ] Investigate ECMWF S2S data (48h delay) per Simon Lee tip
 
 ---
 
