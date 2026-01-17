@@ -953,13 +953,25 @@ def calculate_confidence(data: dict) -> str:
 
 
 def format_run_diff_text(diffs: list) -> str:
-    """Format run-to-run diffs for inclusion in post."""
+    """Format run-to-run diffs for inclusion in post.
+
+    CRITICAL: Make direction unambiguous for Claude:
+    - cooled = model forecast got COLDER = supporting cold trend
+    - warmed = model forecast got WARMER = backing off from cold
+    """
     if not diffs:
         return ""
 
     # Just use the biggest shift
     d = diffs[0]
-    return f"{d['model']} {d['direction']} {abs(d['diff'])}°C since last run"
+    diff_val = abs(d['diff'])
+
+    if d['direction'] == 'cooled':
+        # Model got colder - supporting cold signal
+        return f"{d['model']} dropped {diff_val}°C colder since last run (reinforcing cold trend)"
+    else:
+        # Model got warmer - backing off from cold
+        return f"{d['model']} rose {diff_val}°C warmer since last run (backing off cold signal)"
 
 
 def is_auth_error(stderr: str) -> bool:
