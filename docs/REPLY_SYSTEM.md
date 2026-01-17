@@ -410,6 +410,25 @@ Types logged:
 - `initial_question`: User replied before saying "chat"
 - `session_start`: User triggered chat session
 - `claude_response`: Claude generated a response
+- `super_user_feedback`: Dev feedback from ogriff79.bsky.social
+
+### Dev Feedback Commands
+
+```bash
+# Check for new feedback (dry-run)
+python reply_listener.py --limit 5
+
+# Check and save new feedback
+python reply_listener.py --limit 5 --post
+
+# After reviewing feedback, mark as actioned and purge
+python reply_listener.py --mark-reviewed
+
+# Nuclear option - clear all feedback without marking
+python reply_listener.py --clear-feedback
+```
+
+The system tracks `feedback_last_reviewed` timestamp. Entries older than this are automatically purged on next save.
 
 ---
 
