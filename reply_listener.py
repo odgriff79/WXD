@@ -897,10 +897,31 @@ def main():
                         help=f'Number of recent posts to check (default: {DEFAULT_POSTS_TO_CHECK})')
     parser.add_argument('--max-replies', '-m', type=int, default=DEFAULT_MAX_REPLIES,
                         help=f'Max replies to send per run (default: {DEFAULT_MAX_REPLIES})')
-    parser.add_argument('--clear-feedback', action='store_true', 
+    parser.add_argument('--clear-feedback', action='store_true',
                         help='Clear the feedback/training queue and exit')
+    parser.add_argument('--mark-reviewed', action='store_true',
+                        help='Mark all current feedback as reviewed (purges on next save)')
     args = parser.parse_args()
-    
+
+    # Handle --mark-reviewed
+    if args.mark_reviewed:
+        import json
+        state_file = os.path.join(os.path.dirname(__file__), 'data', 'reply_listener_state.json')
+        try:
+            with open(state_file, 'r') as f:
+                state = json.load(f)
+            count = len(state.get('training_log', []))
+            state['feedback_last_reviewed'] = utcnow().isoformat()
+            state['training_log'] = []  # Purge now
+            with open(state_file, 'w') as f:
+                json.dump(state, f, indent=2)
+            print(f'Marked {count} entries as reviewed and purged')
+        except FileNotFoundError:
+            print('No state file found')
+        except Exception as e:
+            print(f'Error: {e}')
+        return 0
+
     # Handle --clear-feedback before anything else
     if args.clear_feedback:
         import json
