@@ -209,8 +209,18 @@ def log_training_data(state: dict, entry: dict) -> None:
 
 
 def save_state(state_path: Path, state: dict) -> None:
-    """Save state to file."""
+    """Save state to file, purging actioned training log entries."""
     state['last_run'] = utcnow().isoformat()
+
+    # Purge training_log entries older than feedback_last_reviewed (already actioned)
+    last_reviewed = state.get('feedback_last_reviewed')
+    if last_reviewed and state.get('training_log'):
+        last_reviewed_dt = parse_datetime(last_reviewed)
+        state['training_log'] = [
+            entry for entry in state['training_log']
+            if parse_datetime(entry.get('timestamp', '2000-01-01T00:00:00+00:00')) > last_reviewed_dt
+        ]
+
     with open(state_path, 'w') as f:
         json.dump(state, f, indent=2)
 
