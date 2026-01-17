@@ -189,8 +189,9 @@ def generate_commentary(
         Tuple of (commentary_text, is_fallback)
     """
     # Determine if significant event (more chars allowed)
+    # Allow longer text - split_for_posting() handles multi-post threading
     significant = is_significant_event(cold_info, trend_analysis)
-    max_chars = 450 if significant else 290
+    max_chars = 900 if significant else 600
 
     # Build story-first prompt
     model_desc = f"{model_name} ensemble" if is_ensemble else f"{model_name} model"

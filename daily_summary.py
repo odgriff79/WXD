@@ -445,17 +445,18 @@ def generate_metoffice_longrange_post(metoffice: dict) -> str:
         else:
             forecast_text = detail
 
-        # Keep it short - one sentence max (~120 chars) to fit in single post with date range
-        if len(forecast_text) > 120:
-            # Look for first sentence end
-            for end_char in ['. ', '! ', '? ']:
-                pos = forecast_text.find(end_char)
-                if pos > 0 and pos < 150:
-                    forecast_text = forecast_text[:pos + 1].strip()
-                    break
+        # Allow longer text - split_content() handles multi-post threading
+        # Take first 2-3 sentences (~400 chars) to get meaningful content
+        if len(forecast_text) > 400:
+            # Find sentence boundary near 400 chars
+            truncated = forecast_text[:400]
+            last_period = truncated.rfind('. ')
+            if last_period > 200:
+                forecast_text = forecast_text[:last_period + 1].strip()
             else:
-                # No sentence end found, truncate at word boundary
-                forecast_text = forecast_text[:120].rsplit(' ', 1)[0] + "..."
+                # No good sentence break - find last space
+                last_space = truncated.rfind(' ')
+                forecast_text = truncated[:last_space].strip() if last_space > 200 else truncated
 
         if date_range:
             parts.append(f"Long range ({date_range}): {forecast_text}")

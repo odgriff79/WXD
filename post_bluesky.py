@@ -1330,27 +1330,18 @@ Data shows ensemble means from GFS, ECM, AIFS, and GEM models."""
 
         if result.returncode == 0:
             text = result.stdout.strip()
-            # For significant events, keep full text for multi-post
-            # For normal posts, truncate to fit single post at word boundary
-            if is_significant:
-                # Allow longer - will be split into multiple posts if needed
-                if len(text) > 550:
-                    truncated = text[:547]
-                    last_period = truncated.rfind('. ')
-                    if last_period > 400:
-                        text = truncated[:last_period + 1]
-                    else:
-                        last_space = truncated.rfind(' ')
-                        text = truncated[:last_space] + "..." if last_space > 400 else truncated + "..."
-            else:
-                if len(text) > 270:
-                    truncated = text[:267]
-                    last_period = truncated.rfind('. ')
-                    if last_period > 180:
-                        text = truncated[:last_period + 1]
-                    else:
-                        last_space = truncated.rfind(' ')
-                        text = truncated[:last_space] + "..." if last_space > 180 else truncated + "..."
+            # Allow longer text - split_for_posting() will handle multi-post threading
+            # Max ~900 chars = 3 posts of ~290 chars each
+            max_len = 900 if is_significant else 600
+            if len(text) > max_len:
+                # Trim at sentence boundary if possible
+                truncated = text[:max_len]
+                last_period = truncated.rfind('. ')
+                if last_period > max_len * 0.7:
+                    text = truncated[:last_period + 1]
+                else:
+                    last_space = truncated.rfind(' ')
+                    text = truncated[:last_space] if last_space > max_len * 0.7 else truncated
             return text, False
 
         # Check if auth error
@@ -1369,24 +1360,16 @@ Data shows ensemble means from GFS, ECM, AIFS, and GEM models."""
 
             if result.returncode == 0:
                 text = result.stdout.strip()
-                if is_significant:
-                    if len(text) > 550:
-                        truncated = text[:547]
-                        last_period = truncated.rfind('. ')
-                        if last_period > 400:
-                            text = truncated[:last_period + 1]
-                        else:
-                            last_space = truncated.rfind(' ')
-                            text = truncated[:last_space] + "..." if last_space > 400 else truncated + "..."
-                else:
-                    if len(text) > 270:
-                        truncated = text[:267]
-                        last_period = truncated.rfind('. ')
-                        if last_period > 180:
-                            text = truncated[:last_period + 1]
-                        else:
-                            last_space = truncated.rfind(' ')
-                            text = truncated[:last_space] + "..." if last_space > 180 else truncated + "..."
+                # Allow longer text - split_for_posting() will handle multi-post threading
+                max_len = 900 if is_significant else 600
+                if len(text) > max_len:
+                    truncated = text[:max_len]
+                    last_period = truncated.rfind('. ')
+                    if last_period > max_len * 0.7:
+                        text = truncated[:last_period + 1]
+                    else:
+                        last_space = truncated.rfind(' ')
+                        text = truncated[:last_space] if last_space > max_len * 0.7 else truncated
                 return text, False
 
             # Still failing - use fallback

@@ -1,9 +1,9 @@
 {
   "cold_signal_runs": 0,
   "warm_signal_runs": 0,
-  "shift_direction": null,
-  "shift_runs": 0,
+  "shift_direction": "colder",
+  "shift_runs": 2,
   "last_min_temp": null,
   "last_mean_temp": -5.1,
-  "last_posted_commentary": "Cold peak arriving tomorrow (Fri 16th) at -0.7\u00b0C, with Met Office yellow warnings for England and Wales continuing through Friday. UKMO then shows steady warming through next week, reaching near-normal +1.8\u00b0C by Thu 22nd as milder Atlantic air gradually returns."
+  "last_posted_commentary": "UKMO sharply colder since last run: models now project -2.1\u00b0C by Tuesday 20th after previously showing steady warming through the period. Major cold reversal in guidance\u2014near-normal temps today (0.3\u00b0C) dropping 2.4\u00b0C over next 3 days."
 }

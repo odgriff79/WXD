@@ -1,11 +1,11 @@
 {
   "MOGREPS": {
-    "last_success": "2026-01-17T03:03:02.740998+00:00",
+    "last_success": "2026-01-17T09:02:59.101968+00:00",
     "run_id": null,
     "status": "success"
   },
   "ICON": {
-    "last_success": "2026-01-17T04:00:35.050619+00:00",
+    "last_success": "2026-01-17T10:00:33.235106+00:00",
     "run_id": null,
     "status": "success"
   },
@@ -20,7 +20,7 @@
     "status": "success"
   },
   "tracker_a": {
-    "last_success": "2026-01-16T20:30:24.262644+00:00",
+    "last_success": "2026-01-17T08:30:24.959452+00:00",
     "run_id": null,
     "status": "success"
   }
