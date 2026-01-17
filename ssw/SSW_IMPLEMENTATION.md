@@ -32,10 +32,51 @@ SSW events can bring extended cold spells to the UK 2-4 weeks after the stratosp
 - CDS API: Multi-week delay, not suitable for real-time monitoring
 
 **ECMWF S2S Data - Future Investigation:**
-- Simon Lee (@simonleewx.com) tip: https://apps.ecmwf.int/datasets/data/s2s-realtime-instantaneous-accum-ecmf/levtype=pl/type=cf/
-- 48 hour delay (this is what powers his SSW site)
-- Worth investigating for enhanced monitoring
-- **Status**: To be explored for future enhancement
+
+Simon Lee (@simonleewx.com) tip: https://apps.ecmwf.int/datasets/data/s2s-realtime-instantaneous-accum-ecmf/levtype=pl/type=cf/
+
+| Aspect | GEFS (current) | ECMWF S2S |
+|--------|----------------|-----------|
+| Members | 31 | 101 (100 + control) |
+| Delay | ~6h | 48h |
+| Access | OPeNDAP (easy) | API (registration required) |
+| 10hPa | ✓ | ✓ confirmed |
+
+**Confirmed available:**
+- 10hPa level included in S2S pressure levels (1000, 925, 850, 700, 500, 300, 200, 100, 50, 10 hPa)
+- U-wind variable code: "u" (m/s)
+- Source: https://confluence.ecmwf.int/display/S2S/Parameters
+
+**Access requirements:**
+- Register at https://www.ecmwf.int for API key
+- Install `ecmwf-api-client` package
+- API key stored in ~/.ecmwfapirc
+- Docs: https://pypi.org/project/ecmwf-api-client/
+
+**Implementation options (when ready):**
+
+1. **Dual-source monitoring**
+   - Keep GEFS as primary (faster, ~6h delay)
+   - Add ECMWF S2S as verification (48h delay)
+   - Show both: "GEFS: 15% | ECMWF: 18% (48h ago)"
+
+2. **Weighted consensus**
+   - ECMWF has 3x more members → statistically more reliable
+   - Formula: `(GEFS_prob * 31 + ECMWF_prob * 101) / 132`
+
+3. **ECMWF for trend validation**
+   - GEFS posts daily with 6h delay
+   - ECMWF validates 48h later
+   - Flag divergence in commentary
+
+4. **ECMWF-only during events** (recommended)
+   - When GEFS hits WATCH threshold, fetch ECMWF
+   - Include in commentary: "ECMWF's larger ensemble (101 members) shows X%"
+   - Adds credibility without API dependency for routine monitoring
+
+**Note:** 48h delay means ECMWF won't catch fast-evolving signals first, but 101 members gives better probability estimation.
+
+**Status**: To be explored for future enhancement
 
 ---
 
