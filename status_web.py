@@ -35,6 +35,7 @@ CRON_JOBS = [
     ("Reply Listener", "/home/ubuntu/wxd/cron_replies.log", "Every 15 min", r"Summary|processed", None),
     ("Chart Sync", "/home/ubuntu/wxd/cron_sync.log", "10:15, 22:15 UTC", r"Pushing|commit|No chart changes|nothing to commit", ["10:15", "22:15"]),
     ("Engagement", "/home/ubuntu/wxd/engagement/cron.log", "Tue/Fri 12:00 UTC", r"posted successfully|Thread posted", ["12:00"]),
+    ("SSW Monitor", "/home/ubuntu/wxd/logs/ssw.log", "19:00 UTC", r"SSW status|Saved|NORMAL|WATCH|ALERT", ["19:00"]),
 ]
 
 

@@ -1,0 +1,28 @@
+# SSW Monitor Crontab
+# Install with: crontab -e (then paste these lines)
+#
+# Runs ~5 hours after each GEFS cycle for reliable availability
+# GEFS cycles: 00z, 06z, 12z, 18z
+# Availability: ~05z, ~11z, ~17z, ~23z respectively
+
+# Environment
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+PYTHONUNBUFFERED=1
+
+# SSW Monitor runs
+# 00z cycle -> run at 05:30 UTC
+30 5 * * * /usr/bin/python3 /home/owen/wxd/ssw_monitor.py >> /home/owen/wxd/logs/ssw.log 2>&1
+
+# 06z cycle -> run at 11:30 UTC
+30 11 * * * /usr/bin/python3 /home/owen/wxd/ssw_monitor.py >> /home/owen/wxd/logs/ssw.log 2>&1
+
+# 12z cycle -> run at 17:30 UTC
+30 17 * * * /usr/bin/python3 /home/owen/wxd/ssw_monitor.py >> /home/owen/wxd/logs/ssw.log 2>&1
+
+# 18z cycle -> run at 23:30 UTC
+30 23 * * * /usr/bin/python3 /home/owen/wxd/ssw_monitor.py >> /home/owen/wxd/logs/ssw.log 2>&1
+
+# Alternative: Run hourly and let the script pick the right cycle
+# (More resilient to NOMADS delays, but more log noise)
+# 30 * * * * /usr/bin/python3 /home/owen/wxd/ssw_monitor.py >> /home/owen/wxd/logs/ssw.log 2>&1

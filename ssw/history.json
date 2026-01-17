@@ -1,0 +1,23 @@
+{
+  "runs": [
+    {
+      "timestamp": "2026-01-17T20:57:14.262181+00:00",
+      "cycle": "12",
+      "probability": 3.2,
+      "n_reversals": 1,
+      "n_members": 31,
+      "current_u10": 23.0,
+      "level": "NORMAL"
+    },
+    {
+      "timestamp": "2026-01-17T21:08:07.709550+00:00",
+      "cycle": "12",
+      "probability": 3.2,
+      "n_reversals": 1,
+      "n_members": 31,
+      "current_u10": 23.0,
+      "level": "NORMAL",
+      "data_age_hours": 9.1
+    }
+  ]
+}
