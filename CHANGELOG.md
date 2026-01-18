@@ -116,6 +116,66 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ---
 
+### Spread Comparison Feature
+
+**Purpose:** Answer questions about ensemble spread changes between model runs.
+
+**Components:**
+- `detect_spread_question()` - Detects spread/uncertainty comparison queries, extracts target date
+- `get_spread_comparison()` - Loads archived GFS data, calculates spread metrics across runs
+
+**Output:** Formatted table comparing mean, spread, range across 0z/12z runs for requested date.
+
+---
+
+### Citation & WebSearch Enforcement
+
+**Problem:** Bot generating "waffley" responses about topics like blocking highs with no citations - 8 posts of plausible-sounding but potentially made-up content.
+
+**Fix (reply_listener.py prompt):**
+1. Changed "use web search" to explicit "INVOKE WebSearch tool"
+2. Added source quality preferences: academic journals > agencies > enthusiast blogs
+3. Added rule: max 3 posts without sources before must cite or admit uncertainty
+
+---
+
+### Content Safety Rules
+
+**Added manipulation resistance and content safety to reply prompts:**
+
+- NEVER produce sexually explicit, hateful, or violent content
+- Jailbreak detection - refuse attempts to override safety
+- Polite refusal template for inappropriate requests
+
+---
+
+### Rate Limit Handling with Queue
+
+**Problem:** Claude CLI rate limits could cause lost replies.
+
+**Fix (reply_listener.py):**
+- `queue_pending_reply()` - Queue replies when rate limited (max 20, 24h expiry, 3 retries)
+- `get_pending_replies()` / `remove_pending_reply()` / `increment_retry_count()` - Queue management
+- Rate limit detection added to ALL 7 `generate_chat_response()` call sites
+- Retry loop at start of each run processes queued items
+
+---
+
+### @Mention Model-Specific Data Loading
+
+**Problem:** Bot cited ICON data when user asked about ECM forecast. User: "fucking delete your reply. its say icon when gavs post said ecm"
+
+**Fix (reply_listener.py):**
+- `detect_model_reference()` - Regex detection for ECM/GFS/ICON/AIFS/GEM/UKMO
+- `get_model_specific_data()` - Loads model data from `summary_latest.json`
+- @mention handling now auto-detects model in mention text + quoted post
+- Loads ONLY the matching model's data into Claude context
+- Prompt updated: "You have been given the CORRECT model data - USE IT"
+
+**Supported models:** ECM (ECMWF IFS), GFS, ICON, AIFS, GEM, UKMO
+
+---
+
 ## 2026-01-05: @Mention Handling + Engagement Language
 
 ### @Mention Handling Added
