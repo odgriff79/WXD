@@ -84,7 +84,9 @@ ADAPTIVE_POLLING = True           # Set False to always run
 BLOCKLIST = set()
 
 # Trusted users - get higher limits and auto-approve (add DIDs here)
-TRUSTED_USERS = set()
+TRUSTED_USERS = {
+    "did:plc:mz3csh3lutlgll77bpdfnhy7",  # MetJam (@metjam.co.uk)
+}
 
 # =============================================================================
 # SUPER USER - SYSTEM OWNER (DO NOT AUTO-RESPOND)
@@ -1335,15 +1337,20 @@ def main():
     notification_replies = get_notification_replies(client, own_did, limit=50)
     print(f"  Found {len(notification_replies)} reply notifications")
 
-    # Filter to only new notifications from users with active sessions
-    # (or new chat triggers from anyone)
+    # Filter to only new notifications
+    # Include: active sessions, chat triggers, OR first-time replies (for canned response)
     active_session_dids = set(state.get('active_sessions', {}).keys())
     threaded_replies = []
     for notif in notification_replies:
         if notif['uri'] in processed_set:
             continue
-        # Include if: user has active session OR this might be a chat trigger
-        if notif['author_did'] in active_session_dids or is_chat_trigger(notif['text']):
+        # Include if: user has active session, chat trigger, OR first-time reply to any WXD post
+        # First-time replies get the canned "reply 'chat' to continue" response
+        has_session = notif['author_did'] in active_session_dids
+        is_trigger = is_chat_trigger(notif['text'])
+        is_reply_to_wxd = notif.get('parent_uri', '').startswith(f'at://{own_did}/')
+
+        if has_session or is_trigger or is_reply_to_wxd:
             threaded_replies.append(notif)
 
     print(f"  {len(threaded_replies)} new threaded replies to process")
@@ -1578,6 +1585,16 @@ def main():
             response_text = CANNED_RESPONSES['chat_greeting']
             update_session(session)
             result = {}  # Empty result for response_posts logic
+        else:
+            # First-time reply without 'chat' trigger - send invitation
+            # Check if follower first (non-followers get ignored)
+            if not is_follower(client, author_did, own_did):
+                print("    Not a follower - ignoring first-time reply")
+                new_processed.append(reply['uri'])
+                continue
+            print("    First-time reply from follower - sending chat invitation")
+            response_text = CANNED_RESPONSES['chat_invitation']
+            result = {}
 
         # Post response(s) - may be multiple posts for long answers
         response_posts = result.get('response_posts', [response_text]) if 'result' in dir() and result else [response_text] if response_text else []
