@@ -1041,6 +1041,28 @@ Return a concise 3-4 sentence summary of the forecast. Be specific with dates an
     return ""
 
 
+AI_SIGNATURE = "—WXD Auto AI"
+
+
+def add_ai_signature(posts: list) -> list:
+    """Add AI signature to the last post in a response.
+
+    Only adds if there's room within 300 char limit.
+    """
+    if not posts:
+        return posts
+
+    posts = list(posts)  # Copy to avoid mutating original
+    last_post = posts[-1]
+    signature = f"\n\n{AI_SIGNATURE}"
+
+    # Only add if it fits within limit
+    if len(last_post) + len(signature) <= 300:
+        posts[-1] = last_post + signature
+
+    return posts
+
+
 def split_into_posts(text: str, max_chars: int = 295) -> list:
     """Split long text into multiple posts at sentence/word boundaries."""
     if len(text) <= max_chars:
@@ -1842,6 +1864,10 @@ def main():
         # Post response(s) - may be multiple posts for long answers
         response_posts = result.get('response_posts', [response_text]) if 'result' in dir() and result else [response_text] if response_text else []
 
+        # Add AI signature to last post (only for Claude-generated responses)
+        if response_posts and result.get('should_respond'):
+            response_posts = add_ai_signature(response_posts)
+
         if response_posts:
             print(f"    Response ({len(response_posts)} post(s)): {response_posts[0][:80]}...")
 
@@ -2025,6 +2051,7 @@ def main():
             session = get_session(state, author_did)
             response_text = None
             classification = None
+            result = {}  # Initialize for signature check later
 
             if session:
                 # User has an active session
@@ -2134,23 +2161,36 @@ def main():
             # POST RESPONSE
             # =================================================================
 
-            if response_text:
-                print(f"      Response: {response_text[:80]}...")
+            # Build response posts list (may be multi-post for long responses)
+            response_posts = []
+            if 'result' in dir() and result and result.get('response_posts'):
+                response_posts = result.get('response_posts')
+            elif response_text:
+                response_posts = [response_text]
+
+            # Add AI signature to last post (only for Claude-generated responses)
+            if response_posts and 'result' in dir() and result and result.get('should_respond'):
+                response_posts = add_ai_signature(response_posts)
+
+            if response_posts:
+                print(f"      Response ({len(response_posts)} post(s)): {response_posts[0][:80]}...")
 
                 if dry_run:
-                    print("      [DRY RUN - would post reply]")
+                    print(f"      [DRY RUN - would post {len(response_posts)} reply(ies)]")
                 else:
-                    result = post_reply(
-                        client,
-                        response_text,
-                        reply_to={'uri': reply['uri'], 'cid': reply['cid']},
-                        root={'uri': post['uri'], 'cid': post['cid']}
-                    )
-                    if result:
-                        print(f"      Posted reply: {result['uri']}")
-                        replies_sent += 1
-                    else:
-                        print("      Failed to post reply")
+                    last_reply_ref = {'uri': reply['uri'], 'cid': reply['cid']}
+                    root_ref = {'uri': post['uri'], 'cid': post['cid']}
+
+                    for i, post_text in enumerate(response_posts):
+                        post_result = post_reply(client, post_text, reply_to=last_reply_ref, root=root_ref)
+                        if post_result:
+                            print(f"      Posted reply {i+1}/{len(response_posts)}: {post_result['uri']}")
+                            last_reply_ref = post_result  # Chain replies
+                            if i == 0:
+                                replies_sent += 1
+                        else:
+                            print(f"      Failed to post reply {i+1}")
+                            break
 
             # Mark as processed
             new_processed.append(reply['uri'])
