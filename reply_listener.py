@@ -1985,7 +1985,7 @@ Output ONLY the reply text, nothing else."""
 
             try:
                 result = subprocess.run(
-                    ['claude', '--dangerously-skip-permissions', '--model', 'haiku', '-p', mention_prompt],
+                    ['claude', '--dangerously-skip-permissions', '--model', 'sonnet', '-p', mention_prompt],
                     capture_output=True,
                     text=True,
                     timeout=30
