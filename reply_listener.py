@@ -197,9 +197,15 @@ def log_training_data(state: dict, entry: dict) -> None:
     - Weather terminology explanations (warnings vs alerts)
     - Common user questions
     - Claude's response quality
+
+    Status lifecycle: new → pending → actioned
+    - new: just logged, not yet displayed to dev
+    - pending: displayed once, awaiting action
+    - actioned: confirmed handled, will be purged
     """
     state.setdefault('training_log', []).append({
         'timestamp': utcnow().isoformat(),
+        'status': 'new',  # new → pending → actioned
         **entry
     })
 
@@ -212,17 +218,70 @@ def save_state(state_path: Path, state: dict) -> None:
     """Save state to file, purging actioned training log entries."""
     state['last_run'] = utcnow().isoformat()
 
-    # Purge training_log entries older than feedback_last_reviewed (already actioned)
-    last_reviewed = state.get('feedback_last_reviewed')
-    if last_reviewed and state.get('training_log'):
-        last_reviewed_dt = parse_datetime(last_reviewed)
+    # Purge training_log entries with status='actioned'
+    if state.get('training_log'):
         state['training_log'] = [
             entry for entry in state['training_log']
-            if parse_datetime(entry.get('timestamp', '2000-01-01T00:00:00+00:00')) > last_reviewed_dt
+            if entry.get('status') != 'actioned'
         ]
 
     with open(state_path, 'w') as f:
         json.dump(state, f, indent=2)
+
+
+def get_feedback_summary(state: dict) -> dict:
+    """Get summary of feedback by status.
+
+    Returns dict with counts and lists for each status.
+    """
+    training_log = state.get('training_log', [])
+
+    summary = {
+        'new': [],
+        'pending': [],
+        'actioned': [],  # Should be empty after save
+    }
+
+    for entry in training_log:
+        status = entry.get('status', 'new')  # Default old entries to 'new'
+        if status in summary:
+            summary[status].append(entry)
+        else:
+            summary['new'].append(entry)  # Unknown status → treat as new
+
+    return summary
+
+
+def mark_feedback_displayed(state: dict) -> int:
+    """Mark 'new' feedback as 'pending' (displayed once).
+
+    Returns count of entries marked.
+    """
+    count = 0
+    for entry in state.get('training_log', []):
+        if entry.get('status', 'new') == 'new':
+            entry['status'] = 'pending'
+            count += 1
+    return count
+
+
+def mark_feedback_actioned(state: dict, pending_only: bool = True) -> int:
+    """Mark feedback as 'actioned' (will be purged on save).
+
+    Args:
+        pending_only: If True, only mark 'pending' entries. If False, mark all.
+
+    Returns count of entries marked.
+    """
+    count = 0
+    for entry in state.get('training_log', []):
+        status = entry.get('status', 'new')
+        if pending_only and status != 'pending':
+            continue
+        if status != 'actioned':
+            entry['status'] = 'actioned'
+            count += 1
+    return count
 
 
 def is_chat_trigger(text: str) -> bool:
@@ -898,24 +957,105 @@ def main():
     parser.add_argument('--max-replies', '-m', type=int, default=DEFAULT_MAX_REPLIES,
                         help=f'Max replies to send per run (default: {DEFAULT_MAX_REPLIES})')
     parser.add_argument('--clear-feedback', action='store_true',
-                        help='Clear the feedback/training queue and exit')
+                        help='Clear ALL feedback entries and exit')
     parser.add_argument('--mark-reviewed', action='store_true',
-                        help='Mark all current feedback as reviewed (purges on next save)')
+                        help='[DEPRECATED] Use --feedback instead')
+    parser.add_argument('--feedback', action='store_true',
+                        help='Show feedback summary, prompt to action pending entries')
+    parser.add_argument('--action-pending', action='store_true',
+                        help='Mark all pending feedback as actioned (no prompt)')
     args = parser.parse_args()
 
-    # Handle --mark-reviewed
-    if args.mark_reviewed:
+    # Handle --feedback: show summary and prompt for actioning
+    if args.feedback:
         import json
         state_file = os.path.join(os.path.dirname(__file__), 'data', 'reply_listener_state.json')
         try:
             with open(state_file, 'r') as f:
                 state = json.load(f)
-            count = len(state.get('training_log', []))
-            state['feedback_last_reviewed'] = utcnow().isoformat()
-            state['training_log'] = []  # Purge now
+
+            summary = get_feedback_summary(state)
+            new_count = len(summary['new'])
+            pending_count = len(summary['pending'])
+
+            print("=" * 50)
+            print("DEV FEEDBACK SUMMARY")
+            print("=" * 50)
+
+            # Show NEW entries (first time seeing these)
+            if summary['new']:
+                print(f"\n🆕 NEW FEEDBACK ({new_count} entries):")
+                for entry in summary['new']:
+                    ts = entry.get('timestamp', '')[:19]
+                    msg = entry.get('message', '')[:80]
+                    print(f"  [{ts}] {msg}...")
+                # Mark as pending (displayed once)
+                mark_feedback_displayed(state)
+                print(f"\n  → Marked {new_count} as PENDING (displayed)")
+
+            # Show PENDING entries (seen before, need actioning)
+            if summary['pending']:
+                print(f"\n⏳ PENDING FEEDBACK ({pending_count} entries from previous sessions):")
+                for entry in summary['pending']:
+                    ts = entry.get('timestamp', '')[:19]
+                    msg = entry.get('message', '')[:80]
+                    ctx = entry.get('context', '')[:60]
+                    print(f"  [{ts}] {msg}")
+                    if ctx:
+                        print(f"      Context: {ctx}...")
+
+                # Prompt for actioning
+                print(f"\n  These {pending_count} entries were shown in a previous session.")
+                response = input("  Mark as actioned? [y/N]: ").strip().lower()
+                if response == 'y':
+                    count = mark_feedback_actioned(state, pending_only=True)
+                    print(f"  → Marked {count} entries as ACTIONED (will be purged)")
+                else:
+                    print("  → Keeping as PENDING")
+
+            if not summary['new'] and not summary['pending']:
+                print("\n✓ No feedback to review")
+
+            # Save state
             with open(state_file, 'w') as f:
                 json.dump(state, f, indent=2)
-            print(f'Marked {count} entries as reviewed and purged')
+            save_state(Path(state_file), state)
+
+        except FileNotFoundError:
+            print('No state file found')
+        except Exception as e:
+            print(f'Error: {e}')
+        return 0
+
+    # Handle --action-pending: mark pending as actioned without prompt
+    if args.action_pending:
+        import json
+        state_file = os.path.join(os.path.dirname(__file__), 'data', 'reply_listener_state.json')
+        try:
+            with open(state_file, 'r') as f:
+                state = json.load(f)
+            count = mark_feedback_actioned(state, pending_only=True)
+            save_state(Path(state_file), state)
+            print(f'Marked {count} pending entries as actioned')
+        except FileNotFoundError:
+            print('No state file found')
+        except Exception as e:
+            print(f'Error: {e}')
+        return 0
+
+    # Handle --mark-reviewed (deprecated, redirect to --feedback)
+    if args.mark_reviewed:
+        print("DEPRECATED: Use --feedback instead")
+        print("Running --feedback for you...")
+        import json
+        state_file = os.path.join(os.path.dirname(__file__), 'data', 'reply_listener_state.json')
+        try:
+            with open(state_file, 'r') as f:
+                state = json.load(f)
+            # Mark all as actioned
+            count = mark_feedback_actioned(state, pending_only=False)
+            save_state(Path(state_file), state)
+            print(f'Marked {count} entries as actioned and purged')
         except FileNotFoundError:
             print('No state file found')
         except Exception as e:
