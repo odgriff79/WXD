@@ -290,17 +290,59 @@ def get_peak_timing_from_raw(data: dict) -> str:
         peak_date = datetime.strptime(overall_coldest['date'], '%Y-%m-%d').date()
 
         if peak_date < today:
-            return f"PEAK TIMING: PAST - coldest point ({overall_coldest['temp']:.1f}C) was {peak_date.strftime('%a %d')}, we are now WARMING. Do NOT say 'peak holding' or 'cold persisting'."
+            return f"PEAK TIMING: PAST - coldest point ({overall_coldest['temp']:.1f}C) was {peak_date.strftime('%a %b %d')}, we are now WARMING. Do NOT say 'peak holding' or 'cold persisting'."
         elif peak_date == today:
             return f"PEAK TIMING: TODAY - coldest point ({overall_coldest['temp']:.1f}C) is today, warming follows."
         else:
             days_away = (peak_date - today).days
             if days_away <= 2:
-                return f"PEAK TIMING: SOON - coldest ({overall_coldest['temp']:.1f}C) arrives {peak_date.strftime('%a %d')}, still cooling."
+                return f"PEAK TIMING: SOON - coldest ({overall_coldest['temp']:.1f}C) arrives {peak_date.strftime('%a %b %d')}, still cooling."
             else:
-                return f"PEAK TIMING: FUTURE - coldest ({overall_coldest['temp']:.1f}C) on {peak_date.strftime('%a %d')}, {days_away} days away."
+                return f"PEAK TIMING: FUTURE - coldest ({overall_coldest['temp']:.1f}C) on {peak_date.strftime('%a %b %d')}, {days_away} days away."
     except:
         return None
+
+
+def get_temperature_trajectory(data: dict) -> str:
+    """Get multi-model mean temperature trajectory for context.
+
+    Shows daily noon temperatures so Claude can verify dates.
+    """
+    runs = data.get('runs', [])
+    if not runs:
+        return None
+
+    current = runs[0]
+    timestamps = current.get('timestamps', [])
+    multi_model_mean = current.get('multi_model_mean', [])
+
+    if not timestamps or not multi_model_mean:
+        return None
+
+    # Build daily noon trajectory
+    trajectory = []
+    seen_dates = set()
+
+    for i, (ts, temp) in enumerate(zip(timestamps, multi_model_mean)):
+        if temp is None:
+            continue
+        try:
+            dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+            date_key = dt.date()
+            # Take noon value (or first value for each day)
+            if date_key not in seen_dates and (dt.hour == 12 or date_key not in seen_dates):
+                seen_dates.add(date_key)
+                trajectory.append(f"{dt.strftime('%a %b %d')}: {temp:+.1f}C")
+        except:
+            continue
+
+    if not trajectory:
+        return None
+
+    # Only include first 12 days to keep context manageable
+    trajectory = trajectory[:12]
+
+    return "TEMPERATURE TRAJECTORY (multi-model mean, daily):\n" + "\n".join(trajectory)
 
 
 def check_model_divergence(data: dict) -> dict:
@@ -1076,13 +1118,13 @@ def format_analysis_context(run_diff_text: str, confidence: str,
             latest_peak = max(peak_dates)
 
             if latest_peak < today:
-                context_parts.append(f"PEAK TIMING: PAST - coldest point was {latest_peak.strftime('%a %d')}, we are now WARMING. Do NOT say 'peak holding'.")
+                context_parts.append(f"PEAK TIMING: PAST - coldest point was {latest_peak.strftime('%a %b %d')}, we are now WARMING. Do NOT say 'peak holding'.")
                 peak_timing_set = True
             elif earliest_peak <= today <= latest_peak:
-                context_parts.append(f"PEAK TIMING: NOW - coldest point is around today ({today.strftime('%a %d')}), transition imminent.")
+                context_parts.append(f"PEAK TIMING: NOW - coldest point is around today ({today.strftime('%a %b %d')}), transition imminent.")
                 peak_timing_set = True
             else:
-                context_parts.append(f"PEAK TIMING: FUTURE - coldest point arrives {earliest_peak.strftime('%a %d')}, we are still COOLING.")
+                context_parts.append(f"PEAK TIMING: FUTURE - coldest point arrives {earliest_peak.strftime('%a %b %d')}, we are still COOLING.")
                 peak_timing_set = True
 
     # CRITICAL: If cold_info didn't provide peak timing, calculate from raw data
@@ -1132,6 +1174,12 @@ def format_analysis_context(run_diff_text: str, confidence: str,
         period_ctx = format_period_context(period_info)
         if period_ctx:
             context_parts.append(period_ctx)
+
+    # CRITICAL: Add temperature trajectory so Claude can verify dates
+    if data:
+        trajectory = get_temperature_trajectory(data)
+        if trajectory:
+            context_parts.append(trajectory)
 
     # NOTE: Old CONFIDENCE line removed - replaced by SIGNAL above
 

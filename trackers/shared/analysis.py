@@ -29,6 +29,55 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def get_temperature_trajectory(data: dict) -> str:
+    """Get ensemble mean temperature trajectory for context.
+
+    Shows daily temperatures so Claude can verify dates and avoid hallucination.
+    Works with both single-model and multi-model data structures.
+    """
+    runs = data.get('runs', [])
+    if not runs:
+        return None
+
+    current = runs[0]
+    timestamps = current.get('timestamps', [])
+
+    # Try different data structures
+    temps = current.get('mean', [])  # Single model
+    if not temps:
+        temps = current.get('values', [])  # Alternative single model
+    if not temps:
+        temps = current.get('multi_model_mean', [])  # Multi-model (4-way tracker)
+
+    if not timestamps or not temps:
+        return None
+
+    # Build daily trajectory
+    trajectory = []
+    seen_dates = set()
+
+    for ts, temp in zip(timestamps, temps):
+        if temp is None:
+            continue
+        try:
+            dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+            date_key = dt.date()
+            # Take first value for each day (or noon if available)
+            if date_key not in seen_dates:
+                seen_dates.add(date_key)
+                trajectory.append(f"{dt.strftime('%a %b %d')}: {temp:+.1f}C")
+        except:
+            continue
+
+    if not trajectory:
+        return None
+
+    # Only include first 12 days to keep context manageable
+    trajectory = trajectory[:12]
+
+    return "TEMPERATURE TRAJECTORY (ensemble mean, daily):\n" + "\n".join(trajectory)
+
+
 # ============================================================================
 # TREND PERSISTENCE TRACKING
 # ============================================================================
@@ -848,15 +897,15 @@ def run_full_analysis(
                     peak_date = datetime.fromisoformat(peak_ts.replace('Z', '+00:00')).date()
 
                     if peak_date < today:
-                        context_parts.append(f"PEAK TIMING: PAST - coldest point ({min_temp:.1f}C) was {peak_date.strftime('%a %d')}, we are now WARMING. Do NOT say 'peak holding' or 'cold persisting'.")
+                        context_parts.append(f"PEAK TIMING: PAST - coldest point ({min_temp:.1f}C) was {peak_date.strftime('%a %b %d')}, we are now WARMING. Do NOT say 'peak holding' or 'cold persisting'.")
                     elif peak_date == today:
                         context_parts.append(f"PEAK TIMING: TODAY - coldest point ({min_temp:.1f}C) is today, warming follows.")
                     else:
                         days_away = (peak_date - today).days
                         if days_away <= 2:
-                            context_parts.append(f"PEAK TIMING: SOON - coldest ({min_temp:.1f}C) arrives {peak_date.strftime('%a %d')}, still cooling.")
+                            context_parts.append(f"PEAK TIMING: SOON - coldest ({min_temp:.1f}C) arrives {peak_date.strftime('%a %b %d')}, still cooling.")
                         else:
-                            context_parts.append(f"PEAK TIMING: FUTURE - coldest ({min_temp:.1f}C) on {peak_date.strftime('%a %d')}, {days_away} days away.")
+                            context_parts.append(f"PEAK TIMING: FUTURE - coldest ({min_temp:.1f}C) on {peak_date.strftime('%a %b %d')}, {days_away} days away.")
                 except:
                     pass
 
@@ -877,6 +926,11 @@ def run_full_analysis(
     timing_ctx = format_timing_context(timing_analysis)
     if timing_ctx:
         context_parts.append(timing_ctx)
+
+    # CRITICAL: Add temperature trajectory so Claude can verify dates
+    trajectory = get_temperature_trajectory(data)
+    if trajectory:
+        context_parts.append(trajectory)
 
     full_context = "\n".join(context_parts) if context_parts else "No significant changes"
 

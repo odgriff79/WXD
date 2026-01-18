@@ -428,6 +428,52 @@ ssh -i "$SSH_KEY" ubuntu@$VM_IP "cd ~/wxd && source venv/bin/activate && source 
 - Process live data when testing fixes (verify with dry-run first, preserve test cases)
 - Guess function/class names when importing - always grep for actual definition first
 
+## Commentary Hallucination Prevention
+
+**2026-01-18 incident**: Claude wrote "cold peak Tuesday 21st" when data showed Jan 21 was +0.6C (mild). Actual coldest was Jan 27. Root cause: Claude saw "Tue 27" in context but wrote "Tue 21" - date confusion.
+
+**Current fixes (post_bluesky.py):**
+1. Date format changed from `%a %d` ("Tue 27") to `%a %b %d` ("Tue Jan 27") - harder to misread
+2. Temperature trajectory added to context - Claude sees actual temps by date to cross-verify
+
+**FUTURE IMPROVEMENT: Chart Image Verification**
+
+The anthropic SDK is installed (`pip install anthropic` done 2026-01-18) but NOT yet integrated.
+
+To implement chart-based sanity checking:
+1. Add `ANTHROPIC_API_KEY` to `~/.wxd_env` (create at console.anthropic.com → API Keys)
+2. Modify `get_claude_commentary()` to use SDK instead of CLI
+3. Pass chart image along with data context
+4. Add prompt instruction: "Verify your commentary matches the chart shape - coldest point should align visually"
+
+This would catch gross errors where commentary contradicts the visual curve. The trajectory approach works but image verification is more robust.
+
+**Code location**: `post_bluesky.py` line ~1335 (subprocess call to claude CLI)
+
+**SDK usage pattern**:
+```python
+import anthropic
+import base64
+
+client = anthropic.Anthropic()  # Uses ANTHROPIC_API_KEY env var
+with open(chart_path, "rb") as f:
+    image_data = base64.standard_b64encode(f.read()).decode("utf-8")
+
+response = client.messages.create(
+    model="claude-sonnet-4-20250514",
+    max_tokens=1024,
+    messages=[{
+        "role": "user",
+        "content": [
+            {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": image_data}},
+            {"type": "text", "text": prompt}
+        ]
+    }]
+)
+```
+
+---
+
 ## NEVER MAKE THINGS UP
 
 **This is mandatory. Violation requires public correction.**
