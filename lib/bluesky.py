@@ -124,6 +124,64 @@ def log_lesson(problem: str, root_cause: str, fix: str, prevention: str):
         print(f"  Logged lesson: {problem[:40]}...")
 
 
+# =============================================================================
+# RESEARCH TOPIC REGISTRATION
+# Links posts to research topics for citation support in reply system
+# =============================================================================
+
+RESEARCH_INDEX_PATH = Path(__file__).parent.parent / "data" / "research_index.json"
+
+
+def register_research_topic(topic: str, post_uris: list, sources: list = None):
+    """
+    Register post URIs to a research topic for reply context system.
+
+    Args:
+        topic: Topic ID (e.g., "model_bias_blocking")
+        post_uris: List of AT URIs to register
+        sources: Optional list of source doc paths (creates/updates topic if provided)
+    """
+    # Load existing index
+    if RESEARCH_INDEX_PATH.exists():
+        with open(RESEARCH_INDEX_PATH, 'r') as f:
+            index = json.load(f)
+    else:
+        index = {"topics": {}, "post_to_topic": {}}
+
+    # Create topic if it doesn't exist and sources provided
+    if topic not in index.get("topics", {}) and sources:
+        index.setdefault("topics", {})[topic] = {
+            "title": topic.replace("_", " ").title(),
+            "description": "",
+            "source_docs": sources,
+            "keywords": [],
+            "posts": [],
+            "created": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "last_updated": datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        }
+    elif sources and topic in index.get("topics", {}):
+        # Update sources if provided and topic exists
+        existing_sources = index["topics"][topic].get("source_docs", [])
+        for src in sources:
+            if src not in existing_sources:
+                existing_sources.append(src)
+        index["topics"][topic]["source_docs"] = existing_sources
+        index["topics"][topic]["last_updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    # Register post URIs
+    for uri in post_uris:
+        index.setdefault("post_to_topic", {})[uri] = topic
+        if topic in index.get("topics", {}):
+            if uri not in index["topics"][topic].get("posts", []):
+                index["topics"][topic].setdefault("posts", []).append(uri)
+
+    # Save
+    with open(RESEARCH_INDEX_PATH, 'w') as f:
+        json.dump(index, f, indent=2)
+
+    print(f"  Registered {len(post_uris)} posts to research topic '{topic}'")
+
+
 class BlueskyClient:
     """
     Expert Bluesky client with auto-faceting and proper error handling.
@@ -399,7 +457,8 @@ class BlueskyClient:
 
     def post_thread(self, posts: list, auto_number: bool = True,
                     auto_facets: bool = True,
-                    tracker: str = None, model: str = None) -> list:
+                    tracker: str = None, model: str = None,
+                    topic: str = None, sources: list = None) -> list:
         """
         Post a thread with proper reply chaining.
 
@@ -411,17 +470,27 @@ class BlueskyClient:
             auto_facets: Auto-detect URLs/mentions/hashtags (default True)
             tracker: Tracker name for post registry (e.g., 'weekly')
             model: Model name for post registry
+            topic: Research topic to link this thread to (for reply context system)
+            sources: List of source doc paths for this topic (creates topic if needed)
 
         Returns:
             List of result dicts (same format as post())
 
         Example:
+            # Basic thread
             results = client.post_thread([
                 "This is the start...",
                 "The middle of my thread...",
                 "And the conclusion!"
             ])
             print(f"Thread: {results[0]['url']}")
+
+            # Thread with research topic (for citation support in replies)
+            results = client.post_thread(
+                posts,
+                topic="model_bias_blocking",
+                sources=["incoming/research.md"]
+            )
         """
         if not posts:
             raise ValueError("No posts provided")
@@ -487,6 +556,17 @@ class BlueskyClient:
 
             except Exception as e:
                 raise BlueskyError(f"Thread post {i+1} failed: {e}")
+
+        # Register to research topic if specified
+        if topic and results:
+            try:
+                register_research_topic(
+                    topic=topic,
+                    post_uris=[r['uri'] for r in results],
+                    sources=sources
+                )
+            except Exception as e:
+                print(f"Warning: Could not register research topic: {e}")
 
         return results
 

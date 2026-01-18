@@ -126,6 +126,210 @@ CANNED_RESPONSES = {
     ),
 }
 
+# =============================================================================
+# RESEARCH CONTEXT SYSTEM
+# Loads source docs and logs chat research for factual replies
+# =============================================================================
+
+RESEARCH_INDEX_PATH = Path(__file__).parent / "data" / "research_index.json"
+CHAT_RESEARCH_DIR = Path(__file__).parent / "data" / "chat_research"
+
+
+def load_research_index() -> dict:
+    """Load the research index mapping topics to source docs."""
+    if RESEARCH_INDEX_PATH.exists():
+        with open(RESEARCH_INDEX_PATH, 'r') as f:
+            return json.load(f)
+    return {"topics": {}, "post_to_topic": {}}
+
+
+def save_research_index(index: dict):
+    """Save the research index."""
+    with open(RESEARCH_INDEX_PATH, 'w') as f:
+        json.dump(index, f, indent=2)
+
+
+def get_topic_for_post(uri: str) -> str | None:
+    """Find the research topic for a post URI."""
+    index = load_research_index()
+    return index.get("post_to_topic", {}).get(uri)
+
+
+def register_post_to_topic(uri: str, topic: str):
+    """Register a post URI to a research topic."""
+    index = load_research_index()
+    index.setdefault("post_to_topic", {})[uri] = topic
+    # Also add to the topic's posts list
+    if topic in index.get("topics", {}):
+        if uri not in index["topics"][topic].get("posts", []):
+            index["topics"][topic].setdefault("posts", []).append(uri)
+            index["topics"][topic]["last_updated"] = utcnow().strftime("%Y-%m-%d")
+    save_research_index(index)
+
+
+def load_research_sources(topic: str) -> dict:
+    """Load all source documents for a research topic.
+
+    Returns dict with:
+        - topic_info: metadata about the topic
+        - sources: list of {path, content} for each source doc
+    """
+    index = load_research_index()
+    topic_info = index.get("topics", {}).get(topic)
+
+    if not topic_info:
+        return {"topic_info": None, "sources": []}
+
+    sources = []
+    for doc_path in topic_info.get("source_docs", []):
+        full_path = Path(__file__).parent / doc_path
+        if full_path.exists():
+            try:
+                with open(full_path, 'r') as f:
+                    content = f.read()
+                sources.append({
+                    "path": doc_path,
+                    "content": content
+                })
+            except Exception as e:
+                print(f"    Warning: Could not read {doc_path}: {e}")
+
+    return {
+        "topic_info": topic_info,
+        "sources": sources
+    }
+
+
+def get_chat_research_path(thread_uri: str) -> Path:
+    """Get the path to the chat research MD for a thread."""
+    # Use a sanitized version of the URI as filename
+    # at://did:plc:xxx/app.bsky.feed.post/yyy -> yyy.md
+    thread_id = thread_uri.split("/")[-1] if "/" in thread_uri else thread_uri
+    return CHAT_RESEARCH_DIR / f"{thread_id}.md"
+
+
+def load_chat_research(thread_uri: str) -> str:
+    """Load existing chat research MD for a thread."""
+    path = get_chat_research_path(thread_uri)
+    if path.exists():
+        with open(path, 'r') as f:
+            return f.read()
+    return ""
+
+
+def log_chat_research(thread_uri: str, topic: str, entry: dict):
+    """Log a research entry to the chat research MD.
+
+    entry should contain:
+        - timestamp: ISO timestamp
+        - user: who asked
+        - query: what they asked
+        - web_searches: list of {query, results} from web search
+        - sources_used: list of source doc paths consulted
+        - response: what was replied
+    """
+    CHAT_RESEARCH_DIR.mkdir(parents=True, exist_ok=True)
+    path = get_chat_research_path(thread_uri)
+
+    # Create header if new file
+    if not path.exists():
+        research_data = load_research_sources(topic) if topic else {"topic_info": None, "sources": []}
+        header = f"""# Research Log: {topic or 'unknown'}
+Thread: {thread_uri}
+Created: {utcnow().isoformat()}
+
+## Source Documents
+"""
+        if research_data["sources"]:
+            for src in research_data["sources"]:
+                header += f"- {src['path']}\n"
+        else:
+            header += "- None linked\n"
+
+        header += "\n---\n\n## Chat Sessions\n"
+
+        with open(path, 'w') as f:
+            f.write(header)
+
+    # Append the entry
+    entry_md = f"""
+### {entry.get('timestamp', utcnow().isoformat())}
+**User:** {entry.get('user', 'unknown')}
+**Query:** {entry.get('query', '')}
+
+"""
+
+    if entry.get('web_searches'):
+        entry_md += "**Web Searches:**\n"
+        for search in entry['web_searches']:
+            entry_md += f"- Query: \"{search.get('query', '')}\"\n"
+            for result in search.get('results', [])[:3]:
+                entry_md += f"  - {result}\n"
+        entry_md += "\n"
+
+    if entry.get('sources_used'):
+        entry_md += "**Sources Consulted:**\n"
+        for src in entry['sources_used']:
+            entry_md += f"- {src}\n"
+        entry_md += "\n"
+
+    entry_md += f"**Response:**\n{entry.get('response', '[No response]')}\n\n---\n"
+
+    with open(path, 'a') as f:
+        f.write(entry_md)
+
+
+def build_research_context(thread_uri: str, parent_uri: str = None) -> str:
+    """Build research context string for Claude prompt.
+
+    Includes:
+        - Topic info and source docs (if linked)
+        - Prior chat research (if exists)
+    """
+    # Find topic from thread root or parent
+    topic = get_topic_for_post(thread_uri)
+    if not topic and parent_uri:
+        topic = get_topic_for_post(parent_uri)
+
+    if not topic:
+        return ""
+
+    context_parts = []
+
+    # Load source documents
+    research_data = load_research_sources(topic)
+    if research_data["topic_info"]:
+        info = research_data["topic_info"]
+        context_parts.append(f"RESEARCH TOPIC: {info.get('title', topic)}")
+        context_parts.append(f"Description: {info.get('description', '')}")
+        context_parts.append(f"Keywords: {', '.join(info.get('keywords', []))}")
+        context_parts.append("")
+
+    # Include source doc content (truncated)
+    if research_data["sources"]:
+        context_parts.append("SOURCE DOCUMENTS:")
+        for src in research_data["sources"]:
+            context_parts.append(f"\n--- {src['path']} ---")
+            # Truncate to first 2000 chars of each source
+            content = src['content'][:2000]
+            if len(src['content']) > 2000:
+                content += "\n[... truncated ...]"
+            context_parts.append(content)
+        context_parts.append("")
+
+    # Include prior chat research
+    prior_chat = load_chat_research(thread_uri)
+    if prior_chat:
+        context_parts.append("PRIOR CHAT RESEARCH (this thread):")
+        # Only include last 1500 chars to avoid context bloat
+        if len(prior_chat) > 1500:
+            context_parts.append("[... earlier entries truncated ...]")
+            context_parts.append(prior_chat[-1500:])
+        else:
+            context_parts.append(prior_chat)
+
+    return "\n".join(context_parts)
+
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
@@ -874,7 +1078,7 @@ def split_into_posts(text: str, max_chars: int = 295) -> list:
     return posts
 
 
-def generate_chat_response(reply_text: str, parent_text: str, session: dict = None, forecast_context: str = "", is_super_user: bool = False) -> dict:
+def generate_chat_response(reply_text: str, parent_text: str, session: dict = None, forecast_context: str = "", is_super_user: bool = False, research_context: str = "") -> dict:
     """Use Claude CLI to generate a conversational response.
 
     Returns dict with:
@@ -884,6 +1088,7 @@ def generate_chat_response(reply_text: str, parent_text: str, session: dict = No
         - response_posts: list (split into multiple posts if needed)
         - reason: str (explanation)
         - needs_human: bool (flag for owner review)
+        - sources_used: list of sources cited (for logging)
     """
     # Build conversation context if we have session history
     context = ""
@@ -907,6 +1112,23 @@ def generate_chat_response(reply_text: str, parent_text: str, session: dict = No
             forecast_section += f"SPECIFIC FORECAST FOR {location.upper()}:\n{location_forecast}\n\n"
         if forecast_context:
             forecast_section += f"WXD ENSEMBLE DATA:\n{forecast_context[:600]}\n"
+
+    # Add research context if available
+    research_section = ""
+    if research_context:
+        research_section = f"""
+
+RESEARCH CONTEXT (from WXD's source documents):
+{research_context}
+
+RESEARCH-BACKED REPLY RULES:
+- If user challenges claims, cite from the SOURCE DOCUMENTS above with proper attribution (Author et al, Year)
+- If sources don't support a claim, admit uncertainty honestly: "I'd need to verify that" or "That's beyond what our sources cover"
+- Use web search to find additional evidence if the source docs don't have what's needed
+- Log which sources you used in your response (for audit trail)
+- NEVER make up citations - only cite what's actually in the sources or found via web search
+- If you can't find reliable evidence, say so and ask for more information
+"""
 
     # Super user instructions
     super_user_note = ""
@@ -955,7 +1177,7 @@ DATA ATTRIBUTION - CRITICAL:
 Only flag for human review if:
 - User points out an error in WXD's data (correction)
 - Question is about WXD's internal systems/operations
-{forecast_section}
+{forecast_section}{research_section}
 THREAD CONTEXT:
 {parent_text[:300]}
 
@@ -976,7 +1198,8 @@ Output JSON only:
     "should_respond": true/false,
     "response_text": "Your COMPLETE answer (casual friendly tone, be thorough - no char limit)",
     "reason": "Brief explanation",
-    "needs_human": true/false
+    "needs_human": true/false,
+    "sources_used": ["list of sources/docs cited in your response, empty if none"]
 }}"""
 
     try:
@@ -1532,10 +1755,16 @@ def main():
             except:
                 pass
 
+        # Build research context if this thread has linked research
+        reply_thread = reply.get('root_uri', reply['uri'])
+        research_context = build_research_context(reply_thread, reply.get('parent_uri'))
+        if research_context:
+            print(f"    Research context loaded ({len(research_context)} chars)")
+
         response_text = None
+        result = {}  # Initialize result for logging
 
         # Check if reply is in the same thread as the session
-        reply_thread = reply.get('root_uri', reply['uri'])
         session_thread = session.get('thread_uri', '') if session else ''
         same_thread = session and reply_thread == session_thread
 
@@ -1547,7 +1776,7 @@ def main():
                 del state['active_sessions'][author_did]
             else:
                 print("    Active session - generating response...")
-                result = generate_chat_response(reply['text'], context_text, session, forecast_context, is_super_user)
+                result = generate_chat_response(reply['text'], context_text, session, forecast_context, is_super_user, research_context)
                 claude_calls += 1
                 classification = result.get('classification')
                 print(f"    Classification: {classification}")
@@ -1568,33 +1797,47 @@ def main():
         elif session and not same_thread:
             # User has session but different thread - respond without counting
             print(f"    Session exists but different thread - responding without counting")
-            result = generate_chat_response(reply["text"], context_text, None, forecast_context, is_super_user)
+            result = generate_chat_response(reply["text"], context_text, None, forecast_context, is_super_user, research_context)
             claude_calls += 1
             if result.get("should_respond"):
                 response_text = result.get("response_text")
-        elif is_chat_trigger(reply['text']):
-            # New chat trigger in a thread - check if follower first
-            print("    'chat' trigger detected - checking follower status...")
-            if not is_follower(client, author_did, own_did):
-                print("    Not a follower - ignoring")
-                new_processed.append(reply['uri'])
-                continue
-            print("    Follower confirmed - starting session!")
-            session = create_session(state, author_did, author_handle, reply.get('root_uri', reply['uri']))
-            # Simple canned greeting - no need for Claude on initial chat trigger
-            response_text = CANNED_RESPONSES['chat_greeting']
-            update_session(session)
-            result = {}  # Empty result for response_posts logic
         else:
-            # First-time reply without 'chat' trigger - send invitation
-            # Check if follower first (non-followers get ignored)
-            if not is_follower(client, author_did, own_did):
-                print("    Not a follower - ignoring first-time reply")
-                new_processed.append(reply['uri'])
-                continue
-            print("    First-time reply from follower - sending chat invitation")
-            response_text = CANNED_RESPONSES['chat_invitation']
-            result = {}
+            # First-time reply or chat trigger - check follower status
+            is_follower_user = is_follower(client, author_did, own_did)
+
+            if not is_follower_user:
+                # Non-follower: send one-time invitation to follow and chat
+                notified = state.get('notified_non_followers', [])
+                if author_did in notified:
+                    print("    Not a follower (already notified) - skipping")
+                    new_processed.append(reply['uri'])
+                    continue
+                print("    Not a follower - sending one-time invitation")
+                response_text = CANNED_RESPONSES['chat_invitation']
+                state.setdefault('notified_non_followers', []).append(author_did)
+                result = {}
+            else:
+                # Follower: engage directly with Claude AI response
+                print("    Follower confirmed - engaging directly with Claude...")
+                session = create_session(state, author_did, author_handle, reply.get('root_uri', reply['uri']))
+                result = generate_chat_response(reply['text'], context_text, session, forecast_context, is_super_user, research_context)
+                claude_calls += 1
+                classification = result.get('classification')
+                print(f"    Classification: {classification}")
+
+                if result.get('should_respond'):
+                    response_text = result.get('response_text')
+                    update_session(session)
+                    print(f"    Session started, msg count: {session['message_count']}")
+
+                    log_training_data(state, {
+                        'type': 'follower_direct_response',
+                        'author': author_handle,
+                        'classification': classification,
+                        'user_message': reply['text'],
+                        'thread_context': context_text[:200] if context_text else '',
+                        'claude_response': response_text,
+                    })
 
         # Post response(s) - may be multiple posts for long answers
         response_posts = result.get('response_posts', [response_text]) if 'result' in dir() and result else [response_text] if response_text else []
@@ -1620,6 +1863,18 @@ def main():
                     else:
                         print(f"    Failed to post reply {i+1}")
                         break
+
+            # Log to chat research if we used research context
+            if research_context and result.get('should_respond'):
+                topic = get_topic_for_post(reply_thread) or get_topic_for_post(reply.get('parent_uri', ''))
+                log_chat_research(reply_thread, topic, {
+                    'timestamp': utcnow().isoformat(),
+                    'user': author_handle,
+                    'query': reply['text'],
+                    'sources_used': result.get('sources_used', []),
+                    'response': response_text
+                })
+                print(f"    Logged to chat research: {get_chat_research_path(reply_thread).name}")
 
         new_processed.append(reply['uri'])
 
@@ -1662,6 +1917,11 @@ def main():
             reply_preview = reply['text'][:60] + "..." if len(reply['text']) > 60 else reply['text']
             print(f"\n    Reply from @{author_handle}:")
             print(f"      {reply_preview}")
+
+            # Build research context for this post
+            post_research_context = build_research_context(post['uri'], reply.get('parent_uri'))
+            if post_research_context:
+                print(f"      Research context loaded ({len(post_research_context)} chars)")
 
             # =================================================================
             # TEST MODE CHECK
@@ -1778,7 +2038,7 @@ def main():
                 else:
                     # Continue conversation - invoke Claude
                     print("      Active session - generating response...")
-                    result = generate_chat_response(reply['text'], post['text'], session, forecast_context, is_super_user)
+                    result = generate_chat_response(reply['text'], post['text'], session, forecast_context, is_super_user, post_research_context)
                     claude_calls += 1
                     classification = result.get('classification')
                     print(f"      Classification: {classification}")
@@ -1833,41 +2093,42 @@ def main():
                             upgrade_to_feedback_session(session)
 
             else:
-                # No active session
-                if is_chat_trigger(reply['text']):
-                    # User said "chat" - check if follower first
-                    print("      'chat' trigger detected - checking follower status...")
-                    if not is_follower(client, author_did, own_did):
-                        print("      Not a follower - ignoring")
+                # No active session - check follower status
+                is_follower_user = is_follower(client, author_did, own_did)
+
+                if not is_follower_user:
+                    # Non-follower: send one-time invitation to follow and chat
+                    notified = state.get('notified_non_followers', [])
+                    if author_did in notified:
+                        print("      Not a follower (already notified) - skipping")
                         new_processed.append(reply['uri'])
                         continue
-                    print("      Follower confirmed - starting session!")
-                    session = create_session(state, author_did, author_handle, post['uri'])
-
-                    # Simple canned greeting - no need for Claude on initial chat trigger
-                    response_text = CANNED_RESPONSES['chat_greeting']
-                    update_session(session)
-                    result = {}  # Empty result for response_posts logic
-
-                    # Log session start for training
-                    log_training_data(state, {
-                        'type': 'session_start',
-                        'author': author_handle,
-                        'wxd_post_context': post['text'][:200],
-                        'initial_response': response_text,
-                    })
-                else:
-                    # First reply without "chat" - send invitation
-                    # Log the initial question for context (useful for training)
-                    print("      First reply - sending chat invitation")
-                    log_training_data(state, {
-                        'type': 'initial_question',
-                        'author': author_handle,
-                        'user_message': reply['text'],
-                        'wxd_post_context': post['text'][:200],
-                        'note': 'Pre-chat question - user may follow up with chat trigger',
-                    })
+                    print("      Not a follower - sending one-time invitation")
                     response_text = CANNED_RESPONSES['chat_invitation']
+                    state.setdefault('notified_non_followers', []).append(author_did)
+                    result = {}
+                else:
+                    # Follower: engage directly with Claude AI response
+                    print("      Follower confirmed - engaging directly with Claude...")
+                    session = create_session(state, author_did, author_handle, post['uri'])
+                    result = generate_chat_response(reply['text'], post['text'], session, forecast_context, is_super_user, post_research_context)
+                    claude_calls += 1
+                    classification = result.get('classification')
+                    print(f"      Classification: {classification}")
+
+                    if result.get('should_respond'):
+                        response_text = result.get('response_text')
+                        update_session(session)
+                        print(f"      Session started, msg count: {session['message_count']}")
+
+                        log_training_data(state, {
+                            'type': 'follower_direct_response',
+                            'author': author_handle,
+                            'classification': classification,
+                            'user_message': reply['text'],
+                            'wxd_post_context': post['text'][:200],
+                            'claude_response': response_text,
+                        })
 
             # =================================================================
             # POST RESPONSE
