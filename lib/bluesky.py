@@ -381,14 +381,13 @@ class BlueskyClient:
             else:
                 response = self._client.send_post(text=text, reply_to=reply_ref)
 
-            # Register post for feedback tracing
-            if tracker:
-                register_post(
-                    uri=response.uri,
-                    tracker=tracker,
-                    model=model,
-                    text_preview=text[:100]
-                )
+            # Register post for feedback tracing (default to 'manual' if no tracker specified)
+            register_post(
+                uri=response.uri,
+                tracker=tracker or 'manual',
+                model=model,
+                text_preview=text[:100]
+            )
 
             return {
                 'uri': response.uri,
@@ -470,14 +469,13 @@ class BlueskyClient:
                 }
                 results.append(result)
 
-                # Register post for feedback tracing
-                if tracker:
-                    register_post(
-                        uri=response.uri,
-                        tracker=tracker,
-                        model=model,
-                        text_preview=text[:100]
-                    )
+                # Register post for feedback tracing (default to 'manual' if no tracker specified)
+                register_post(
+                    uri=response.uri,
+                    tracker=tracker or 'manual',
+                    model=model,
+                    text_preview=text[:100]
+                )
 
                 # Update refs for next post
                 current_ref = models.ComAtprotoRepoStrongRef.Main(
