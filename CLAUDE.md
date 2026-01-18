@@ -1,6 +1,15 @@
 # CLAUDE.md - WXD Project
 
 ---
+## Quick Commands (mobile-friendly)
+
+| Say | Action |
+|-----|--------|
+| `wxd feedback` | Run `python reply_listener.py --feedback` - shows dev feedback |
+| `wxd dry` | Run main tracker dry-run |
+| `feedback` | Same as `wxd feedback` |
+
+---
 ## ⚠️ STOP AND READ BEFORE ACTING ⚠️
 
 **Before using ANY module or feature, READ its section in this file FIRST.**
