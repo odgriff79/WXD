@@ -30,6 +30,16 @@ try:
 except ImportError:
     HAS_ATPROTO = False
 
+# Import post registry for feedback tracing
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent))
+try:
+    from lib.bluesky import register_post
+    HAS_REGISTRY = True
+except ImportError:
+    HAS_REGISTRY = False
+    register_post = None
+
 
 # Superuser account - replies go to training_log, not engagement topics
 # Never use superuser feedback for public engagement posts
@@ -697,13 +707,14 @@ def add_thread_indicators(posts: list) -> list:
     return result
 
 
-def post_thread(posts: list, handle: str, password: str) -> bool:
+def post_thread(posts: list, handle: str, password: str, tracker: str = None) -> bool:
     """Post a thread to Bluesky.
 
     Args:
         posts: List of post texts
         handle: Bluesky handle
         password: App password
+        tracker: Tracker name for post registry
 
     Returns:
         True if successful
@@ -735,6 +746,15 @@ def post_thread(posts: list, handle: str, password: str) -> bool:
 
             response = client.send_post(text=text, reply_to=reply_ref)
             print(f"  Posted {i+1}/{len(posts)}")
+
+            # Register post for feedback tracing
+            if HAS_REGISTRY and register_post and tracker:
+                register_post(
+                    uri=response.uri,
+                    tracker=tracker,
+                    model=None,
+                    text_preview=text[:100]
+                )
 
             if root is None:
                 root = {'uri': response.uri, 'cid': response.cid}
@@ -807,7 +827,7 @@ def main():
 
         print("\nPosting to Bluesky...")
         posts = add_thread_indicators(posts)
-        success = post_thread(posts, bsky_handle, bsky_password)
+        success = post_thread(posts, bsky_handle, bsky_password, tracker='engagement')
         if success:
             print("  Community request posted!")
             state["last_community_request"] = utcnow().isoformat()
@@ -891,7 +911,7 @@ def main():
     # Post thread
     print("\nPosting to Bluesky...")
     posts = add_thread_indicators(posts)
-    success = post_thread(posts, bsky_handle, bsky_password)
+    success = post_thread(posts, bsky_handle, bsky_password, tracker='engagement')
 
     if success:
         print("  Thread posted successfully!")

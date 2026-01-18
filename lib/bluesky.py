@@ -49,8 +49,10 @@ USAGE FROM OTHER PROJECTS:
 For full documentation see: ~/wxd/docs/BLUESKY_PUBLISHING.md
 """
 
+import json
 import os
 import re
+from pathlib import Path
 from typing import Optional, Union
 from datetime import datetime, timezone
 
@@ -296,7 +298,8 @@ class BlueskyClient:
 
     def post(self, text: str, facets: list = None, images: list = None,
              reply_to: str = None, auto_facets: bool = True,
-             skip_warnings: bool = False) -> dict:
+             skip_warnings: bool = False,
+             tracker: str = None, model: str = None) -> dict:
         """
         Post to Bluesky with automatic facet detection.
 
@@ -310,6 +313,8 @@ class BlueskyClient:
             reply_to: URI of post to reply to
             auto_facets: Auto-detect URLs/mentions/hashtags (default True)
             skip_warnings: Skip validation warnings (default False)
+            tracker: Tracker name for post registry (e.g., 'ssw')
+            model: Model name for post registry
 
         Returns:
             dict with keys:
@@ -376,6 +381,15 @@ class BlueskyClient:
             else:
                 response = self._client.send_post(text=text, reply_to=reply_ref)
 
+            # Register post for feedback tracing
+            if tracker:
+                register_post(
+                    uri=response.uri,
+                    tracker=tracker,
+                    model=model,
+                    text_preview=text[:100]
+                )
+
             return {
                 'uri': response.uri,
                 'cid': response.cid,
@@ -385,7 +399,8 @@ class BlueskyClient:
             raise BlueskyError(f"Post failed: {e}")
 
     def post_thread(self, posts: list, auto_number: bool = True,
-                    auto_facets: bool = True) -> list:
+                    auto_facets: bool = True,
+                    tracker: str = None, model: str = None) -> list:
         """
         Post a thread with proper reply chaining.
 
@@ -395,6 +410,8 @@ class BlueskyClient:
             posts: List of post texts
             auto_number: Add [X/Y] thread numbering (default True)
             auto_facets: Auto-detect URLs/mentions/hashtags (default True)
+            tracker: Tracker name for post registry (e.g., 'weekly')
+            model: Model name for post registry
 
         Returns:
             List of result dicts (same format as post())
@@ -452,6 +469,15 @@ class BlueskyClient:
                     'url': self._make_post_url(response.uri)
                 }
                 results.append(result)
+
+                # Register post for feedback tracing
+                if tracker:
+                    register_post(
+                        uri=response.uri,
+                        tracker=tracker,
+                        model=model,
+                        text_preview=text[:100]
+                    )
 
                 # Update refs for next post
                 current_ref = models.ComAtprotoRepoStrongRef.Main(
@@ -770,6 +796,73 @@ class EngagementTracker:
 
         # Return least frequent
         return min(all_categories, key=lambda c: recent_categories.get(c, 0))
+
+
+# =============================================================================
+# POST REGISTRY - Track which tracker/model created each post
+# =============================================================================
+
+_POST_REGISTRY_PATH = Path(__file__).parent.parent / 'data' / 'post_registry.json'
+
+
+def register_post(uri: str, tracker: str, model: str = None, text_preview: str = None) -> None:
+    """Register a post with its source tracker/model for later lookup.
+
+    Args:
+        uri: The at:// URI of the post
+        tracker: Tracker name (e.g., 'MOGREPS', 'ICON', 'UKMO', 'Main')
+        model: Model name (e.g., 'mogreps-g', 'icon-eu-eps', 'ukmo-global')
+        text_preview: First ~100 chars of post text for verification
+    """
+    try:
+        if _POST_REGISTRY_PATH.exists():
+            with open(_POST_REGISTRY_PATH) as f:
+                registry = json.load(f)
+        else:
+            registry = {'posts': []}
+
+        entry = {
+            'uri': uri,
+            'tracker': tracker,
+            'model': model,
+            'text_preview': (text_preview or '')[:100],
+            'timestamp': datetime.now(timezone.utc).isoformat()
+        }
+        registry['posts'].append(entry)
+
+        # Keep last 500 posts to avoid unbounded growth
+        if len(registry['posts']) > 500:
+            registry['posts'] = registry['posts'][-500:]
+
+        with open(_POST_REGISTRY_PATH, 'w') as f:
+            json.dump(registry, f, indent=2)
+    except Exception as e:
+        # Don't fail posting if registry fails
+        print(f"Warning: Could not register post: {e}")
+
+
+def lookup_post(uri: str) -> dict:
+    """Look up which tracker/model created a post.
+
+    Args:
+        uri: The at:// URI to look up
+
+    Returns:
+        Dict with 'tracker', 'model', 'text_preview', 'timestamp' or None if not found
+    """
+    try:
+        if not _POST_REGISTRY_PATH.exists():
+            return None
+
+        with open(_POST_REGISTRY_PATH) as f:
+            registry = json.load(f)
+
+        for entry in registry.get('posts', []):
+            if entry.get('uri') == uri:
+                return entry
+        return None
+    except Exception:
+        return None
 
 
 def help():

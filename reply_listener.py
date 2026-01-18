@@ -42,6 +42,14 @@ except ImportError:
     HAS_ATPROTO = False
     Client = None  # type: ignore
 
+# Import post registry for tracker lookup
+try:
+    from lib.bluesky import lookup_post
+    HAS_LOOKUP = True
+except ImportError:
+    HAS_LOOKUP = False
+    lookup_post = None
+
 # Import Met Office fetcher for ground truth warnings
 try:
     from daily_summary import fetch_metoffice_narrative
@@ -282,6 +290,114 @@ def mark_feedback_actioned(state: dict, pending_only: bool = True) -> int:
             entry['status'] = 'actioned'
             count += 1
     return count
+
+
+def identify_tracker_from_text(context: str) -> str:
+    """Identify which tracker generated a post based on text patterns.
+
+    Returns tracker name or 'unknown'.
+    """
+    if not context:
+        return 'unknown'
+
+    ctx_lower = context.lower()
+
+    # MOGREPS patterns - Met Office ensemble
+    if 'mogreps' in ctx_lower or 'met office ensemble' in ctx_lower:
+        return 'MOGREPS'
+    if '18-member' in ctx_lower or '18 member' in ctx_lower:
+        return 'MOGREPS'
+
+    # ICON patterns - DWD ensemble
+    if 'icon' in ctx_lower or 'dwd' in ctx_lower:
+        return 'ICON'
+    if '40-member' in ctx_lower or '40 member' in ctx_lower:
+        return 'ICON'
+
+    # UKMO patterns - deterministic
+    if 'ukmo' in ctx_lower or 'deterministic' in ctx_lower:
+        return 'UKMO'
+    if 'single-model' in ctx_lower or 'single model' in ctx_lower:
+        return 'UKMO'
+
+    # Main tracker patterns - 4-model ensemble
+    if 'gfs' in ctx_lower or 'ecm' in ctx_lower or 'gem' in ctx_lower or 'aifs' in ctx_lower:
+        return 'Main (4-model)'
+    if '4-model' in ctx_lower or 'four model' in ctx_lower:
+        return 'Main (4-model)'
+
+    # Generic ensemble language - could be MOGREPS or Main
+    # Check for specific model mentions
+    if 'ensemble' in ctx_lower:
+        # If it mentions member counts, narrow down
+        if '18' in context:
+            return 'MOGREPS (likely)'
+        if '40' in context:
+            return 'ICON (likely)'
+        return 'MOGREPS or Main'
+
+    return 'unknown'
+
+
+def identify_tracker_from_uri(uri: str, client=None) -> str:
+    """Identify which tracker generated a post based on timing.
+
+    Returns tracker name (MOGREPS, ICON, UKMO, tracker_a) or 'unknown'.
+    """
+    import json
+    from pathlib import Path
+
+    try:
+        # Load tracker state to get last_success times
+        tracker_state_path = Path(__file__).parent / 'data' / 'tracker_state.json'
+        with open(tracker_state_path) as f:
+            tracker_state = json.load(f)
+
+        # If we have a client, fetch the post to get its created timestamp
+        post_time = None
+        if client and uri:
+            try:
+                from atproto import models
+                uri_parts = uri.replace('at://', '').split('/')
+                if len(uri_parts) >= 3:
+                    repo = uri_parts[0]
+                    rkey = uri_parts[2]
+                    response = client.get_post(rkey, repo)
+                    if hasattr(response, 'value') and hasattr(response.value, 'created_at'):
+                        post_time = parse_datetime(response.value.created_at)
+            except Exception:
+                pass
+
+        # If we couldn't get post time, try parsing from URI (rkey contains timestamp-ish info)
+        # But this is unreliable, so fall back to text matching
+        if not post_time:
+            return 'unknown (no timestamp)'
+
+        # Find tracker with closest last_success before post_time
+        best_match = 'unknown'
+        best_delta = None
+
+        tracker_names = {
+            'MOGREPS': 'MOGREPS',
+            'ICON': 'ICON',
+            'UKMO': 'UKMO',
+            'tracker_a': 'Main (4-model)'
+        }
+
+        for key, name in tracker_names.items():
+            if key in tracker_state and tracker_state[key].get('last_success'):
+                tracker_time = parse_datetime(tracker_state[key]['last_success'])
+                # Post should be shortly after tracker ran
+                delta = (post_time - tracker_time).total_seconds()
+                # Only consider if post was within 30 min after tracker ran
+                if 0 <= delta <= 1800:
+                    if best_delta is None or delta < best_delta:
+                        best_delta = delta
+                        best_match = name
+
+        return best_match
+    except Exception as e:
+        return f'unknown (error: {e})'
 
 
 def is_chat_trigger(text: str) -> bool:
@@ -988,7 +1104,22 @@ def main():
                 for entry in summary['new']:
                     ts = entry.get('timestamp', '')[:19]
                     msg = entry.get('message', '')[:80]
+                    parent_uri = entry.get('parent_uri', '')
+                    ctx = entry.get('context', '')
+                    # Try registry lookup first, fall back to text identification
+                    tracker = None
+                    if HAS_LOOKUP and lookup_post and parent_uri:
+                        post_info = lookup_post(parent_uri)
+                        if post_info:
+                            tracker = post_info.get('tracker', None)
+                    if not tracker:
+                        tracker = identify_tracker_from_text(ctx)
                     print(f"  [{ts}] {msg}...")
+                    print(f"      Tracker: {tracker}")
+                    if parent_uri:
+                        print(f"      Parent: {parent_uri}")
+                    if ctx:
+                        print(f"      Context: {ctx[:60]}...")
                 # Mark as pending (displayed once)
                 mark_feedback_displayed(state)
                 print(f"\n  → Marked {new_count} as PENDING (displayed)")
@@ -999,10 +1130,22 @@ def main():
                 for entry in summary['pending']:
                     ts = entry.get('timestamp', '')[:19]
                     msg = entry.get('message', '')[:80]
-                    ctx = entry.get('context', '')[:60]
+                    ctx = entry.get('context', '')
+                    parent_uri = entry.get('parent_uri', '')
+                    # Try registry lookup first, fall back to text identification
+                    tracker = None
+                    if HAS_LOOKUP and lookup_post and parent_uri:
+                        post_info = lookup_post(parent_uri)
+                        if post_info:
+                            tracker = post_info.get('tracker', None)
+                    if not tracker:
+                        tracker = identify_tracker_from_text(ctx)
                     print(f"  [{ts}] {msg}")
+                    print(f"      Tracker: {tracker}")
+                    if parent_uri:
+                        print(f"      Parent: {parent_uri}")
                     if ctx:
-                        print(f"      Context: {ctx}...")
+                        print(f"      Context: {ctx[:60]}...")
 
                 # Prompt for actioning
                 print(f"\n  These {pending_count} entries were shown in a previous session.")
@@ -1338,7 +1481,9 @@ def main():
                     'type': 'super_user_feedback',
                     'author': author_handle,
                     'message': reply['text'],
-                    'context': reply.get('parent_text', '')[:200]
+                    'context': reply.get('parent_text', '')[:200],
+                    'parent_uri': reply.get('parent_uri', ''),
+                    'root_uri': reply.get('root_uri', '')
                 }
                 state.setdefault('training_log', []).append(training_entry)
                 new_processed.append(reply['uri'])
@@ -1578,7 +1723,9 @@ def main():
                         'type': 'super_user_feedback',
                         'author': author_handle,
                         'message': reply['text'],
-                        'context': post['text'][:200] if post.get('text') else ''
+                        'context': post['text'][:200] if post.get('text') else '',
+                        'parent_uri': post.get('uri', ''),
+                        'root_uri': post.get('uri', '')
                     }
                     state.setdefault('training_log', []).append(training_entry)
                     new_processed.append(reply['uri'])

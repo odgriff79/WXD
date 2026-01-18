@@ -77,13 +77,14 @@ Key points:
 - **Session limits**: 5 msgs/session (standard), 10 msgs (trusted), 72h expiry
 - **Corrections**: Always require human approval via ntfy
 
-**CRITICAL - Feedback Analysis Workflow:**
-When reviewing user feedback on automated posts, ALWAYS follow `docs/REPLY_SYSTEM.md` → "Feedback Tracing Workflow":
-1. Fetch parent URI from the feedback reply
-2. Get the actual parent post text
-3. Identify which tracker generated it (UKMO/ICON/MOGREPS/4-way)
-4. Fix the correct code file
-**Never assume which tracker based on feedback text alone.**
+**Post Registry:** [`docs/POST_REGISTRY.md`](docs/POST_REGISTRY.md) - All posts are logged with tracker/model info to `data/post_registry.json` for feedback tracing.
+
+**Feedback Analysis Workflow:**
+When reviewing user feedback on automated posts:
+1. Run `python reply_listener.py --post --force` to fetch new notifications
+2. Run `python reply_listener.py --feedback` to display feedback with tracker identification
+3. The system automatically looks up `parent_uri` in the post registry to identify the tracker
+4. Fix the correct code file based on tracker shown
 
 Scripts:
 - `reply_listener.py` - Main processor (cron every 4h)
@@ -120,8 +121,11 @@ wxd/
 │   └── engagement_post.py # Community engagement posts
 ├── lib/
 │   └── bluesky.py        # Shared Bluesky publishing module (cross-project)
+├── data/
+│   └── post_registry.json # Post→tracker mapping for feedback tracing
 └── docs/
     ├── REPLY_SYSTEM.md   # Reply system architecture
+    ├── POST_REGISTRY.md  # Post registry system docs
     ├── index.html        # GitHub Pages chart gallery
     └── charts/           # Published charts
 ```

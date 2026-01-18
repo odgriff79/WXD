@@ -26,6 +26,14 @@ import sys
 sys.path.insert(0, 'trackers')
 from shared.analysis import analyze_by_period, format_period_context
 
+# Import post registry for feedback tracing
+try:
+    from lib.bluesky import register_post
+    HAS_REGISTRY = True
+except ImportError:
+    HAS_REGISTRY = False
+    register_post = None
+
 # Import Met Office warnings
 try:
     from daily_summary import fetch_metoffice_narrative
@@ -1591,7 +1599,8 @@ def generate_chart(data_path: Path, output_path: Path) -> bool:
 
 
 def post_to_bluesky(text: str, image_path: Path = None, handle: str = None, password: str = None,
-                    reply_to: dict = None, root_post: dict = None) -> dict:
+                    reply_to: dict = None, root_post: dict = None,
+                    tracker: str = None, model: str = None) -> dict:
     """Post to Bluesky with optional image. Returns post reference for threading.
 
     Args:
@@ -1601,6 +1610,8 @@ def post_to_bluesky(text: str, image_path: Path = None, handle: str = None, pass
         password: App password
         reply_to: Optional dict with 'uri' and 'cid' to reply to (for threading)
         root_post: Optional dict with 'uri' and 'cid' of thread root (for multi-level threads)
+        tracker: Tracker name for post registry (e.g., 'Main', 'weekly')
+        model: Model name for post registry
 
     Returns:
         dict with 'uri' and 'cid' of posted message, or None on failure
@@ -1653,6 +1664,15 @@ def post_to_bluesky(text: str, image_path: Path = None, handle: str = None, pass
             response = client.send_post(text=text, reply_to=reply_ref)
 
         print("Posted to Bluesky successfully")
+
+        # Register post for feedback tracing
+        if HAS_REGISTRY and register_post and tracker:
+            register_post(
+                uri=response.uri,
+                tracker=tracker,
+                model=model,
+                text_preview=text[:100]
+            )
 
         # Return post reference for threading
         return {
@@ -1850,7 +1870,7 @@ def post_weekly(handle: str = None, password: str = None, dry_run: bool = False)
         from lib.bluesky import BlueskyClient
 
         client = BlueskyClient()
-        results = client.post_thread(posts)
+        results = client.post_thread(posts, tracker='weekly', model=None)
 
         if results:
             print("Weekly recap posted successfully")
@@ -1880,7 +1900,7 @@ def post_changelog(message: str, handle: str = None, password: str = None) -> in
     print(f"Posting changelog ({len(message)} chars):")
     print(f"  {message}")
 
-    if post_to_bluesky(message, None, handle, password):
+    if post_to_bluesky(message, None, handle, password, tracker='changelog', model=None):
         print("Changelog posted successfully")
         return 0
     else:
@@ -2273,7 +2293,8 @@ def main():
 
         # First post with image (root of thread)
         first_text, _, first_label = numbered_posts[0]
-        main_post_ref = post_to_bluesky(first_text, image, bsky_handle, bsky_password)
+        main_post_ref = post_to_bluesky(first_text, image, bsky_handle, bsky_password,
+                                        tracker='Main', model='4-model-ensemble')
         if not main_post_ref:
             return 1
         root_post = main_post_ref
@@ -2283,7 +2304,8 @@ def main():
         for i, (text, _, label) in enumerate(numbered_posts[1:], 2):
             print(f"  Posting [{i}/{total_posts}] {label}...")
             last_ref = post_to_bluesky(text, None, bsky_handle, bsky_password,
-                                       reply_to=last_ref, root_post=root_post)
+                                       reply_to=last_ref, root_post=root_post,
+                                       tracker='Main', model='4-model-ensemble')
             if not last_ref:
                 print(f"  Warning: post {i} failed")
                 break

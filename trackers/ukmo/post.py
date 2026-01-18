@@ -200,7 +200,9 @@ UKMO runs 2x daily (00z/12z). Threaded posts with chart and alerts when signific
             success = post_thread_to_bluesky(
                 posts=[intro_msg],
                 handle=bsky_handle,
-                password=bsky_password
+                password=bsky_password,
+                tracker='UKMO',
+                model='ukmo-global'
             )
             if success:
                 alert_state["intro_posted"] = True
@@ -305,7 +307,9 @@ UKMO runs 2x daily (00z/12z). Threaded posts with chart and alerts when signific
         image_path=str(chart_path) if chart_ok else None,
         handle=bsky_handle,
         password=bsky_password,
-        alt_text="UKMO deterministic 850hPa temperature forecast"
+        alt_text="UKMO deterministic 850hPa temperature forecast",
+        tracker='UKMO',
+        model='ukmo-global'
     )
 
     if success:

@@ -613,13 +613,13 @@ def post_to_bluesky(text: str, commentary: str = None, dry_run: bool = False) ->
         client = BlueskyClient()
 
         # Post main text
-        result = client.post(text)
+        result = client.post(text, tracker='ssw', model=None)
         logger.info(f"Posted: {result.get('url', 'OK')}")
 
         # Post commentary as reply if provided
         if commentary and result.get('uri'):
             # Post as reply to main post
-            reply_result = client.post(commentary)
+            reply_result = client.post(commentary, tracker='ssw', model=None)
             logger.info(f"Commentary posted: {reply_result.get('url', 'OK')}")
 
         return True

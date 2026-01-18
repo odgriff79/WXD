@@ -34,6 +34,14 @@ try:
 except ImportError:
     HAS_ATPROTO = False
 
+# Import post registry for tracking which tracker made each post
+try:
+    from lib.bluesky import register_post
+    HAS_REGISTRY = True
+except ImportError:
+    HAS_REGISTRY = False
+    register_post = None
+
 # Thresholds for determining significance
 COLD_THRESHOLD = -5
 EXTREME_COLD = -8
@@ -397,7 +405,9 @@ def post_thread_to_bluesky(
     image_path: str = None,
     handle: str = None,
     password: str = None,
-    alt_text: str = "850hPa temperature forecast chart"
+    alt_text: str = "850hPa temperature forecast chart",
+    tracker: str = None,
+    model: str = None
 ) -> bool:
     """Post a thread to Bluesky with optional image on first post.
 
@@ -407,6 +417,8 @@ def post_thread_to_bluesky(
         handle: Bluesky handle
         password: App password
         alt_text: Alt text for image
+        tracker: Tracker name for post registry (e.g., 'MOGREPS', 'ICON')
+        model: Model name for post registry (e.g., 'mogreps-g')
 
     Returns:
         True if successful
@@ -459,6 +471,15 @@ def post_thread_to_bluesky(
                 response = client.send_post(text=text, reply_to=reply_ref)
 
             print(f"  Posted {i+1}/{len(posts)}")
+
+            # Register post for feedback tracing
+            if HAS_REGISTRY and register_post and tracker:
+                register_post(
+                    uri=response.uri,
+                    tracker=tracker,
+                    model=model,
+                    text_preview=text[:100]
+                )
 
             if root is None:
                 root = {'uri': response.uri, 'cid': response.cid}

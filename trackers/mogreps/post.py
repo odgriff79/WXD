@@ -222,7 +222,9 @@ MOGREPS runs 4x daily. Threaded posts with chart and alerts when significant."""
             success = post_thread_to_bluesky(
                 posts=[intro_msg],
                 handle=bsky_handle,
-                password=bsky_password
+                password=bsky_password,
+                tracker='MOGREPS',
+                model='mogreps-g'
             )
             if success:
                 alert_state["intro_posted"] = True
@@ -344,7 +346,9 @@ MOGREPS runs 4x daily. Threaded posts with chart and alerts when significant."""
         image_path=str(chart_path) if chart_ok else None,
         handle=bsky_handle,
         password=bsky_password,
-        alt_text="MOGREPS ensemble 850hPa temperature forecast"
+        alt_text="MOGREPS ensemble 850hPa temperature forecast",
+        tracker='MOGREPS',
+        model='mogreps-g'
     )
 
     if success:

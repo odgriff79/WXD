@@ -46,6 +46,14 @@ try:
 except ImportError:
     HAS_ATPROTO = False
 
+# Import post registry for feedback tracing
+try:
+    from lib.bluesky import register_post
+    HAS_REGISTRY = True
+except ImportError:
+    HAS_REGISTRY = False
+    register_post = None
+
 
 # Met Office URLs
 METOFFICE_UK_URL = "https://weather.metoffice.gov.uk/forecast/uk"
@@ -634,7 +642,8 @@ def generate_warnings_post(metoffice: dict) -> str:
 
 
 def post_to_bluesky(text: str, reply_to: dict = None, root_post: dict = None,
-                    handle: str = None, password: str = None) -> dict:
+                    handle: str = None, password: str = None,
+                    tracker: str = None, model: str = None) -> dict:
     """Post to Bluesky, optionally as reply (for threading)."""
     if not HAS_ATPROTO or not handle or not password:
         return None
@@ -664,6 +673,15 @@ def post_to_bluesky(text: str, reply_to: dict = None, root_post: dict = None,
             response = client.send_post(text=text, reply_to=reply_ref)
         else:
             response = client.send_post(text=text)
+
+        # Register post for feedback tracing
+        if HAS_REGISTRY and register_post and tracker:
+            register_post(
+                uri=response.uri,
+                tracker=tracker,
+                model=model,
+                text_preview=text[:100]
+            )
 
         return {"uri": response.uri, "cid": response.cid}
 
@@ -831,7 +849,8 @@ def main():
     for i, post_text in enumerate(numbered_posts):
         if i == 0:
             # First post is root
-            result = post_to_bluesky(post_text, handle=bsky_handle, password=bsky_password)
+            result = post_to_bluesky(post_text, handle=bsky_handle, password=bsky_password,
+                                     tracker='daily_summary', model=None)
             if not result:
                 print(f"  Failed to post {i+1}/{total}")
                 return 1
@@ -840,7 +859,8 @@ def main():
         else:
             # Subsequent posts are replies
             result = post_to_bluesky(post_text, reply_to=last_result, root_post=root_post,
-                                     handle=bsky_handle, password=bsky_password)
+                                     handle=bsky_handle, password=bsky_password,
+                                     tracker='daily_summary', model=None)
             if not result:
                 print(f"  Failed to post {i+1}/{total}")
                 return 1
@@ -855,7 +875,8 @@ def main():
     if warnings_post:
         print()
         print("Posting standalone warnings alert...")
-        warnings_result = post_to_bluesky(warnings_post, handle=bsky_handle, password=bsky_password)
+        warnings_result = post_to_bluesky(warnings_post, handle=bsky_handle, password=bsky_password,
+                                          tracker='met_warnings', model=None)
         if warnings_result:
             print(f"  Warnings: {warnings_result['uri']}")
         else:
