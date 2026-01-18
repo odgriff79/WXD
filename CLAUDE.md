@@ -1,15 +1,6 @@
 # CLAUDE.md - WXD Project
 
 ---
-## Quick Commands (mobile-friendly, no need to say "wxd not direct" first)
-
-| Say | Action |
-|-----|--------|
-| `wxd feedback` | Read this file, then run `python reply_listener.py --feedback` |
-| `wxd dry` | Read this file, then run main tracker dry-run |
-
-These commands imply "wxd project, not wxd-direct" - no need to say it separately.
-
 ---
 ## ⚠️ STOP AND READ BEFORE ACTING ⚠️
 
