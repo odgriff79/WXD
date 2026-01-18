@@ -1955,22 +1955,69 @@ def main():
     mentions_responded = 0
     for mention in new_mentions:
         author_handle = mention['author_handle']
+        author_did = mention['author_did']
         mention_text = mention['text'][:80] + ('...' if len(mention['text']) > 80 else '')
         print(f"\n  @mention from {author_handle}: {mention_text}")
 
-        # Send chat invitation
-        response_text = CANNED_RESPONSES['chat_invitation']
+        # Check if super user or follower - they get direct Claude engagement
+        is_mention_super = any(
+            author_handle == user or author_handle.endswith(f".{user}")
+            for user in SUPER_USER_HANDLES
+        )
+        is_mention_follower = is_follower(client, author_did, own_did) if not is_mention_super else True
+
+        if is_mention_super or is_mention_follower:
+            # Direct Claude engagement - SHORT single-post response
+            print(f"    {'[SUPER USER]' if is_mention_super else '[FOLLOWER]'} - engaging directly")
+            mention_prompt = f"""You are WXD, a weather bot. Someone @mentioned you on Bluesky.
+
+THEIR MESSAGE: {mention['text']}
+
+RESPOND WITH ONE SHORT POST (max 280 chars). Rules:
+- If they're asking a weather question → answer briefly
+- If they want to chat/discuss → give a short helpful reply
+- If unclear what they want → ask "Hey! How can I help with weather today? ☁️"
+- Be friendly and casual
+- DO NOT waffle - one concise message only
+- If off-topic or inappropriate → politely redirect to weather
+
+Output ONLY the reply text, nothing else."""
+
+            try:
+                result = subprocess.run(
+                    ['claude', '--dangerously-skip-permissions', '--model', 'haiku', '-p', mention_prompt],
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    response_text = result.stdout.strip()[:300]  # Hard cap
+                    # Add signature
+                    if len(response_text) < 270:
+                        response_text += "\n\n—WXD"
+                    claude_calls += 1
+                else:
+                    print(f"    Claude failed, falling back to canned")
+                    response_text = CANNED_RESPONSES['chat_invitation']
+            except Exception as e:
+                print(f"    Claude error: {e}, falling back to canned")
+                response_text = CANNED_RESPONSES['chat_invitation']
+        else:
+            # Non-follower: canned invitation
+            print(f"    [NON-FOLLOWER] - sending canned invitation")
+            response_text = CANNED_RESPONSES['chat_invitation']
 
         if not dry_run:
-            # Reply to the mention - no parent/root since it's a standalone post
+            # Reply to the mention
             reply_ref = {'uri': mention['uri'], 'cid': mention['cid']}
             post_result = post_reply(client, response_text, reply_to=reply_ref, root=reply_ref)
             if post_result:
-                print(f"    Posted chat invitation: {post_result['uri']}")
+                print(f"    Posted: {response_text[:60]}...")
+                print(f"    URI: {post_result['uri']}")
                 mentions_responded += 1
                 new_processed.append(mention['uri'])
         else:
-            print(f"    [DRY RUN] Would post chat invitation")
+            print(f"    [DRY RUN] Would post: {response_text[:60]}...")
             new_processed.append(mention['uri'])
 
     if new_mentions:
