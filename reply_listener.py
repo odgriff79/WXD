@@ -1037,6 +1037,14 @@ def get_notification_mentions(client: Client, own_did: str, limit: int = 50) -> 
                 except:
                     pass
 
+            # Check for embedded/quoted post
+            embed_uri = None
+            if hasattr(record, 'embed') and record.embed:
+                embed = record.embed
+                # Handle quote posts (app.bsky.embed.record)
+                if hasattr(embed, 'record') and hasattr(embed.record, 'uri'):
+                    embed_uri = embed.record.uri
+
             mentions.append({
                 'uri': notif.uri,
                 'cid': notif.cid,
@@ -1045,6 +1053,7 @@ def get_notification_mentions(client: Client, own_did: str, limit: int = 50) -> 
                 'author_did': author_did,
                 'created_at': created_at,
                 'is_mention': True,  # Flag to identify as mention (not reply)
+                'embed_uri': embed_uri,  # URI of quoted post if any
             })
 
     except Exception as e:
@@ -1111,6 +1120,174 @@ def get_latest_forecast_context(client: Client, handle: str) -> str:
         print(f"    Error fetching forecast context: {e}")
 
     return "\n\n".join(context_parts) if context_parts else ""
+
+
+def detect_model_reference(text: str) -> str | None:
+    """Detect which weather model is being referenced in the text.
+
+    Returns model identifier: 'ecm', 'gfs', 'icon', 'aifs', 'gem', 'ukmo', or None.
+    """
+    import re
+    text_lower = text.lower()
+
+    # Model patterns using regex for word boundaries
+    # Order matters - check specific terms first
+    model_patterns = [
+        # ECM/ECMWF patterns - \b handles word boundaries including ECM12z, ECM?, etc.
+        (r'\becm\b|\becm\d|\becmwf\b|\bifs\b|european\s+model|euro\s+model', 'ecm'),
+        # GFS patterns
+        (r'\bgfs\b|american\s+model|us\s+model|\bncep\b', 'gfs'),
+        # ICON patterns - need to check for weather context to avoid generic "icon"
+        (r'\bicon[-\s]?eu\b|\bicon[-\s]?eps\b|\bicon\b(?=.*(?:model|forecast|run|ensemble|shows|says))|\bdwd\b|german\s+model', 'icon'),
+        # AIFS patterns
+        (r'\baifs\b|ai\s+model|machine\s+learning\s+model', 'aifs'),
+        # GEM patterns
+        (r'\bgem\b|canadian\s+model|\bcmc\b', 'gem'),
+        # UKMO patterns
+        (r'\bukmo\b|met\s+office\s+model|uk\s+model', 'ukmo'),
+    ]
+
+    for pattern, model_id in model_patterns:
+        if re.search(pattern, text_lower):
+            return model_id
+
+    return None
+
+
+def get_model_specific_data(model_id: str) -> str:
+    """Load and format model-specific forecast data.
+
+    Args:
+        model_id: One of 'ecm', 'gfs', 'icon', 'aifs', 'gem', 'ukmo'
+
+    Returns:
+        Formatted string with model data for context, or empty string if not found.
+    """
+    import json
+    from datetime import datetime
+    from collections import defaultdict
+
+    # Model names for display
+    model_names = {
+        'ecm': 'ECMWF IFS (ECM)',
+        'gfs': 'GFS',
+        'aifs': 'ECMWF AIFS',
+        'gem': 'GEM (Canadian)',
+        'icon': 'ICON (DWD)',
+        'ukmo': 'UKMO',
+    }
+
+    # Map to internal keys in summary_latest.json
+    model_keys = {
+        'ecm': 'ecmwf_ifs',
+        'gfs': 'gfs',
+        'aifs': 'ecmwf_aifs',
+        'gem': 'gem',
+    }
+
+    model_name = model_names.get(model_id, model_id.upper())
+    result_lines = [f"=== {model_name} DATA ==="]
+
+    # Handle main ensemble models from summary_latest.json
+    if model_id in ['ecm', 'gfs', 'aifs', 'gem']:
+        summary_path = '/home/ubuntu/wxd/data/summary_latest.json'
+        try:
+            with open(summary_path, 'r') as f:
+                data = json.load(f)
+        except Exception as e:
+            print(f"    Could not load summary data: {e}")
+            return ""
+
+        model_key = model_keys[model_id]
+        if model_key not in data.get('models', {}):
+            print(f"    Model {model_key} not in summary data")
+            return ""
+
+        model_data = data['models'][model_key]
+        timestamps = data.get('timestamps', [])
+
+        if not timestamps or 'mean' not in model_data:
+            return ""
+
+        # Aggregate hourly to daily
+        daily_stats = defaultdict(lambda: {'means': [], 'mins': [], 'maxs': [], 'spreads': []})
+
+        for i, ts in enumerate(timestamps):
+            try:
+                dt = datetime.strptime(ts, '%Y-%m-%dT%H:%M')
+                date_str = dt.strftime('%Y-%m-%d')
+
+                if i < len(model_data.get('mean', [])):
+                    daily_stats[date_str]['means'].append(model_data['mean'][i])
+                if i < len(model_data.get('min', [])):
+                    daily_stats[date_str]['mins'].append(model_data['min'][i])
+                if i < len(model_data.get('max', [])):
+                    daily_stats[date_str]['maxs'].append(model_data['max'][i])
+                if i < len(model_data.get('spread', [])):
+                    daily_stats[date_str]['spreads'].append(model_data['spread'][i])
+            except:
+                continue
+
+        result_lines.append(f"Run: {data.get('fetched_at', 'unknown')[:16]}")
+        result_lines.append("\nDaily forecast (London 850hPa T):")
+
+        # Sort dates and format
+        for date_str in sorted(daily_stats.keys())[:14]:
+            stats = daily_stats[date_str]
+            if not stats['means']:
+                continue
+
+            mean = sum(stats['means']) / len(stats['means'])
+            min_t = min(stats['mins']) if stats['mins'] else None
+            max_t = max(stats['maxs']) if stats['maxs'] else None
+            spread = sum(stats['spreads']) / len(stats['spreads']) if stats['spreads'] else None
+
+            try:
+                dt = datetime.strptime(date_str, '%Y-%m-%d')
+                date_nice = dt.strftime('%a %b %d')
+            except:
+                date_nice = date_str
+
+            if spread is not None and min_t is not None and max_t is not None:
+                result_lines.append(f"  {date_nice}: mean={mean:.1f}°C, spread={spread:.1f}°C, range={min_t:.1f} to {max_t:.1f}°C")
+            elif spread is not None:
+                result_lines.append(f"  {date_nice}: mean={mean:.1f}°C, spread={spread:.1f}°C")
+            else:
+                result_lines.append(f"  {date_nice}: {mean:.1f}°C")
+
+    elif model_id == 'icon':
+        # ICON summary format
+        icon_path = '/home/ubuntu/wxd/trackers/icon/data/summary_latest.json'
+        try:
+            with open(icon_path, 'r') as f:
+                data = json.load(f)
+            if 'summary' in data:
+                result_lines.append(data['summary'])
+            elif 'daily_stats' in data:
+                for date_str, stats in list(data['daily_stats'].items())[:7]:
+                    temp = stats.get('mean', stats.get('temp'))
+                    if temp is not None:
+                        result_lines.append(f"  {date_str}: {temp:.1f}°C")
+        except Exception as e:
+            print(f"    Could not load ICON data: {e}")
+            return ""
+
+    elif model_id == 'ukmo':
+        # UKMO summary format
+        ukmo_path = '/home/ubuntu/wxd/trackers/ukmo/data/summary_latest.json'
+        try:
+            with open(ukmo_path, 'r') as f:
+                data = json.load(f)
+            if 'summary' in data:
+                result_lines.append(data['summary'])
+            elif 'daily_forecast' in data:
+                for day in data['daily_forecast'][:7]:
+                    result_lines.append(f"  {day.get('date', '?')}: {day.get('temp', '?')}°C")
+        except Exception as e:
+            print(f"    Could not load UKMO data: {e}")
+            return ""
+
+    return "\n".join(result_lines) if len(result_lines) > 1 else ""
 
 
 def detect_spread_question(text: str) -> tuple[bool, str | None]:
@@ -1969,17 +2146,52 @@ def main():
         if is_mention_super or is_mention_follower:
             # Direct Claude engagement - SHORT single-post response
             print(f"    {'[SUPER USER]' if is_mention_super else '[FOLLOWER]'} - engaging directly")
+
+            # Check for quoted/embedded post
+            quoted_context = ""
+            if mention.get('embed_uri'):
+                try:
+                    quoted_posts = client.app.bsky.feed.get_posts({'uris': [mention['embed_uri']]})
+                    if quoted_posts.posts:
+                        qp = quoted_posts.posts[0]
+                        quoted_context = f"\n\nQUOTED POST (by @{qp.author.handle}):\n{qp.record.text}"
+                        print(f"    Found quoted post from @{qp.author.handle}")
+                except Exception as e:
+                    print(f"    Could not fetch quoted post: {e}")
+
+            # Auto-detect which model is mentioned and load appropriate data
+            mention_forecast = ""
+            combined_text = mention['text'] + " " + quoted_context
+            detected_model = detect_model_reference(combined_text)
+
+            if detected_model:
+                # Load specific model data
+                model_data = get_model_specific_data(detected_model)
+                if model_data:
+                    mention_forecast = f"\n\n{model_data}"
+                    print(f"    Auto-loaded {detected_model.upper()} data for context")
+                else:
+                    print(f"    Warning: {detected_model.upper()} mentioned but no data available")
+            else:
+                # No specific model mentioned - use generic context
+                try:
+                    generic_context = get_latest_forecast_context(client, bsky_handle)
+                    if generic_context:
+                        mention_forecast = f"\n\nWXD FORECAST DATA:\n{generic_context[:500]}"
+                except:
+                    pass
+
             mention_prompt = f"""You are WXD, a weather bot. Someone @mentioned you on Bluesky.
 
-THEIR MESSAGE: {mention['text']}
+THEIR MESSAGE: {mention['text']}{quoted_context}{mention_forecast}
 
 RESPOND WITH ONE SHORT POST (max 280 chars). Rules:
-- If they're asking a weather question → answer briefly
-- If they want to chat/discuss → give a short helpful reply
-- If unclear what they want → ask "Hey! How can I help with weather today? ☁️"
+- You have been given the CORRECT model data above - USE IT to answer
+- If the data shows specific temps/dates, quote them accurately
+- If they're asking about a model you DON'T have data for above, say "I don't have [model] data to hand"
+- DO NOT substitute one model's data for another - that's misleading
 - Be friendly and casual
 - DO NOT waffle - one concise message only
-- If off-topic or inappropriate → politely redirect to weather
 
 Output ONLY the reply text, nothing else."""
 
