@@ -34,6 +34,202 @@
       "model": null,
       "text_preview": "[3/3] 13 files changed across all trackers. The joy of building in public - each iteration makes the",
       "timestamp": "2026-01-18T11:38:44.024674+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcp3cfanqq2g",
+      "tracker": "engagement",
+      "model": null,
+      "text_preview": "[1/2] What weather or forecasting topics would you like WXD to discuss?\n\nFollow us and reply with yo",
+      "timestamp": "2026-01-18T12:00:05.989484+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcp3cffonk2m",
+      "tracker": "engagement",
+      "model": null,
+      "text_preview": "[2/2] We're building automated community engagement so your input shapes our content. Models, foreca",
+      "timestamp": "2026-01-18T12:00:06.169454+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpbzee4nk25",
+      "tracker": "weekly",
+      "model": null,
+      "text_preview": "[1/6] [1/6] \ud83e\uddf5 Weekly recap: Another week of ensemble tracking wrapped up. Models behaved themselves ",
+      "timestamp": "2026-01-18T14:00:19.246751+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpbzeissq2q",
+      "tracker": "weekly",
+      "model": null,
+      "text_preview": "[2/6] [2/6] Big improvement this week on feedback tracing. Every post is now logged with its source ",
+      "timestamp": "2026-01-18T14:00:19.412742+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpbzenv2m23",
+      "tracker": "weekly",
+      "model": null,
+      "text_preview": "[3/6] [3/6] Fixed a nasty hallucination bug in the commentary generation. Claude was getting confuse",
+      "timestamp": "2026-01-18T14:00:19.579269+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpbzesycs2i",
+      "tracker": "weekly",
+      "model": null,
+      "text_preview": "[4/6] [4/6] Started documenting potential SSW (Sudden Stratospheric Warming) tracking improvements. ",
+      "timestamp": "2026-01-18T14:00:19.744365+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpbzeyi722g",
+      "tracker": "weekly",
+      "model": null,
+      "text_preview": "[5/6] [5/6] Registry system now defaults new posts to 'manual' tracker when source isn't auto-detect",
+      "timestamp": "2026-01-18T14:00:19.937183+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpbzf5u2h27",
+      "tracker": "weekly",
+      "model": null,
+      "text_preview": "[6/6] [6/6] Added tracking for feedback status to prevent stale data contamination during testing. W",
+      "timestamp": "2026-01-18T14:00:20.090647+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpfjevd3p2z",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[1/4] Models continuing to cool towards next weekend but with growing uncertainty\u2014ensemble mean now ",
+      "timestamp": "2026-01-18T15:02:58.335444+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpfjfh46n2q",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[2/4] early week), then steady decline begins mid-week with temperatures crossing zero Wednesday 21s",
+      "timestamp": "2026-01-18T15:02:58.501744+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpfjfm7oh2g",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[3/4] reflecting significant model",
+      "timestamp": "2026-01-18T15:02:58.669432+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpfjfrdhr23",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[4/4] Wide ensemble spread: 8.5C range at coldest point indicates higher uncertainty. Expect adjustm",
+      "timestamp": "2026-01-18T15:02:58.836868+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpiqeekhj27",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[1/2] ICON ensemble confirms cooling trajectory\u2014ensemble mean drops from +2.9C today to near-freezin",
+      "timestamp": "2026-01-18T16:00:33.795204+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpiqetfxr2o",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[2/2] Near-normal temperatures throughout, no extreme cold signal. Models consistent with yesterday'",
+      "timestamp": "2026-01-18T16:00:33.964913+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpjihvand25",
+      "tracker": "manual",
+      "model": null,
+      "text_preview": "[1/6] [1/6] \ud83e\uddf5 Why do winter forecasts so often flip from \"cold/blocked\" to \"mild/zonal\" as we get cl",
+      "timestamp": "2026-01-18T16:14:02.661363+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpjii7z6c2i",
+      "tracker": "manual",
+      "model": null,
+      "text_preview": "[2/6] [2/6] Models consistently show an \"overly progressive Atlantic\" bias in winter \u2014 they favour w",
+      "timestamp": "2026-01-18T16:14:02.828189+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpjiif4b22i",
+      "tracker": "manual",
+      "model": null,
+      "text_preview": "[3/6] [3/6] How bad is it? Research shows climate models underestimate Euro-Atlantic winter blocking",
+      "timestamp": "2026-01-18T16:14:02.993915+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpjiik5ll25",
+      "tracker": "manual",
+      "model": null,
+      "text_preview": "[4/6] [4/6] The underlying issue: models produce storm tracks that are \"too zonal and too equatorwar",
+      "timestamp": "2026-01-18T16:14:03.160082+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpjiipat72g",
+      "tracker": "manual",
+      "model": null,
+      "text_preview": "[5/6] [5/6] Why it matters for forecasting: transitions from zonal to blocked regimes are where the ",
+      "timestamp": "2026-01-18T16:14:03.328800+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpjiiufqc2o",
+      "tracker": "manual",
+      "model": null,
+      "text_preview": "[6/6] [6/6] Key refs if you want to dig deeper:\n\u2022 Davini & D'Andrea (2020) - CMIP5/6 blocking\n\u2022 Sche",
+      "timestamp": "2026-01-18T16:14:03.502798+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpsrq2tfk2m",
+      "tracker": "UKMO",
+      "model": "ukmo-global",
+      "text_preview": "[1/2] Model reverses yesterday's cooling trend\u2014now projecting near-normal temperatures throughout th",
+      "timestamp": "2026-01-18T19:00:17.067519+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpsrqkr6s2z",
+      "tracker": "UKMO",
+      "model": "ukmo-global",
+      "text_preview": "[2/2] slightly to -0.5\u00b0C by Saturday 24th. The sharp cold signal has pulled back, with the coldest p",
+      "timestamp": "2026-01-18T19:00:17.233355+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk5nkta2m",
+      "tracker": "manual",
+      "model": null,
+      "text_preview": "[1/6] [1/6] There's a well-documented tendency for weather & climate models in winter to favour an o",
+      "timestamp": "2026-01-18T20:25:31.231745+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk5sn4d2p",
+      "tracker": "manual",
+      "model": null,
+      "text_preview": "[2/6] [2/6] Multiple studies show Euro-Atlantic blocking frequency is underestimated by ~30\u201350% in m",
+      "timestamp": "2026-01-18T20:25:31.397469+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk5xpd427",
+      "tracker": "manual",
+      "model": null,
+      "text_preview": "[3/6] [3/6] Closely linked is the long-standing \"too zonal / too equatorward\" North Atlantic storm-t",
+      "timestamp": "2026-01-18T20:25:31.564443+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk64s4y2m",
+      "tracker": "manual",
+      "model": null,
+      "text_preview": "[4/6] [4/6] Research highlights contributing factors:\n\u2022 resolution limits\n\u2022 orographic drag represen",
+      "timestamp": "2026-01-18T20:25:31.729752+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk6bufx25",
+      "tracker": "manual",
+      "model": null,
+      "text_preview": "[5/6] [5/6] Operational centres acknowledge this. ECMWF documentation and QJRMS papers explicitly di",
+      "timestamp": "2026-01-18T20:25:31.896498+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk6gwew23",
+      "tracker": "manual",
+      "model": null,
+      "text_preview": "[6/6] [6/6] Bottom line: when models repeatedly erode blocks too quickly in winter, it's not just \"w",
+      "timestamp": "2026-01-18T20:25:32.063691+00:00"
     }
   ]
 }

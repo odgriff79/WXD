@@ -1,0 +1,43 @@
+{
+  "topics": {
+    "model_bias_blocking": {
+      "title": "Winter Model Biases - Blocking & Zonal Flow",
+      "description": "Euro-Atlantic blocking underestimation, too-zonal storm track bias in NWP/climate models",
+      "source_docs": [
+        "incoming/winter_model_bias_research.md",
+        "incoming/bluesky_thread_model_bias.md"
+      ],
+      "keywords": [
+        "blocking",
+        "zonal",
+        "bias",
+        "CMIP6",
+        "CMIP5",
+        "Atlantic",
+        "NAO",
+        "Scandinavia",
+        "storm track"
+      ],
+      "posts": [
+        "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk5nkta2m",
+        "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk5sn4d2p",
+        "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk5xpd427",
+        "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk64s4y2m",
+        "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk6bufx25",
+        "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk6gwew23",
+        "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpjihvand25"
+      ],
+      "created": "2026-01-18",
+      "last_updated": "2026-01-18"
+    }
+  },
+  "post_to_topic": {
+    "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk5nkta2m": "model_bias_blocking",
+    "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk5sn4d2p": "model_bias_blocking",
+    "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk5xpd427": "model_bias_blocking",
+    "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk64s4y2m": "model_bias_blocking",
+    "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk6bufx25": "model_bias_blocking",
+    "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpxk6gwew23": "model_bias_blocking",
+    "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcpjihvand25": "model_bias_blocking"
+  }
+}
