@@ -2,6 +2,120 @@
 
 All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
+## 2026-01-18: Major Reply System Overhaul + Educational Content Rules
+
+### Commentary Date Hallucination Fix
+
+**Problem:** Claude wrote "cold peak Tuesday 21st" when data showed Jan 21 was +0.6C (mild). Actual coldest was Jan 27. Root cause: Claude saw "Tue 27" but wrote "Tue 21" - date confusion.
+
+**Fix (post_bluesky.py):**
+1. Changed date format from `%a %d` ("Tue 27") to `%a %b %d` ("Tue Jan 27")
+2. Added temperature trajectory to context for cross-verification
+
+---
+
+### Reply Listener: Thread Child Reply Bug Fix
+
+**Problem:** MetJam replied to [3/6] post in a thread but automation didn't trigger. Phase 1 only processed notifications if user had active session OR it was a chat trigger - missing general replies to thread children.
+
+**Fix (reply_listener.py):**
+- Added `is_reply_to_wxd` check to include ALL replies to WXD posts
+- Now catches replies to any post in a thread, not just root
+
+---
+
+### Direct Claude Engagement for Followers
+
+**Change:** Removed two-step "chat" trigger requirement for followers.
+
+**Old flow:** Follower replies → canned "say chat" → user says chat → Claude responds
+**New flow:** Follower replies → Claude responds directly
+
+**Non-follower flow unchanged:** One-time invitation to follow and chat
+
+**Files:** `reply_listener.py`
+
+---
+
+### AI Signature on Automated Replies
+
+**Added:** "—WXD Auto AI" signature at end of last post in Claude-generated replies.
+
+**Purpose:** Transparency - users know when they're talking to AI vs human.
+
+**Implementation:**
+- `AI_SIGNATURE = "—WXD Auto AI"`
+- `add_ai_signature()` function adds to last post if fits within 300 char limit
+- Only on Claude-generated responses, not canned messages
+
+---
+
+### Research Context System
+
+**Purpose:** Support citations in replies by linking posts to source documents.
+
+**Components:**
+- `data/research_index.json` - Maps topics to source docs and post URIs
+- `data/chat_research/` - Per-thread research logs
+- `build_research_context()` - Loads relevant sources for reply context
+- `register_research_topic()` in `lib/bluesky.py` - Links posts to topics
+
+**Flow:** Post thread with `topic="xyz"` → replies get research context → Claude can cite sources
+
+---
+
+### Post Registry for Feedback Tracing
+
+**Purpose:** Identify which tracker generated a post when reviewing feedback.
+
+**Files:**
+- `data/post_registry.json` - Maps post URIs to tracker/model info
+- `lib/bluesky.py` - Auto-logs posts with tracker metadata
+
+**Usage:** `python reply_listener.py --feedback` now shows tracker info alongside feedback
+
+---
+
+### Mandatory Rules for Educational Content
+
+**Triggered by:** Simon Lee pointed out inverted causality in model bias thread - the described biases would cause mild→cold transitions, not cold→mild as stated.
+
+**New rules (docs/BLUESKY_PUBLISHING.md):**
+
+1. **"The Simon Lee Test"** - Before posting educational content:
+   - State the causal claim explicitly
+   - Verify direction is correct
+   - Check if inverting makes more sense
+
+2. **Citation Requirements** (MetJam feedback):
+   - "One study shows..." is unhelpful without citation
+   - Include author/year or link when referencing research
+   - If no specific source, say "research suggests" not "studies show"
+
+**Added to CLAUDE.md point 7:** "EDUCATIONAL CONTENT NEEDS LOGIC CHECK"
+
+---
+
+### Anonymized Feedback Collection (GDPR Compliant)
+
+**Purpose:** Collect user topics, feedback, criticism, and improvement suggestions without storing usernames.
+
+**Components:**
+- `data/feedback_log.json` - Storage with categories: topics, feedback, criticism, improvements
+- `log_feedback()` - Logs only text + date, no usernames
+- `process_feedback_insight()` - Extracts insights from Claude responses
+- Claude prompt updated to return `feedback_insight` field
+
+**Privacy:** Only stores the insight text and date - no user identification.
+
+---
+
+### Trusted Users Update
+
+**Added:** MetJam (did:plc:mz3csh3lutlgll77bpdfnhy7) to TRUSTED_USERS list for extended session limits.
+
+---
+
 ## 2026-01-05: @Mention Handling + Engagement Language
 
 ### @Mention Handling Added

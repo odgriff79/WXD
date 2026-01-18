@@ -428,6 +428,83 @@ def log_training_data(state: dict, entry: dict) -> None:
         state['training_log'] = state['training_log'][-100:]
 
 
+# =============================================================================
+# ANONYMIZED FEEDBACK COLLECTION
+# Stores insights without usernames for compliance
+# =============================================================================
+
+FEEDBACK_LOG_PATH = Path(__file__).parent / "data" / "feedback_log.json"
+
+
+def load_feedback_log() -> dict:
+    """Load the anonymized feedback log."""
+    if FEEDBACK_LOG_PATH.exists():
+        with open(FEEDBACK_LOG_PATH, 'r') as f:
+            return json.load(f)
+    return {"topics": [], "feedback": [], "criticism": [], "improvements": []}
+
+
+def save_feedback_log(log: dict):
+    """Save the feedback log."""
+    # Keep last 50 entries per category
+    for key in ["topics", "feedback", "criticism", "improvements"]:
+        if len(log.get(key, [])) > 50:
+            log[key] = log[key][-50:]
+
+    with open(FEEDBACK_LOG_PATH, 'w') as f:
+        json.dump(log, f, indent=2)
+
+
+def log_feedback(category: str, text: str):
+    """Log anonymized feedback to the appropriate category.
+
+    Categories: topics, feedback, criticism, improvements
+    No usernames stored - just the insight and date.
+    """
+    if category not in ["topics", "feedback", "criticism", "improvements"]:
+        return
+
+    log = load_feedback_log()
+    log[category].append({
+        "text": text,
+        "date": utcnow().strftime("%Y-%m-%d")
+    })
+    save_feedback_log(log)
+    print(f"    [Feedback logged: {category}]")
+
+
+def process_feedback_insight(result: dict):
+    """Extract and log feedback insight from Claude response if present.
+
+    Maps Claude's category names to feedback_log categories:
+    - topic -> topics
+    - improvement -> improvements
+    - feedback, criticism -> unchanged
+    - none -> skip
+    """
+    insight = result.get('feedback_insight')
+    if not insight:
+        return
+
+    category = insight.get('category', 'none')
+    text = insight.get('text', '').strip()
+
+    if category == 'none' or not text:
+        return
+
+    # Map singular to plural for storage
+    category_map = {
+        'topic': 'topics',
+        'improvement': 'improvements',
+        'feedback': 'feedback',
+        'criticism': 'criticism'
+    }
+
+    log_category = category_map.get(category)
+    if log_category:
+        log_feedback(log_category, text)
+
+
 def save_state(state_path: Path, state: dict) -> None:
     """Save state to file, purging actioned training log entries."""
     state['last_run'] = utcnow().isoformat()
@@ -1214,6 +1291,13 @@ Classify and respond:
 4. correction - Error pointed out → acknowledge, flag for review
 5. spam - Off-topic/promotional → ignore
 
+FEEDBACK EXTRACTION (anonymized - no usernames stored):
+Extract any useful insights from the user's message into these categories:
+- topic: If they suggest a topic for future posts (e.g., "can you post about fog?")
+- feedback: General positive/neutral feedback about WXD
+- criticism: Something we got wrong or could do better
+- improvement: Specific suggestion for improvement
+
 Output JSON only:
 {{
     "classification": "genuine_question|topic_suggestion|appreciation|correction|spam",
@@ -1221,7 +1305,8 @@ Output JSON only:
     "response_text": "Your COMPLETE answer (casual friendly tone, be thorough - no char limit)",
     "reason": "Brief explanation",
     "needs_human": true/false,
-    "sources_used": ["list of sources/docs cited in your response, empty if none"]
+    "sources_used": ["list of sources/docs cited in your response, empty if none"],
+    "feedback_insight": {{"category": "topic|feedback|criticism|improvement|none", "text": "extracted insight or empty string"}}
 }}"""
 
     try:
@@ -1705,6 +1790,7 @@ def main():
                         forecast_context
                     )
                     claude_calls += 1
+                    process_feedback_insight(result)
                     if result.get('should_respond'):
                         response_posts = result.get('response_posts', [result.get('response_text')])
                         if response_posts and not dry_run:
@@ -1802,6 +1888,7 @@ def main():
                 claude_calls += 1
                 classification = result.get('classification')
                 print(f"    Classification: {classification}")
+                process_feedback_insight(result)
 
                 if result.get('should_respond'):
                     response_text = result.get('response_text')
@@ -1821,6 +1908,7 @@ def main():
             print(f"    Session exists but different thread - responding without counting")
             result = generate_chat_response(reply["text"], context_text, None, forecast_context, is_super_user, research_context)
             claude_calls += 1
+            process_feedback_insight(result)
             if result.get("should_respond"):
                 response_text = result.get("response_text")
         else:
@@ -1846,6 +1934,7 @@ def main():
                 claude_calls += 1
                 classification = result.get('classification')
                 print(f"    Classification: {classification}")
+                process_feedback_insight(result)
 
                 if result.get('should_respond'):
                     response_text = result.get('response_text')
@@ -2002,6 +2091,7 @@ def main():
                         forecast_context
                     )
                     claude_calls += 1
+                    process_feedback_insight(result)
                     if result.get('should_respond'):
                         response_posts = result.get('response_posts', [result.get('response_text')])
                         if response_posts and not dry_run:
@@ -2069,6 +2159,7 @@ def main():
                     claude_calls += 1
                     classification = result.get('classification')
                     print(f"      Classification: {classification}")
+                    process_feedback_insight(result)
 
                     if result.get('should_respond'):
                         response_text = result.get('response_text')
@@ -2142,6 +2233,7 @@ def main():
                     claude_calls += 1
                     classification = result.get('classification')
                     print(f"      Classification: {classification}")
+                    process_feedback_insight(result)
 
                     if result.get('should_respond'):
                         response_text = result.get('response_text')
