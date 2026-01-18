@@ -143,6 +143,7 @@ wxd/
 4. **Max 300 characters** per post
 5. **Threads need [X/Y] numbering** - MANDATORY
 6. **NEVER GUESS METHOD NAMES** - Check Quick Reference below or run `dir(client)` BEFORE calling any method. Repeat offense logged 2026-01-11.
+7. **EDUCATIONAL CONTENT NEEDS LOGIC CHECK** - Verify causal claims are correct direction. "X causes Y" must be verified, not just plausible. See "Simon Lee Test" in docs/BLUESKY_PUBLISHING.md. Incident logged 2026-01-18.
 
 ### Available Methods (MEMORIZE - do not guess)
 

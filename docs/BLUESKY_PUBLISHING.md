@@ -190,10 +190,36 @@ os.environ['BSKY_HANDLE'] = ...  # From secure source
 
 ## CLAUDE Instructions
 
-### Before Posting
+### Before Posting - MANDATORY CHECKLIST
+
 1. Always use `BlueskyClient` from `~/wxd/lib/bluesky.py`
 2. Use `--dry-run` or preview first when available
 3. URLs in post text are auto-faceted - don't manually create facets unless needed
+
+### Manual Posts & Educational Content - FEEDBACK REQUIRED
+
+**For ANY manual thread or educational content:**
+
+1. **Preview to user FIRST** - Show full formatted thread before posting
+2. **Verify logical consistency** - If claiming X causes Y, verify the causal logic is correct
+3. **Cross-check claims against data** - Don't just sound plausible, verify it's actually true
+4. **Wait for user approval** - Never post educational content without explicit "yes" or "post it"
+
+**Red flags that need extra scrutiny:**
+- Causal claims ("X leads to Y", "because of X, Y happens")
+- Temporal claims ("as time progresses", "when we get closer")
+- Statistical claims ("X% of the time", "models show")
+- Directional claims ("increases", "decreases", "flips from X to Y")
+
+**The Simon Lee Test:** Before posting, ask yourself: "Would a meteorologist reading this find any logical inconsistencies?" If unsure, FLAG IT to the user.
+
+### Engagement Posts - Additional Rules
+
+For engagement/educational threads specifically:
+1. **Don't invert causality** - If bias A causes effect B, don't claim B causes A
+2. **Verify direction of effects** - "Cold to mild" is opposite of "mild to cold"
+3. **Check your framing matches your evidence** - If sources say X, don't frame as Y
+4. **USE PROPER CITATIONS** - Never say "one study" or "research shows" without attribution. Always use in-text citations: "(Author et al, Year)" or "Author (Year) found...". Vague references undermine credibility. If you can't cite it properly, don't claim it. (MetJam feedback 2026-01-18)
 
 ### Thread Format
 - Always include `[X/Y]` numbering (auto_number=True by default)
@@ -648,6 +674,36 @@ AttributeError: 'BlueskyClient' object has no attribute 'get_own_posts'. Did you
 **Fix:** Use client._client to access underlying ATProto client
 
 **Prevention:** Error message now says available methods and suggests _client
+
+---
+
+### 2026-01-18: Inverted causality in educational thread (Simon Lee feedback)
+
+**Problem:** Posted thread claiming forecasts flip from "cold/blocked" to "mild/zonal" as we get closer, explaining this via model biases that underestimate blocking. Simon Lee (@simonleewx.com) correctly pointed out the logic was backwards.
+
+**The actual logic:** If models underestimate blocking and favor zonal flow, then:
+- Long-range forecasts = mild/zonal (model bias)
+- Short-range forecasts = blocked/cold (reality emerges)
+
+So the bias explains "mild→cold" transitions, NOT "cold→mild" as the thread claimed.
+
+**Root cause:**
+1. Content was peer-reviewed by ChatGPT/Gemini but they didn't catch the logic error
+2. Claude didn't verify the causal chain was correct before posting
+3. The framing "sounded right" without being checked against the actual mechanism
+
+**Impact:** Thread posted with inverted logic. Meteorologists in the community noticed immediately.
+
+**Fix:** Added "Manual Posts & Educational Content - FEEDBACK REQUIRED" section with:
+- Mandatory logical consistency checks
+- Red flags for causal/temporal/directional claims
+- "The Simon Lee Test" - would a meteorologist find inconsistencies?
+
+**Prevention:**
+1. For ANY causal claim, trace the logic: A→B→C, verify each step
+2. If claiming "X leads to Y", explicitly verify the direction
+3. Don't trust AI peer review for domain-specific logic
+4. When posting about model biases, explicitly state: "Bias X means models do Y, so forecasts tend to Z"
 
 ## Implementation Status
 
