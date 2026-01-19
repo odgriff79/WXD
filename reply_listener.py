@@ -78,33 +78,58 @@ import requests as http_requests  # Avoid conflict with atproto requests
 # IMAGE ANALYSIS (TEMP STORAGE ONLY - NO DATA RETENTION)
 # =============================================================================
 
-def extract_image_urls(post_or_reply: dict) -> list:
+def extract_image_urls(post_or_reply, author_did: str = None) -> list:
     """Extract image URLs from a post or reply embed.
+
+    Handles two formats:
+    1. View embed (from get_post_thread) - has fullsize/thumb URLs directly
+    2. Record embed (from notifications) - has BlobRef, needs URL construction
 
     Returns list of dicts with 'url', 'alt', 'thumb' for each image.
     """
     images = []
 
-    # Check for embed with images
+    # Check for embed with images - try post.embed first (view), then record.embed
     embed = None
     if hasattr(post_or_reply, 'embed') and post_or_reply.embed:
         embed = post_or_reply.embed
+    elif hasattr(post_or_reply, 'record') and hasattr(post_or_reply.record, 'embed'):
+        embed = post_or_reply.record.embed
     elif isinstance(post_or_reply, dict) and post_or_reply.get('embed'):
         embed = post_or_reply['embed']
 
     if not embed:
         return images
 
+    # Get author DID if not provided (needed for URL construction)
+    if not author_did:
+        if hasattr(post_or_reply, 'author') and hasattr(post_or_reply.author, 'did'):
+            author_did = post_or_reply.author.did
+
     # Handle image embeds
     if hasattr(embed, 'images'):
         for img in embed.images:
-            img_data = {
-                'url': getattr(img, 'fullsize', None),
-                'thumb': getattr(img, 'thumb', None),
-                'alt': getattr(img, 'alt', '') or '',
-            }
-            if img_data['url']:
-                images.append(img_data)
+            # Try view format first (has fullsize URL)
+            url = getattr(img, 'fullsize', None)
+            thumb = getattr(img, 'thumb', None)
+            alt = getattr(img, 'alt', '') or ''
+
+            # If no URL, try to construct from BlobRef (record format)
+            if not url and hasattr(img, 'image') and author_did:
+                blob = img.image
+                if hasattr(blob, 'ref') and hasattr(blob.ref, 'link'):
+                    cid = blob.ref.link
+                    mime = getattr(blob, 'mime_type', 'image/jpeg')
+                    ext = 'png' if 'png' in mime else 'jpeg'
+                    url = f"https://cdn.bsky.app/img/feed_fullsize/plain/{author_did}/{cid}@{ext}"
+                    thumb = f"https://cdn.bsky.app/img/feed_thumbnail/plain/{author_did}/{cid}@{ext}"
+
+            if url:
+                images.append({
+                    'url': url,
+                    'thumb': thumb,
+                    'alt': alt,
+                })
 
     return images
 
