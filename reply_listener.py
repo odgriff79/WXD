@@ -1569,6 +1569,30 @@ def add_ai_signature(posts: list) -> list:
     return posts
 
 
+def add_thread_numbers(posts: list) -> list:
+    """Add [X/Y] thread numbering to multi-post replies.
+
+    Only adds numbering if there are 2+ posts.
+    Format: [1/3] First post content...
+    """
+    if not posts or len(posts) <= 1:
+        return posts
+
+    posts = list(posts)  # Copy to avoid mutating original
+    total = len(posts)
+    result = []
+
+    for i, post in enumerate(posts):
+        prefix = f"[{i+1}/{total}] "
+        # Truncate content if needed to fit prefix
+        max_content = 300 - len(prefix)
+        if len(post) > max_content:
+            post = post[:max_content - 3].rstrip() + "..."
+        result.append(prefix + post)
+
+    return result
+
+
 def split_into_posts(text: str, max_chars: int = 295) -> list:
     """Split long text into multiple posts at sentence/word boundaries."""
     if len(text) <= max_chars:
@@ -2149,6 +2173,7 @@ def main():
                 if reply_to.get('uri') and reply_to.get('cid'):
                     response_posts = result.get('response_posts', [result.get('response_text')])
                     if response_posts:
+                        response_posts = add_thread_numbers(response_posts)
                         response_posts = add_ai_signature(response_posts)
                         last_ref = {'uri': reply_to['uri'], 'cid': reply_to['cid']}
                         root_ref = {'uri': p.get('reply_to', {}).get('root_uri', reply_to['uri']),
@@ -2634,8 +2659,9 @@ Output ONLY the reply text, nothing else."""
         # Post response(s) - may be multiple posts for long answers
         response_posts = result.get('response_posts', [response_text]) if 'result' in dir() and result else [response_text] if response_text else []
 
-        # Add session indicator [X/Y] and AI signature (only for Claude-generated responses)
+        # Add thread numbers, session indicator [X/Y] and AI signature (only for Claude-generated responses)
         if response_posts and result.get('should_respond'):
+            response_posts = add_thread_numbers(response_posts)
             if session_msg_count > 0 and session_msg_limit > 0:
                 response_posts = add_session_indicator(response_posts, session_msg_count, session_msg_limit)
             response_posts = add_ai_signature(response_posts)
@@ -2982,8 +3008,9 @@ Output ONLY the reply text, nothing else."""
             elif response_text:
                 response_posts = [response_text]
 
-            # Add session indicator [X/Y] and AI signature (only for Claude-generated responses)
+            # Add thread numbers, session indicator [X/Y] and AI signature (only for Claude-generated responses)
             if response_posts and 'result' in dir() and result and result.get('should_respond'):
+                response_posts = add_thread_numbers(response_posts)
                 if session_msg_count > 0 and session_msg_limit > 0:
                     response_posts = add_session_indicator(response_posts, session_msg_count, session_msg_limit)
                 response_posts = add_ai_signature(response_posts)
