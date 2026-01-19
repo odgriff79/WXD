@@ -2068,11 +2068,13 @@ Extract any useful insights from the user's message into these categories:
 - criticism: Something we got wrong or could do better
 - improvement: Specific suggestion for improvement
 
+DO NOT add thread numbering like [1/3], [2/3] - the system adds this automatically.
+
 Output JSON only:
 {{
     "classification": "genuine_question|topic_suggestion|appreciation|correction|spam",
     "should_respond": true/false,
-    "response_text": "Your COMPLETE answer (informative, factual tone - cite sources for claims)",
+    "response_text": "Your COMPLETE answer (informative, factual tone - cite sources for claims). DO NOT add [X/Y] numbering.",
     "reason": "Brief explanation",
     "needs_human": true/false,
     "sources_used": ["list of sources/docs cited in your response, empty if none"],
