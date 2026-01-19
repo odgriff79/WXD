@@ -1805,7 +1805,10 @@ def add_thread_numbers(posts: list) -> list:
 
     Only adds numbering if there are 2+ posts.
     Format: [1/3] First post content...
+    Strips any existing [X/Y] numbering first to avoid doubles.
     """
+    import re
+
     if not posts or len(posts) <= 1:
         return posts
 
@@ -1813,7 +1816,13 @@ def add_thread_numbers(posts: list) -> list:
     total = len(posts)
     result = []
 
+    # Pattern to match existing [X/Y] numbering at start
+    numbering_pattern = re.compile(r'^\[\d+/\d+\]\s*')
+
     for i, post in enumerate(posts):
+        # Strip any existing numbering first
+        post = numbering_pattern.sub('', post)
+
         prefix = f"[{i+1}/{total}] "
         # Truncate content if needed to fit prefix
         max_content = 300 - len(prefix)
