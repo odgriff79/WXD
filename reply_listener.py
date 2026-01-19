@@ -2072,10 +2072,12 @@ Output JSON only:
 
     try:
         result = subprocess.run(
-            ['claude', '--dangerously-skip-permissions', '--model', 'sonnet', '-p', prompt],
+            ['claude', '--dangerously-skip-permissions', '--model', 'sonnet',
+             '--tools', 'WebSearch,WebFetch',  # Enable web search for citations
+             '-p', prompt],
             capture_output=True,
             text=True,
-            timeout=120  # Increased for web searches
+            timeout=180  # Allow time for web searches
         )
 
         # Check for rate limit errors
