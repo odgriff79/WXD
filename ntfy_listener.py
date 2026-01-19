@@ -258,13 +258,42 @@ def handle_synthesis_post():
 def handle_ssw():
     """SSW Monitor - check stratospheric warming status."""
     print(f'SSW status requested at {time.strftime("%H:%M:%S")}')
+    import json
+    from datetime import datetime, timezone
+
     # Run monitor and return status
     output = run_command(['/home/ubuntu/wxd/venv/bin/python', 'ssw/ssw_monitor.py', '--json'])
-    # Also read the status file for a summary
+
+    # Read the status file
     try:
-        import json
         with open('/home/ubuntu/wxd/ssw/ssw_status.json') as f:
             status = json.load(f)
+
+        # Check if fetch failed - fall back to history
+        if status.get('status') == 'error':
+            try:
+                with open('/home/ubuntu/wxd/ssw/history.json') as f:
+                    history = json.load(f)
+                if history.get('runs'):
+                    last = history['runs'][-1]
+                    prob = last.get('probability', 'N/A')
+                    level = last.get('level', 'Unknown')
+                    u10 = last.get('current_u10', 'N/A')
+                    ts = last.get('timestamp', 'Unknown')
+                    # Calculate age
+                    try:
+                        ts_dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                        age_hrs = (datetime.now(timezone.utc) - ts_dt).total_seconds() / 3600
+                        age_str = f" (data {age_hrs:.0f}h old)"
+                    except:
+                        age_str = ""
+                    summary = f"SSW STATUS (CACHED){age_str}\n{'='*30}\nProbability: {prob}%\nAlert: {level}\nCurrent U10 @60N: {u10} m/s\n\nNote: Live fetch failed, using last good data"
+                    return summary
+            except Exception as e:
+                pass  # Fall through to error
+            return f"SSW STATUS: Fetch failed, no cached data\nError: {status.get('error', 'Unknown')}"
+
+        # Normal case - fresh data
         prob = status.get('ssw_probability_pct', 'N/A')
         level = status.get('alert', {}).get('level', 'Unknown')
         u10 = status.get('current_u10_60n_ms', 'N/A')
