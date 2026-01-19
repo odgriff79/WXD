@@ -114,10 +114,35 @@ Image analysis prompt now just describes what image shows (factual). Interpretat
 
 ---
 
+## Issue 4: WebSearch Roleplay Instead of Tool Use
+
+**Problem:** Automated reply posted `[searching for NAO forecast information...]` - Claude wrote fake search text instead of using WebSearch.
+
+**Investigation:**
+- Tested `--tools WebSearch` in `-p` mode - WORKS correctly
+- Tested with JSON output format - WORKS correctly
+- Tested with long prompt similar to automation - WORKS correctly
+- Conclusion: Transient failure (rate limit, timeout, or model behavior)
+
+**Fix:** Two-pronged approach:
+1. Added prompt instruction: "NEVER write fake placeholders like '[searching...]'"
+2. Added post-processing detection:
+   - Detect patterns: `[searching`, `[looking up`, `[checking`, `[fetching`
+   - Log warning when detected
+   - Strip fake placeholders from output
+
+**File:** `reply_listener.py` lines 2007, 2120-2131
+
+**Commit:** `3185441` - Fix fake WebSearch placeholder detection and stripping
+
+**Deleted:** 4 posts from bad NAO thread (3mcslfmxlli24 and 3 follow-ups)
+
+---
+
 ## Outstanding
 
-- Monitor next few image-based replies to verify WebSearch is being used appropriately
-- Consider adding timeout handling if WebSearch takes too long
+- Monitor next few replies to verify WebSearch working and fake placeholders stripped
+- Consider retry logic if fake placeholders detected
 
 ---
 
