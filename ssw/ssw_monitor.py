@@ -24,7 +24,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # === CONFIG ===
-OUTPUT_DIR = Path('/home/owen/wxd/ssw')
+OUTPUT_DIR = Path(__file__).parent  # Use script's directory
 CACHE_DIR = OUTPUT_DIR / 'cache'
 
 # SSW detection thresholds (m/s)
