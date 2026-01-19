@@ -1218,14 +1218,16 @@ def get_claude_commentary(data_path: Path, run_diff_text: str, confidence: str,
 YOUR PREVIOUS POST (for narrative continuity):
 {previous_post}
 
-NARRATIVE CONTINUITY - DATA IS TRUTH:
+NARRATIVE CONTINUITY - PATIENCE OVER DRAMA:
 - Previous post is CONTEXT only - current ANALYSIS data is the source of truth
-- Compare what you said before against what the data NOW shows
-- If data confirms previous forecast: "Cold persisting as expected" / "Warming signal strengthening"
-- If data contradicts previous post: acknowledge the change - "Models have shifted warmer/colder since last update"
-- If previous post mentioned a feature not in current data, DO NOT repeat it - note it has dropped out
+- DO NOT dramatise small differences between this run and last
+- If data is broadly similar: "Little changed from previous run" or just report current state without comparison
+- If marginally different: "This run slightly warmer/colder" - no drama, wait for confirmation
+- Only flag significant change if: ALL models moved the same way, OR change is large (>3°C ensemble mean shift)
+- If previous run said one thing and this run says the opposite, DO NOT say "models have flipped" - say "back towards earlier levels, uncertainty remains"
+- If previous post mentioned a feature not in current data, DO NOT repeat it
 - Vary your language - don't use the same phrases as before
-- Show EVOLUTION based on what data supports, not what was said before
+- When in doubt, be measured - avoid see-sawing headlines
 """
     else:
         previous_post_section = ""
@@ -1279,7 +1281,8 @@ STYLE:
 - NEVER use "arriving" for something we've tracked for days/weeks - use "holding", "as forecast", "as tracked"
 - Don't parrot the example phrases verbatim every time - vary your language with natural synonyms that don't sound pretentious
 - The chart shows days 1-7+, your commentary should cover that range
-- Mention model agreement/disagreement and what changed since last run
+- Mention model agreement/disagreement where notable
+- Only mention run-on-run changes if they are significant and confirmed (see RUN-ON-RUN CHANGES section)
 - Can mention ONE key temperature to anchor the story
 
 PEAK TIMING - CRITICAL (READ THIS CAREFULLY):
@@ -1289,11 +1292,19 @@ PEAK TIMING - CRITICAL (READ THIS CAREFULLY):
 - If PEAK TIMING says "FUTURE": You CAN say "cold arriving" or "peak approaching"
 - VIOLATION: Any post saying "peak arriving/holding/persisting" when PEAK TIMING is PAST will be WRONG
 
-MULTI-RUN TRENDS - IMPORTANT:
-- If ANALYSIS contains "MULTI-RUN TREND:", this means multiple consecutive runs show the same direction
-- Progressive cooling = each run getting colder - YOU MUST MENTION THIS ("models trending colder over recent runs")
-- Progressive warming = each run getting warmer - YOU MUST MENTION THIS ("models trending warmer over recent runs")
-- This is different from single run-to-run shift - it shows SUSTAINED model drift
+RUN-ON-RUN CHANGES - PATIENCE REQUIRED:
+- Small changes (1-3°C in one or two models) are NORMAL model variability, not news
+- DO NOT dramatise every shift: avoid "backed off significantly", "firming up", "models have flipped"
+- For marginal changes: "This run marginally warmer/colder" - then WAIT for next run to confirm
+- Only escalate language when: (a) multiple consecutive runs agree, OR (b) ALL models shift together, OR (c) change exceeds normal variability
+- If this run reverses yesterday's direction, DO NOT treat it as significant - say "back towards previous levels" not "models have reversed"
+- Avoid see-sawing narratives: if recent runs have bounced around, acknowledge uncertainty rather than declaring a new trend each time
+- Sometimes the honest answer is "little changed, models still uncertain"
+
+MULTI-RUN TRENDS - ONLY IF SUSTAINED:
+- If ANALYSIS contains "MULTI-RUN TREND:", this means 3+ consecutive runs show the same direction
+- Only then mention trending: "models have consistently trended colder/warmer over recent runs"
+- A single run shift is NOT a trend - do not treat it as one
 
 END-OF-FORECAST TRENDS - IMPORTANT:
 - If ANALYSIS contains "END-OF-FORECAST:", there's a late trend reversal at the end of the forecast period
@@ -1340,12 +1351,14 @@ FORMAT:
 TONE:
 - FACTUAL and measured - not tabloid headlines
 - PLAIN LANGUAGE for casual weather fans
+- PATIENT with model variability - small changes don't need commentary
+- If uncertain, say so: "models still showing spread" rather than picking a narrative
 LANGUAGE:
 - Use varied, natural phrasing - avoid repetition
-- Confidence synonyms: highly likely, well-supported, consistently shown, strongly indicated
-- Change synonyms: adjustment, shift, revision, movement
-- Magnitude synonyms: marked, notable, significant, appreciable
-- AVOID sensational terms: dramatic, slammed, plunged, locked in, major shift, prolonged
+- For small changes: "marginally warmer/colder", "slight adjustment", "little changed"
+- For confirmed trends: "consistently showing", "sustained shift over recent runs"
+- AVOID run-on-run drama: "backed off significantly", "firming up", "models have flipped", "reversed course"
+- AVOID sensational terms: dramatic, slammed, plunged, locked in, major shift, prolonged, decisive
 - No jargon like "regime", "synoptic", "conviction"
 
 MET OFFICE WARNINGS - ABSOLUTE RULES (VIOLATION = MISINFORMATION):

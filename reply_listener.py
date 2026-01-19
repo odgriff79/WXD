@@ -89,8 +89,10 @@ TRUSTED_USERS = {
 }
 
 # =============================================================================
-# SUPER USER - SYSTEM OWNER (DO NOT AUTO-RESPOND)
-# Super user messages are TRAINING INPUTS, not conversation triggers
+# SUPER USER - SYSTEM OWNER
+# - Messages starting with "dev feedback" or "dev note" → logged to training log
+# - Commands like "reply to" → execute command
+# - Everything else → gets chat response (no need to say "chat")
 # =============================================================================
 SUPER_USER_HANDLES = [
     "ogriff79.bsky.social",  # Owen Griffiths - system owner
@@ -2332,27 +2334,8 @@ Output ONLY the reply text, nothing else."""
         if is_super_user:
             msg_lower = reply['text'].lower().strip()
 
-            # Super user can say 'chat' to start a conversation like anyone else
-            if is_chat_trigger(reply['text']):
-                print(f"    [SUPER USER] 'chat' trigger - starting session with canned greeting")
-                # Create fresh session and use canned response (don't call Claude)
-                session = create_session(state, author_did, author_handle, reply.get('root_uri', reply['uri']))
-                response_text = CANNED_RESPONSES['chat_greeting']
-                update_session(session)
-                # Post the canned response
-                if not dry_run:
-                    reply_ref = {'uri': reply['uri'], 'cid': reply['cid']}
-                    root_ref = {'uri': reply.get('root_uri', reply['uri']), 'cid': reply.get('root_cid', reply['cid'])}
-                    post_result = post_reply(client, response_text, reply_to=reply_ref, root=root_ref)
-                    if post_result:
-                        print(f"    Posted canned greeting: {post_result['uri']}")
-                        replies_sent += 1
-                else:
-                    print(f"    [DRY RUN] Would post canned greeting")
-                new_processed.append(reply['uri'])
-                continue
             # Check for COMMANDS
-            elif msg_lower.startswith(('reply to', 'respond to', 'answer to', 'reply here', 'respond here')):
+            if msg_lower.startswith(('reply to', 'respond to', 'answer to', 'reply here', 'respond here')):
                 # Command: reply to the parent message
                 print(f"    [SUPER USER CMD] Triggering reply to parent message")
                 # Don't skip - let the normal flow generate a response to the PARENT
@@ -2404,9 +2387,9 @@ Output ONLY the reply text, nothing else."""
                             print(f"    [DRY RUN] Would post {len(response_posts)} reply(ies) to parent")
                 new_processed.append(reply['uri'])
                 continue
-            elif not is_chat_trigger(reply['text']):
-                # Not a command and not chat - log as training feedback
-                print(f"    [SUPER USER] Training feedback logged")
+            elif msg_lower.startswith('dev feedback') or msg_lower.startswith('dev note'):
+                # Explicit dev feedback - log to training log
+                print(f"    [SUPER USER] Dev feedback logged")
                 training_entry = {
                     'timestamp': utcnow().isoformat(),
                     'type': 'super_user_feedback',
@@ -2419,6 +2402,7 @@ Output ONLY the reply text, nothing else."""
                 state.setdefault('training_log', []).append(training_entry)
                 new_processed.append(reply['uri'])
                 continue
+            # Super user without 'dev feedback' prefix - treat as normal user, fall through to chat
 
         # Skip pass-through
         if is_pass_through(reply['text']):
@@ -2702,27 +2686,8 @@ Output ONLY the reply text, nothing else."""
             if is_super_user:
                 msg_lower = reply['text'].lower().strip()
 
-                # Super user can say 'chat' to start a conversation like anyone else
-                if is_chat_trigger(reply['text']):
-                    print(f"      [SUPER USER] 'chat' trigger - starting session with canned greeting")
-                    # Create fresh session and use canned response (don't call Claude)
-                    session = create_session(state, author_did, author_handle, post['uri'])
-                    response_text = CANNED_RESPONSES['chat_greeting']
-                    update_session(session)
-                    # Post the canned response
-                    if not dry_run:
-                        reply_ref = {'uri': reply['uri'], 'cid': reply['cid']}
-                        root_ref = {'uri': post['uri'], 'cid': post['cid']}
-                        post_result = post_reply(client, response_text, reply_to=reply_ref, root=root_ref)
-                        if post_result:
-                            print(f"      Posted canned greeting: {post_result['uri']}")
-                            replies_sent += 1
-                    else:
-                        print(f"      [DRY RUN] Would post canned greeting")
-                    new_processed.append(reply['uri'])
-                    continue
                 # Check for COMMANDS
-                elif msg_lower.startswith(('reply to', 'respond to', 'answer to', 'reply here', 'respond here')):
+                if msg_lower.startswith(('reply to', 'respond to', 'answer to', 'reply here', 'respond here')):
                     print(f"      [SUPER USER CMD] Triggering reply to this thread")
                     # Generate response to the original post context
                     result = generate_chat_response(
@@ -2766,9 +2731,9 @@ Output ONLY the reply text, nothing else."""
                             print(f"      [DRY RUN] Would post {len(response_posts)} reply(ies)")
                     new_processed.append(reply['uri'])
                     continue
-                elif not is_chat_trigger(reply['text']):
-                    # Not a command and not chat - log as training feedback
-                    print(f"      [SUPER USER] Training feedback logged")
+                elif msg_lower.startswith('dev feedback') or msg_lower.startswith('dev note'):
+                    # Explicit dev feedback - log to training log
+                    print(f"      [SUPER USER] Dev feedback logged")
                     training_entry = {
                         'timestamp': utcnow().isoformat(),
                         'type': 'super_user_feedback',
@@ -2781,6 +2746,7 @@ Output ONLY the reply text, nothing else."""
                     state.setdefault('training_log', []).append(training_entry)
                     new_processed.append(reply['uri'])
                     continue
+                # Super user without 'dev feedback' prefix - treat as normal user, fall through to chat
 
             # =================================================================
             # PRE-FILTERS (before any Claude call)
