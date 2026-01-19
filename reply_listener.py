@@ -162,24 +162,18 @@ def analyze_image_with_claude(image_url: str, context: str = "") -> str:
             f.write(response.content)
             temp_path = f.name
 
-        # Build prompt for Claude
-        prompt = f"""Read the image at {temp_path} and describe it in 2-3 sentences.
+        # Build prompt for Claude - simple description only
+        prompt = f"""Read the image at {temp_path} and describe what it shows in 2-3 sentences.
 
-FACTUAL ACCURACY RULES:
-- Distinguish OBSERVED data from FORECAST/MODEL OUTPUT
-- For forecasts: say "shows a potential signal" or "model suggests", NOT "X is happening"
-- For stratospheric charts (10hPa, SSW, zonal wind): NOTE that surface effects lag by 2-4 weeks
-- Do NOT make causal claims (e.g., "this will cause X") - only describe what the image shows
-- If dates/models are visible, include them
+Include:
+- Chart type/source if visible (e.g., "ECMWF regime forecast")
+- Key patterns or signals shown (e.g., "NAO- dominant in Feb", "zonal wind collapse")
+- Date range if visible
 
-Focus on:
-- Chart type and source (model name if visible)
-- Key features shown (temps, pressure, dates, ensemble spread)
-- Any notable patterns - but described as "signal" or "indication", not certainty
-
+Be factual - describe what the image SHOWS, not what it means for weather.
 {f'Context: {context}' if context else ''}
 
-Keep response under 150 words. Describe what image SHOWS, not what it PREDICTS will happen."""
+Keep under 100 words."""
 
         # Run Claude CLI with image
         result = subprocess.run(
@@ -1952,14 +1946,9 @@ RESEARCH-BACKED REPLY RULES:
 USER SHARED IMAGE(S):
 {image_context}
 
-IMAGE INTERPRETATION RULES - CRITICAL:
-- The image analysis above describes what the CHART SHOWS, not what WILL happen
-- Stratospheric charts (10hPa, zonal wind, SSW signals) take 2-4 WEEKS to affect surface weather
-- Do NOT directly link stratospheric forecasts to our 850hPa data - they operate on different timescales
-- For model forecasts: say "potential signal" or "suggests", NOT "is happening" or "will cause"
-- Weather watchers share these charts for discussion - they're interesting but NOT direct evidence for surface forecasts
-- If chart shows ensemble spread: note the uncertainty, don't cherry-pick one outcome
-- Connect to WXD data only where timescales align (e.g., synoptic patterns 3-7 days out)
+The user shared these chart(s). USE WEBSEARCH to understand what signals mean if needed.
+For example: if image shows "NAO-" - search "NAO negative UK weather impact" before responding.
+Acknowledge what the charts show and explain relevance to UK weather using searched sources.
 """
 
     # Super user instructions
