@@ -255,6 +255,25 @@ def handle_synthesis_post():
     return output
 
 
+def handle_ssw():
+    """SSW Monitor - check stratospheric warming status."""
+    print(f'SSW status requested at {time.strftime("%H:%M:%S")}')
+    # Run monitor and return status
+    output = run_command(['/home/ubuntu/wxd/venv/bin/python', 'ssw/ssw_monitor.py', '--json'])
+    # Also read the status file for a summary
+    try:
+        import json
+        with open('/home/ubuntu/wxd/ssw/ssw_status.json') as f:
+            status = json.load(f)
+        prob = status.get('ssw_probability_pct', 'N/A')
+        level = status.get('alert', {}).get('level', 'Unknown')
+        u10 = status.get('current_u10_60n_ms', 'N/A')
+        summary = f"SSW STATUS\n{'='*30}\nProbability: {prob}%\nAlert: {level}\nCurrent U10 @60N: {u10} m/s"
+        return summary + "\n\n" + (output or '')
+    except Exception as e:
+        return output or f"SSW check error: {e}"
+
+
 def handle_status():
     """Quick system status summary."""
     import json
@@ -376,6 +395,8 @@ while True:
                             output = handle_synthesis()
                         elif cmd == 'cross-post':
                             output = handle_synthesis_post()
+                        elif cmd == 'ssw':
+                            output = handle_ssw()
 
                         if output:
                             # Clean up output for ntfy

@@ -38,6 +38,7 @@ powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_C
 | `engagement` | Engagement post preview |
 | `cross` | Cross-tracker comparison (all 7 models) preview |
 | `cross-post` | Cross-tracker comparison - LIVE post |
+| `ssw` | SSW Monitor - current probability % and status |
 | `check` | Reply listener dry-run |
 | `respond` | Reply listener live |
 | `status` | Quick system status |
@@ -69,6 +70,9 @@ powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_C
 # Cross-Tracker (compare all 7 models)
 powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'cross'"
 powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'cross-post'"
+
+# SSW Monitor (Sudden Stratospheric Warming)
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'ssw'"
 ```
 
 ## VM Cron Schedule
@@ -104,6 +108,12 @@ crontab -e
 | Mon 20:00 | Collect Questions | Harvest replies from Sunday post |
 | Tue 12:00 | Educational Post | Weather topic based on collected questions |
 | Fri 12:00 | Educational Post | Weather topic (context-aware selection) |
+
+#### Stratospheric Monitoring
+
+| Time (UTC) | Task | Description |
+|------------|------|-------------|
+| 05:30, 11:30, 17:30, 23:30 | SSW Monitor | GEFS 31-member ensemble polar vortex check |
 
 #### Maintenance
 
@@ -209,6 +219,47 @@ free -h
 | `~/wxd/trackers/ukmo/data/` | UKMO data and charts |
 | `~/wxd/trackers/mogreps/data/` | MOGREPS data and charts |
 | `~/wxd/engagement/data/` | Engagement state and Q&A |
+| `~/wxd/ssw/` | SSW monitor scripts and status |
+
+## SSW Monitor (Sudden Stratospheric Warming)
+
+Monitors polar vortex for SSW events using GEFS 31-member ensemble.
+
+### What it tracks
+- Zonal-mean zonal wind at 10 hPa, 60°N
+- Major SSW = wind reversal (westerly → easterly, U < 0 m/s)
+- SSW can influence UK weather 2-4 weeks later (NAO-, blocking, cold)
+
+### ntfy Command
+```powershell
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'ssw'"
+```
+
+### Output Example
+```
+SSW STATUS
+==============================
+Probability: 3.2%
+Alert: NORMAL
+Current U10 @60N: 23.0 m/s
+```
+
+### Alert Levels
+| Level | Probability | Meaning |
+|-------|-------------|---------|
+| NORMAL | < 10% | Vortex stable |
+| WATCH | 10-30% | Elevated risk |
+| WARNING | 30-50% | SSW likely developing |
+| ALERT | > 50% | SSW imminent/occurring |
+
+### Manual Commands
+```bash
+# Check SSW status
+python ssw/ssw_monitor.py --json
+
+# View current status file
+cat ssw/ssw_status.json
+```
 
 ## Troubleshooting
 
