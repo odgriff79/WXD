@@ -92,6 +92,10 @@ Image analysis prompt now just describes what image shows (factual). Interpretat
 2. `dbdd228` - Add factual accuracy rules for image analysis (later simplified)
 3. `a5755ba` - Simplify image analysis - use WebSearch instead of hardcoded rules
 4. `ff208e6` - Enable WebSearch/WebFetch tools in chat response generation
+5. `3185441` - Fix fake WebSearch placeholder detection and stripping
+6. `551e4af` - Document WebSearch roleplay issue and fix
+7. `b0a262f` - Fix hardcoded path in SSW monitor - use script directory
+8. `03ebfb9` - Add SSW cache fallback when GEFS fetch fails
 
 ---
 
@@ -102,6 +106,14 @@ Image analysis prompt now just describes what image shows (factual). Interpretat
   - `analyze_image_with_claude()` - simplified prompt
   - `generate_chat_response()` - added `--tools WebSearch,WebFetch`
   - Image section in prompt - simplified to "use WebSearch if needed"
+  - Added fake search placeholder detection and stripping
+  - Added prompt instruction against fake placeholders
+
+- `ssw/ssw_monitor.py`
+  - Fixed hardcoded path to use `Path(__file__).parent`
+
+- `ntfy_listener.py`
+  - `handle_ssw()` - added cache fallback when GEFS unavailable
 
 ---
 
@@ -136,6 +148,52 @@ Image analysis prompt now just describes what image shows (factual). Interpretat
 **Commit:** `3185441` - Fix fake WebSearch placeholder detection and stripping
 
 **Deleted:** 4 posts from bad NAO thread (3mcslfmxlli24 and 3 follow-ups)
+
+---
+
+## Issue 5: SSW Monitor Hardcoded Path
+
+**Problem:** ntfy `ssw` command failed with permission error trying to create `/home/owen/wxd/ssw`.
+
+**Root Cause:** Hardcoded path from development machine instead of VM path.
+
+**Fix:** Changed to dynamic path using script's directory:
+```python
+OUTPUT_DIR = Path(__file__).parent  # Use script's directory
+```
+
+**File:** `ssw/ssw_monitor.py` line 27
+
+**Commit:** `b0a262f` - Fix hardcoded path in SSW monitor
+
+---
+
+## Issue 6: SSW No Fallback When GEFS Unavailable
+
+**Problem:** When NOAA GEFS servers are unavailable (data not published yet), SSW command returns "N/A" for all values instead of using cached data.
+
+**Root Cause:** No fallback logic - just reported error status.
+
+**Fix:** Added cache fallback in ntfy handler:
+1. Check if `ssw_status.json` has `status: error`
+2. If so, read last entry from `history.json`
+3. Calculate data age and display with "(CACHED)" indicator
+4. Show note explaining live fetch failed
+
+**Result:**
+```
+SSW STATUS (CACHED) (data 3h old)
+==============================
+Probability: 0.0%
+Alert: NORMAL
+Current U10 @60N: 28.3 m/s
+
+Note: Live fetch failed, using last good data
+```
+
+**File:** `ntfy_listener.py` lines 258-303
+
+**Commit:** `03ebfb9` - Add SSW cache fallback when GEFS fetch fails
 
 ---
 

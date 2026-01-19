@@ -2,6 +2,57 @@
 
 All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
+## 2026-01-19 (Late Evening): WebSearch Reliability & SSW Monitor Fixes
+
+### Fake WebSearch Placeholder Detection (ROBUSTNESS FIX)
+
+**Problem:** Automation occasionally posted replies with `[searching for NAO forecast information...]` - Claude writing fake search text instead of using WebSearch tool.
+
+**Investigation:** WebSearch works correctly in `-p` mode (tested). Failure was transient (rate limit/timeout).
+
+**Fix:** Two-pronged approach:
+1. Added prompt instruction: "NEVER write fake placeholders like '[searching...]'"
+2. Added post-processing to detect and strip fake search patterns: `[searching`, `[looking up`, etc.
+
+**File:** `reply_listener.py` lines 2007, 2120-2131
+
+---
+
+### SSW Monitor Path Fix
+
+**Problem:** ntfy `ssw` command failed with permission error trying to create `/home/owen/wxd/ssw` (hardcoded dev machine path).
+
+**Fix:** Changed to dynamic path: `OUTPUT_DIR = Path(__file__).parent`
+
+**File:** `ssw/ssw_monitor.py` line 27
+
+---
+
+### SSW Cache Fallback (NEW FEATURE)
+
+**Problem:** When NOAA GEFS servers unavailable (data not published yet), SSW returned "N/A" for all values.
+
+**Fix:** Added cache fallback in ntfy handler:
+- Checks if `ssw_status.json` has `status: error`
+- Falls back to last entry in `history.json`
+- Shows "(CACHED)" indicator with data age
+- Displays note explaining live fetch failed
+
+**Result:**
+```
+SSW STATUS (CACHED) (data 3h old)
+==============================
+Probability: 0.0%
+Alert: NORMAL
+Current U10 @60N: 28.3 m/s
+
+Note: Live fetch failed, using last good data
+```
+
+**File:** `ntfy_listener.py` lines 258-303
+
+---
+
 ## 2026-01-19 (Evening): Image Analysis & WebSearch Citation Fix
 
 ### Image Analysis for User-Shared Charts (NEW FEATURE)
