@@ -21,8 +21,8 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 - Historical data lookup (planned)
 
 **Usage:**
-- ntfy: `curl -d "synthesis" ntfy.sh/YOUR_CHANNEL` (preview)
-- ntfy: `curl -d "synthesis-post" ntfy.sh/YOUR_CHANNEL` (live post)
+- ntfy: `curl -d "cross" ntfy.sh/YOUR_CHANNEL` (preview)
+- ntfy: `curl -d "cross-post" ntfy.sh/YOUR_CHANNEL` (live post)
 - Chat: Ask "compare all models" or "GFS vs ICON" and Claude gets cross-tracker context
 
 ---

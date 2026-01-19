@@ -68,7 +68,7 @@ print('  Tracker C: "mogreps" (quick) or "mogreps-fresh" (fetch new)')
 print('  Tracker D: "ukmo" (quick) or "ukmo-fresh" (fetch new)')
 print('  Daily: "summary" (Met Office summary preview)')
 print('  Engagement: "engagement" (preview)')
-print('  Synthesis: "synthesis" (cross-tracker preview) or "synthesis-post" (live post)')
+print('  Cross: "cross" (cross-tracker preview) or "cross-post" (live post)')
 print('  Replies: "check" (dry-run) or "respond" (live)')
 print('  Status: "status" (quick system overview)')
 print('  Clear: "clear-feedback" (clear dashboard feedback queue)')
@@ -372,9 +372,9 @@ while True:
                             output = handle_status()
                         elif cmd == 'clear-feedback':
                             output = handle_clear_feedback()
-                        elif cmd == 'synthesis':
+                        elif cmd == 'cross':
                             output = handle_synthesis()
-                        elif cmd == 'synthesis-post':
+                        elif cmd == 'cross-post':
                             output = handle_synthesis_post()
 
                         if output:
