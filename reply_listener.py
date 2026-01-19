@@ -69,6 +69,155 @@ except ImportError:
     HAS_METOFFICE = False
     fetch_metoffice_narrative = None
 
+# For image analysis
+import tempfile
+import requests as http_requests  # Avoid conflict with atproto requests
+
+
+# =============================================================================
+# IMAGE ANALYSIS (TEMP STORAGE ONLY - NO DATA RETENTION)
+# =============================================================================
+
+def extract_image_urls(post_or_reply: dict) -> list:
+    """Extract image URLs from a post or reply embed.
+
+    Returns list of dicts with 'url', 'alt', 'thumb' for each image.
+    """
+    images = []
+
+    # Check for embed with images
+    embed = None
+    if hasattr(post_or_reply, 'embed') and post_or_reply.embed:
+        embed = post_or_reply.embed
+    elif isinstance(post_or_reply, dict) and post_or_reply.get('embed'):
+        embed = post_or_reply['embed']
+
+    if not embed:
+        return images
+
+    # Handle image embeds
+    if hasattr(embed, 'images'):
+        for img in embed.images:
+            img_data = {
+                'url': getattr(img, 'fullsize', None),
+                'thumb': getattr(img, 'thumb', None),
+                'alt': getattr(img, 'alt', '') or '',
+            }
+            if img_data['url']:
+                images.append(img_data)
+
+    return images
+
+
+def analyze_image_with_claude(image_url: str, context: str = "") -> str:
+    """Download image to temp file, analyze with Claude CLI, delete immediately.
+
+    PRIVACY: Image is stored in /tmp only during analysis, deleted immediately after.
+    No permanent storage, no data retention.
+
+    Args:
+        image_url: URL of image to analyze
+        context: Optional context about what to look for
+
+    Returns:
+        Claude's analysis of the image, or empty string on failure
+    """
+    temp_path = None
+    try:
+        # Download to temp file
+        response = http_requests.get(image_url, timeout=30)
+        response.raise_for_status()
+
+        # Determine extension from content type
+        content_type = response.headers.get('content-type', 'image/jpeg')
+        ext = '.jpg' if 'jpeg' in content_type else '.png' if 'png' in content_type else '.jpg'
+
+        # Create temp file (will be deleted in finally block)
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as f:
+            f.write(response.content)
+            temp_path = f.name
+
+        # Build prompt for Claude
+        prompt = f"""Briefly describe this image in 2-3 sentences. Focus on:
+- If it's a weather chart/forecast: what does it show? Key temperatures, dates, trends?
+- If it's a screenshot: what's the main content?
+- If it's something else: brief factual description
+
+{f'Context: {context}' if context else ''}
+
+Image path: {temp_path}
+
+Keep response under 150 words. Be factual, no speculation."""
+
+        # Run Claude CLI with image
+        result = subprocess.run(
+            ['claude', '--dangerously-skip-permissions', '--model', 'haiku', '-p', prompt],
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()[:500]  # Cap at 500 chars
+
+        return ""
+
+    except Exception as e:
+        print(f"    Image analysis error: {e}")
+        return ""
+
+    finally:
+        # ALWAYS delete temp file - no data retention
+        if temp_path and Path(temp_path).exists():
+            try:
+                Path(temp_path).unlink()
+            except:
+                pass
+
+
+def get_reply_image_context(reply_post) -> str:
+    """Check if reply has images, analyze them if so.
+
+    Returns analysis string or empty string if no images.
+    """
+    images = extract_image_urls(reply_post)
+    if not images:
+        return ""
+
+    return analyze_reply_images(images)
+
+
+def analyze_reply_images(images: list) -> str:
+    """Analyze images from a reply.
+
+    PRIVACY/GDPR: Images are downloaded to temp files, analyzed, then IMMEDIATELY deleted.
+    No permanent storage. No data retention. Compliant with data protection laws.
+
+    Args:
+        images: List of image dicts with 'url', 'alt', 'thumb'
+
+    Returns:
+        Analysis string or empty string if no images/analysis fails
+    """
+    if not images:
+        return ""
+
+    print(f"    Reply has {len(images)} image(s) - analyzing (temp only, no storage)...")
+
+    analyses = []
+    for i, img in enumerate(images[:2]):  # Max 2 images to avoid overload
+        alt_text = img.get('alt', '')
+        analysis = analyze_image_with_claude(
+            img['url'],
+            context=f"User shared this in a weather discussion. Alt text: {alt_text}" if alt_text else ""
+        )
+        if analysis:
+            analyses.append(f"[Image {i+1}]: {analysis}")
+
+    if analyses:
+        return "\n".join(analyses)
+    return ""
+
 
 # =============================================================================
 # CONFIGURATION
@@ -915,6 +1064,7 @@ def extract_replies(thread_response, own_did: str) -> list:
             'created_at': reply_post.record.created_at if hasattr(reply_post.record, 'created_at') else None,
             'parent_uri': thread.post.uri if hasattr(thread, 'post') else None,
             'parent_cid': thread.post.cid if hasattr(thread, 'post') else None,
+            'images': extract_image_urls(reply_post),  # For image analysis
         })
 
     return replies
@@ -996,6 +1146,7 @@ def get_notification_replies(client: Client, own_did: str, limit: int = 50) -> l
                 'root_uri': root_uri,
                 'root_cid': root_cid,
                 'is_notification': True,  # Flag to identify source
+                'images': extract_image_urls(notif),  # For image analysis
             })
 
     except Exception as e:
@@ -1684,7 +1835,7 @@ def split_into_posts(text: str, max_chars: int = 295) -> list:
     return posts
 
 
-def generate_chat_response(reply_text: str, parent_text: str, session: dict = None, forecast_context: str = "", is_super_user: bool = False, research_context: str = "") -> dict:
+def generate_chat_response(reply_text: str, parent_text: str, session: dict = None, forecast_context: str = "", is_super_user: bool = False, research_context: str = "", image_context: str = "") -> dict:
     """Use Claude CLI to generate a conversational response.
 
     Returns dict with:
@@ -1695,6 +1846,9 @@ def generate_chat_response(reply_text: str, parent_text: str, session: dict = No
         - reason: str (explanation)
         - needs_human: bool (flag for owner review)
         - sources_used: list of sources cited (for logging)
+
+    Args:
+        image_context: Optional analysis of images the user shared (temp processed, not stored)
     """
     # Build conversation context if we have session history
     context = ""
@@ -1756,6 +1910,17 @@ RESEARCH-BACKED REPLY RULES:
 - Log which sources you used in your response (for audit trail)
 - NEVER make up citations - only cite what's actually in the sources or found via web search
 - If you can't find reliable evidence, say so and ask for more information
+"""
+
+    # Add image context if user shared images (analyzed ephemerally, not stored)
+    image_section = ""
+    if image_context:
+        image_section = f"""
+
+USER SHARED IMAGE(S):
+{image_context}
+
+Note: The user attached the above image(s) to their message. Reference what you see in the image if relevant to your response.
 """
 
     # Super user instructions
@@ -1844,7 +2009,7 @@ DATA ATTRIBUTION - CRITICAL:
 Only flag for human review if:
 - User points out an error in WXD's data (correction)
 - Question is about WXD's internal systems/operations
-{forecast_section}{research_section}
+{forecast_section}{research_section}{image_section}
 THREAD CONTEXT:
 {parent_text[:300]}
 
@@ -2610,7 +2775,11 @@ Output ONLY the reply text, nothing else."""
                 del state['active_sessions'][author_did]
             else:
                 print("    Active session - generating response...")
-                result = generate_chat_response(reply['text'], context_text, session, forecast_context, is_super_user, research_context)
+                # Check for images in reply (analyzed ephemerally, not stored)
+                image_context = ""
+                if reply.get('images'):
+                    image_context = analyze_reply_images(reply['images'])
+                result = generate_chat_response(reply['text'], context_text, session, forecast_context, is_super_user, research_context, image_context)
                 claude_calls += 1
 
                 # Handle rate limiting - queue for later
