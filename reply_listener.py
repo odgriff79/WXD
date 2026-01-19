@@ -1519,6 +1519,26 @@ Return a concise 3-4 sentence summary of the forecast. Be specific with dates an
 AI_SIGNATURE = "—WXD Auto AI"
 
 
+def add_session_indicator(posts: list, message_count: int, msg_limit: int) -> list:
+    """Add session message indicator [X/Y] to the last post.
+
+    Shows user their current message number and session limit.
+    Added BEFORE AI signature.
+    """
+    if not posts or message_count <= 0:
+        return posts
+
+    posts = list(posts)  # Copy to avoid mutating original
+    last_post = posts[-1]
+    indicator = f" [{message_count}/{msg_limit}]"
+
+    # Only add if it fits within limit
+    if len(last_post) + len(indicator) <= 300:
+        posts[-1] = last_post + indicator
+
+    return posts
+
+
 def add_ai_signature(posts: list) -> list:
     """Add AI signature to the last post in a response.
 
@@ -2456,6 +2476,8 @@ Output ONLY the reply text, nothing else."""
 
         response_text = None
         result = {}  # Initialize result for logging
+        session_msg_count = 0  # Track for indicator
+        session_msg_limit = 0  # Track for indicator
 
         # Check if reply is in the same thread as the session
         session_thread = session.get('thread_uri', '') if session else ''
@@ -2463,6 +2485,7 @@ Output ONLY the reply text, nothing else."""
 
         if session and same_thread:
             msg_limit = get_session_limit(author_did, session, author_handle)
+            session_msg_limit = msg_limit  # Store for indicator
             if session['message_count'] >= msg_limit:
                 print(f"    Session limit reached ({msg_limit} msgs)")
                 response_text = CANNED_RESPONSES['session_limit']
@@ -2494,7 +2517,8 @@ Output ONLY the reply text, nothing else."""
                 if result.get('should_respond'):
                     response_text = result.get('response_text')
                     update_session(session)
-                    print(f"    Session msg count: {session['message_count']}")
+                    session_msg_count = session['message_count']  # After increment
+                    print(f"    Session msg count: {session_msg_count}")
 
                     log_training_data(state, {
                         'type': 'threaded_claude_response',
@@ -2547,6 +2571,7 @@ Output ONLY the reply text, nothing else."""
                 # Follower: engage directly with Claude AI response
                 print("    Follower confirmed - engaging directly with Claude...")
                 session = create_session(state, author_did, author_handle, reply.get('root_uri', reply['uri']))
+                session_msg_limit = get_session_limit(author_did, session, author_handle)
                 result = generate_chat_response(reply['text'], context_text, session, forecast_context, is_super_user, research_context)
                 claude_calls += 1
 
@@ -2572,7 +2597,8 @@ Output ONLY the reply text, nothing else."""
                 if result.get('should_respond'):
                     response_text = result.get('response_text')
                     update_session(session)
-                    print(f"    Session started, msg count: {session['message_count']}")
+                    session_msg_count = session['message_count']  # After increment
+                    print(f"    Session started, msg count: {session_msg_count}")
 
                     log_training_data(state, {
                         'type': 'follower_direct_response',
@@ -2586,8 +2612,10 @@ Output ONLY the reply text, nothing else."""
         # Post response(s) - may be multiple posts for long answers
         response_posts = result.get('response_posts', [response_text]) if 'result' in dir() and result else [response_text] if response_text else []
 
-        # Add AI signature to last post (only for Claude-generated responses)
+        # Add session indicator [X/Y] and AI signature (only for Claude-generated responses)
         if response_posts and result.get('should_respond'):
+            if session_msg_count > 0 and session_msg_limit > 0:
+                response_posts = add_session_indicator(response_posts, session_msg_count, session_msg_limit)
             response_posts = add_ai_signature(response_posts)
 
         if response_posts:
@@ -2774,10 +2802,13 @@ Output ONLY the reply text, nothing else."""
             response_text = None
             classification = None
             result = {}  # Initialize for signature check later
+            session_msg_count = 0  # Track for indicator
+            session_msg_limit = 0  # Track for indicator
 
             if session:
                 # User has an active session
                 msg_limit = get_session_limit(author_did, session, author_handle)
+                session_msg_limit = msg_limit  # Store for indicator
                 if session['message_count'] >= msg_limit:
                     # Session limit reached
                     print(f"      Session limit reached ({msg_limit} msgs)")
@@ -2813,7 +2844,8 @@ Output ONLY the reply text, nothing else."""
                     if result.get('should_respond'):
                         response_text = result.get('response_text')
                         update_session(session)
-                        print(f"      Session msg count: {session['message_count']}")
+                        session_msg_count = session['message_count']  # After increment
+                        print(f"      Session msg count: {session_msg_count}")
 
                         # Log for training/improvement
                         log_training_data(state, {
@@ -2878,6 +2910,7 @@ Output ONLY the reply text, nothing else."""
                     # Follower: engage directly with Claude AI response
                     print("      Follower confirmed - engaging directly with Claude...")
                     session = create_session(state, author_did, author_handle, post['uri'])
+                    session_msg_limit = get_session_limit(author_did, session, author_handle)
                     result = generate_chat_response(reply['text'], post['text'], session, forecast_context, is_super_user, post_research_context)
                     claude_calls += 1
 
@@ -2904,7 +2937,8 @@ Output ONLY the reply text, nothing else."""
                     if result.get('should_respond'):
                         response_text = result.get('response_text')
                         update_session(session)
-                        print(f"      Session started, msg count: {session['message_count']}")
+                        session_msg_count = session['message_count']  # After increment
+                        print(f"      Session started, msg count: {session_msg_count}")
 
                         log_training_data(state, {
                             'type': 'follower_direct_response',
@@ -2926,8 +2960,10 @@ Output ONLY the reply text, nothing else."""
             elif response_text:
                 response_posts = [response_text]
 
-            # Add AI signature to last post (only for Claude-generated responses)
+            # Add session indicator [X/Y] and AI signature (only for Claude-generated responses)
             if response_posts and 'result' in dir() and result and result.get('should_respond'):
+                if session_msg_count > 0 and session_msg_limit > 0:
+                    response_posts = add_session_indicator(response_posts, session_msg_count, session_msg_limit)
                 response_posts = add_ai_signature(response_posts)
 
             if response_posts:

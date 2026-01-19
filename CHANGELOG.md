@@ -4,6 +4,18 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ## 2026-01-19: Commentary Patience, Citation Enforcement, False Warnings Fix
 
+### Reply System - Session Message Indicator
+
+**Problem:** User reported "4 messages replied marked as 3" - session message count not shown to users.
+
+**Fix (reply_listener.py):**
+- Added `add_session_indicator()` function to show `[X/Y]` on each reply
+- Shows current message number / session limit (e.g., `[3/10]`)
+- Added before AI signature on all session-tracked responses
+- Helps users know how many messages they have left in their session
+
+---
+
 ### Main Tracker Commentary - Patience Over Drama
 
 **Problem:** Run-on-run commentary was see-sawing between "backing off cold!" and "firming up!" on small model variations (1-3°C), treating normal noise as headlines.
