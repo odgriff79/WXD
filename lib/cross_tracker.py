@@ -368,7 +368,8 @@ def detect_models_in_query(text: str) -> List[str]:
         'all models', 'all the models', 'all trackers', 'every model',
         'everything', 'all of them', 'models showing', 'models show',
         'what do the models', 'what are the models', 'cross tracker',
-        'compare all', 'full comparison',
+        'compare all', 'full comparison', 'they all show', 'do they all',
+        'all show', 'they all', 'each model', 'every tracker',
     ]
     if any(p in text_lower for p in all_patterns):
         return ['all']
@@ -383,6 +384,99 @@ def detect_models_in_query(text: str) -> List[str]:
             found.append(model_name)
 
     return found
+
+
+def detect_target_date(text: str) -> Optional[datetime]:
+    """Detect if user is asking about a specific date.
+
+    Returns datetime if a specific date is mentioned, None otherwise.
+    """
+    text_lower = text.lower()
+    now = utcnow()
+
+    # Day names
+    days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+    days_short = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+
+    for i, (day, day_short) in enumerate(zip(days, days_short)):
+        if day in text_lower or day_short in text_lower:
+            # Find next occurrence of this day
+            current_weekday = now.weekday()
+            target_weekday = i
+            days_ahead = (target_weekday - current_weekday) % 7
+            if days_ahead == 0:
+                days_ahead = 7  # Next week if today
+            target = now + timedelta(days=days_ahead)
+            return target.replace(hour=12, minute=0, second=0, microsecond=0)
+
+    # Date patterns: "23rd", "23 Jan", "Jan 23"
+    date_pattern = r'(\d{1,2})(?:st|nd|rd|th)?\s*(?:of\s*)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?'
+    match = re.search(date_pattern, text_lower)
+    if match:
+        day_num = int(match.group(1))
+        month_str = match.group(2)
+
+        month_map = {'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+                     'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12}
+
+        if month_str:
+            month = month_map.get(month_str, now.month)
+        else:
+            month = now.month
+
+        year = now.year
+        # Handle year boundary
+        if month < now.month or (month == now.month and day_num < now.day):
+            year += 1
+
+        try:
+            return datetime(year, month, day_num, 12, 0, 0, tzinfo=timezone.utc)
+        except ValueError:
+            pass
+
+    # "tomorrow", "today"
+    if 'tomorrow' in text_lower:
+        return (now + timedelta(days=1)).replace(hour=12, minute=0, second=0, microsecond=0)
+    if 'today' in text_lower:
+        return now.replace(hour=12, minute=0, second=0, microsecond=0)
+
+    return None
+
+
+def get_temp_for_date(data: Dict, target_date: datetime) -> Optional[Tuple[float, str]]:
+    """Get temperature for a specific date from model data.
+
+    Returns (temp, timestamp_str) or None if date not in data.
+    """
+    values = data.get('values', [])
+    timestamps = data.get('timestamps', [])
+
+    if not values or not timestamps:
+        return None
+
+    target_date_only = target_date.date()
+
+    for i, ts_str in enumerate(timestamps):
+        ts = parse_timestamp(ts_str)
+        if ts and ts.date() == target_date_only:
+            return (values[i], ts.strftime('%H:%M'))
+
+    # Try to find closest match within same day
+    closest_idx = None
+    closest_diff = float('inf')
+    for i, ts_str in enumerate(timestamps):
+        ts = parse_timestamp(ts_str)
+        if ts:
+            diff = abs((ts - target_date).total_seconds())
+            if diff < closest_diff and ts.date() == target_date_only:
+                closest_diff = diff
+                closest_idx = i
+
+    if closest_idx is not None:
+        ts = parse_timestamp(timestamps[closest_idx])
+        return (values[closest_idx], ts.strftime('%H:%M') if ts else '??')
+
+    return None
 
 
 def detect_time_reference(text: str) -> Dict[str, str]:
@@ -427,11 +521,13 @@ def parse_model_query(text: str) -> Dict:
         {
             'models': ['gfs', 'icon'],
             'times': {'default': 'latest', 'gfs': 'yesterday'},
-            'comparison_type': 'difference' | 'all' | 'single'
+            'comparison_type': 'difference' | 'all' | 'single',
+            'target_date': datetime or None
         }
     """
     models = detect_models_in_query(text)
     times = detect_time_reference(text)
+    target_date = detect_target_date(text)
 
     if not models:
         # No specific models mentioned - might be general question
@@ -450,6 +546,7 @@ def parse_model_query(text: str) -> Dict:
         'models': models,
         'times': times,
         'comparison_type': comparison_type,
+        'target_date': target_date,
     }
 
 
@@ -508,10 +605,12 @@ def build_comparison_context(models: List[str] = None, parsed_query: Dict = None
     Can be called with:
     - models=['gfs', 'icon'] for specific comparison
     - models=['all'] for all models
-    - parsed_query from parse_model_query() for complex queries
+    - parsed_query from parse_model_query() for complex queries (includes target_date)
     """
+    target_date = None
     if parsed_query:
         models = parsed_query.get('models', [])
+        target_date = parsed_query.get('target_date')
 
     if not models:
         models = ['all']
@@ -526,7 +625,13 @@ def build_comparison_context(models: List[str] = None, parsed_query: Dict = None
 
     lines = []
     now = utcnow()
-    lines.append(f"CROSS-TRACKER DATA ({now.strftime('%d %b %H:%M')} UTC):")
+
+    # Header - include target date if specified
+    if target_date:
+        date_str = target_date.strftime('%A %d %b')
+        lines.append(f"CROSS-TRACKER DATA FOR {date_str.upper()} ({now.strftime('%d %b %H:%M')} UTC):")
+    else:
+        lines.append(f"CROSS-TRACKER DATA ({now.strftime('%d %b %H:%M')} UTC):")
     lines.append("")
 
     # Data freshness
@@ -536,29 +641,55 @@ def build_comparison_context(models: List[str] = None, parsed_query: Dict = None
     lines.append("Data freshness: " + ", ".join(freshness))
     lines.append("")
 
-    # Per-model summary
-    lines.append("MODEL SUMMARIES:")
-    for name, data in models_data.items():
-        cold_temp, cold_date, _ = find_coldest_point(data)
-        warm_temp, warm_date, _ = find_warmest_point(data)
-        lines.append(f"  {name.upper()} ({data['description']}):")
-        lines.append(f"    Coldest: {cold_temp:.1f}C on {cold_date}")
-        lines.append(f"    Warmest: {warm_temp:.1f}C on {warm_date}")
-
-    # Agreement/divergence analysis
-    if len(models_data) > 1:
-        lines.append("")
-        analysis = find_agreement_and_divergence(models_data)
-        if analysis:
-            lines.append("COMPARISON:")
-            lines.append(f"  Coldest model: {analysis['coldest_model'].upper()} at {analysis['coldest_temp']:.1f}C")
-            lines.append(f"  Warmest model: {analysis['warmest_model'].upper()} at {analysis['warmest_temp']:.1f}C")
-            lines.append(f"  Spread: {analysis['temp_spread']:.1f}C")
-
-            if analysis['date_agreement']:
-                lines.append(f"  Timing: All models agree on {analysis['unique_dates'][0]}")
+    # If target date specified, show temps for that date
+    if target_date:
+        date_str = target_date.strftime('%A %d %b')
+        lines.append(f"TEMPERATURES FOR {date_str}:")
+        temps_for_date = {}
+        for name, data in models_data.items():
+            result = get_temp_for_date(data, target_date)
+            if result:
+                temp, time_str = result
+                temps_for_date[name] = temp
+                lines.append(f"  {name.upper()}: {temp:.1f}C")
             else:
-                lines.append(f"  Timing differs: {', '.join(analysis['unique_dates'])}")
+                lines.append(f"  {name.upper()}: No data for this date")
+
+        # Summary for target date
+        if temps_for_date:
+            temps = list(temps_for_date.values())
+            coldest_model = min(temps_for_date.items(), key=lambda x: x[1])
+            warmest_model = max(temps_for_date.items(), key=lambda x: x[1])
+            spread = max(temps) - min(temps)
+            lines.append("")
+            lines.append(f"FOR {date_str}:")
+            lines.append(f"  Coldest: {coldest_model[0].upper()} at {coldest_model[1]:.1f}C")
+            lines.append(f"  Warmest: {warmest_model[0].upper()} at {warmest_model[1]:.1f}C")
+            lines.append(f"  Spread: {spread:.1f}C")
+    else:
+        # No target date - show overall coldest/warmest
+        lines.append("MODEL SUMMARIES:")
+        for name, data in models_data.items():
+            cold_temp, cold_date, _ = find_coldest_point(data)
+            warm_temp, warm_date, _ = find_warmest_point(data)
+            lines.append(f"  {name.upper()} ({data['description']}):")
+            lines.append(f"    Coldest: {cold_temp:.1f}C on {cold_date}")
+            lines.append(f"    Warmest: {warm_temp:.1f}C on {warm_date}")
+
+        # Agreement/divergence analysis
+        if len(models_data) > 1:
+            lines.append("")
+            analysis = find_agreement_and_divergence(models_data)
+            if analysis:
+                lines.append("COMPARISON:")
+                lines.append(f"  Coldest model: {analysis['coldest_model'].upper()} at {analysis['coldest_temp']:.1f}C")
+                lines.append(f"  Warmest model: {analysis['warmest_model'].upper()} at {analysis['warmest_temp']:.1f}C")
+                lines.append(f"  Spread: {analysis['temp_spread']:.1f}C")
+
+                if analysis['date_agreement']:
+                    lines.append(f"  Timing: All models agree on {analysis['unique_dates'][0]}")
+                else:
+                    lines.append(f"  Timing differs: {', '.join(analysis['unique_dates'])}")
 
     return "\n".join(lines)
 
