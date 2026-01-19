@@ -48,6 +48,56 @@
       "current_u10": 23.8,
       "level": "NORMAL",
       "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-18T13:00:01.474232+00:00",
+      "cycle": "06",
+      "probability": 0.0,
+      "n_reversals": 0,
+      "n_members": 31,
+      "current_u10": 24.3,
+      "level": "NORMAL",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-18T19:00:01.874481+00:00",
+      "cycle": "12",
+      "probability": 3.2,
+      "n_reversals": 1,
+      "n_members": 31,
+      "current_u10": 26.0,
+      "level": "NORMAL",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-19T01:00:01.998449+00:00",
+      "cycle": "18",
+      "probability": 0.0,
+      "n_reversals": 0,
+      "n_members": 31,
+      "current_u10": 26.9,
+      "level": "NORMAL",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-19T07:00:02.212832+00:00",
+      "cycle": "00",
+      "probability": 0.0,
+      "n_reversals": 0,
+      "n_members": 31,
+      "current_u10": 27.7,
+      "level": "NORMAL",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-19T19:00:01.769798+00:00",
+      "cycle": "12",
+      "probability": 0.0,
+      "n_reversals": 0,
+      "n_members": 31,
+      "current_u10": 28.3,
+      "level": "NORMAL",
+      "data_age_hours": 7.0
     }
   ]
 }

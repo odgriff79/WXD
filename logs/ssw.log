@@ -28,3 +28,77 @@
 2026-01-18 07:00:26,164 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
 2026-01-18 07:00:26,164 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
 2026-01-18 07:00:26,164 - INFO - SSW status: NORMAL | 0% prob | U10: 23.8 m/s
+2026-01-18 13:00:01,474 - INFO - SSW monitor starting at 2026-01-18T13:00:01.474232+00:00
+2026-01-18 13:00:01,474 - INFO - LATENCY: Targeting 20260118/06z (data age: 7.0h)
+2026-01-18 13:00:01,474 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260118/gefs_pgrb2ap5_all_06z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-18 13:00:08,683 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-18 13:00:32,506 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-18 13:00:32,518 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-18 13:00:32,518 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-18 13:00:32,518 - INFO - SSW status: NORMAL | 0% prob | U10: 24.3 m/s
+2026-01-18 19:00:01,874 - INFO - SSW monitor starting at 2026-01-18T19:00:01.874481+00:00
+2026-01-18 19:00:01,874 - INFO - LATENCY: Targeting 20260118/12z (data age: 7.0h)
+2026-01-18 19:00:01,874 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260118/gefs_pgrb2ap5_all_12z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-18 19:00:09,357 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-18 19:00:37,209 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-18 19:00:37,220 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-18 19:00:37,220 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-18 19:00:37,220 - INFO - SSW status: NORMAL | 3% prob | U10: 26.0 m/s
+2026-01-18 19:00:37,221 - INFO - Post decision: False (below_threshold)
+2026-01-19 01:00:01,998 - INFO - SSW monitor starting at 2026-01-19T01:00:01.998449+00:00
+2026-01-19 01:00:01,998 - INFO - LATENCY: Targeting 20260118/18z (data age: 7.0h)
+2026-01-19 01:00:01,998 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260118/gefs_pgrb2ap5_all_18z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-19 01:00:09,339 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-19 01:00:30,821 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-19 01:00:30,832 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-19 01:00:30,832 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-19 01:00:30,832 - INFO - SSW status: NORMAL | 0% prob | U10: 26.9 m/s
+2026-01-19 07:00:02,212 - INFO - SSW monitor starting at 2026-01-19T07:00:02.212832+00:00
+2026-01-19 07:00:02,213 - INFO - LATENCY: Targeting 20260119/00z (data age: 7.0h)
+2026-01-19 07:00:02,213 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260119/gefs_pgrb2ap5_all_00z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-19 07:00:08,303 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-19 07:00:31,903 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-19 07:00:31,914 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-19 07:00:31,914 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-19 07:00:31,915 - INFO - SSW status: NORMAL | 0% prob | U10: 27.7 m/s
+2026-01-19 13:00:01,501 - INFO - SSW monitor starting at 2026-01-19T13:00:01.501583+00:00
+2026-01-19 13:00:01,501 - INFO - LATENCY: Targeting 20260119/06z (data age: 7.0h)
+2026-01-19 13:00:01,501 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260119/gefs_pgrb2ap5_all_06z
+oc_open: server error retrieving url: code=0 message="/gefs/gefs20260119/gefs_pgrb2ap5_all_06z is not an available dataset"2026-01-19 13:00:08,902 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-19 13:00:30,364 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+Traceback (most recent call last):
+  File "/home/ubuntu/wxd/ssw_monitor.py", line 894, in <module>
+    main()
+  File "/home/ubuntu/wxd/ssw_monitor.py", line 878, in main
+    result = run_ssw_monitor(
+             ^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/wxd/ssw_monitor.py", line 716, in run_ssw_monitor
+    ssw_stats = compute_ssw_probability(
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/wxd/ssw_monitor.py", line 263, in compute_ssw_probability
+    dt_days = (times - t0) / np.timedelta64(1, 'D')
+              ~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~
+numpy._core._exceptions._UFuncBinaryResolutionError: ufunc 'divide' cannot use operands with types dtype('float64') and dtype('<m8[D]')
+2026-01-19 19:00:01,769 - INFO - SSW monitor starting at 2026-01-19T19:00:01.769798+00:00
+2026-01-19 19:00:01,770 - INFO - LATENCY: Targeting 20260119/12z (data age: 7.0h)
+2026-01-19 19:00:01,770 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260119/gefs_pgrb2ap5_all_12z
+oc_open: server error retrieving url: code=0 message="/gefs/gefs20260119/gefs_pgrb2ap5_all_12z is not an available dataset"2026-01-19 19:00:03,427 - ERROR - Failed to fetch GEFS: [Errno -70] NetCDF: DAP server error: 'https://nomads.ncep.noaa.gov/dods/gefs/gefs20260119/gefs_pgrb2ap5_all_12z'
+2026-01-19 19:00:03,427 - WARNING - Primary cycle failed, trying fallback...
+2026-01-19 19:00:03,427 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260119/gefs_pgrb2ap5_all_06z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-19 19:00:08,853 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-19 19:00:32,667 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-19 19:00:32,676 - INFO - Fallback succeeded: 20260119/06z
+2026-01-19 19:00:32,679 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-19 19:00:32,679 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-19 19:00:32,679 - INFO - SSW status: NORMAL | 0% prob | U10: 28.3 m/s
+2026-01-19 19:00:32,680 - INFO - Post decision: False (below_threshold)

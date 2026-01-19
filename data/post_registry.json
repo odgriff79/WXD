@@ -510,6 +510,27 @@
       "model": "ukmo-global",
       "text_preview": "[2/2] period.\n\nYellow warning for England and Wales Tuesday 20th-Wednesday 21st (Met Office).\n\nModel",
       "timestamp": "2026-01-19T19:00:17.511623+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcsibmpmwi2a",
+      "tracker": "Main",
+      "model": "4-model-ensemble",
+      "text_preview": "[1/3] Cold locked in for late January: models converging on -3 to -4\u00b0C at 850hPa for 26th-27th, with",
+      "timestamp": "2026-01-19T20:30:18.529593+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcsibnymg62t",
+      "tracker": "Main",
+      "model": "4-model-ensemble",
+      "text_preview": "[2/3] \u2744\ufe0f Cold signal: GFS showing -6.6\u00b0C at 850hPa for 2026-01-29. Elevated snow risk for UK uplands",
+      "timestamp": "2026-01-19T20:30:19.471632+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcsibovm5l2z",
+      "tracker": "Main",
+      "model": "4-model-ensemble",
+      "text_preview": "[3/3] \u26a1 Model disagreement: 6.1\u00b0C gap for 2026-01-31. GFS at -5.9\u00b0C vs AIFS at 0.2\u00b0C. Low confidence",
+      "timestamp": "2026-01-19T20:30:20.421116+00:00"
     }
   ]
 }

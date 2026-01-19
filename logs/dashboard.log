@@ -112,3 +112,42 @@ WARNING:  Invalid HTTP request received.
 INFO:     66.132.153.139:50002 - "GET /.well-known/security.txt HTTP/1.1" 404 Not Found
 INFO:     45.135.194.98:52912 - "GET /login HTTP/1.1" 404 Not Found
 INFO:     204.76.203.30:33444 - "GET http%3A//ip-api.com/json/ HTTP/1.1" 404 Not Found
+INFO:     204.76.203.30:39140 - "GET http%3A//ip-api.com/json/ HTTP/1.1" 404 Not Found
+INFO:     198.235.24.22:58662 - "GET /.well-known/security.txt HTTP/1.1" 404 Not Found
+INFO:     79.124.40.174:35412 - "GET /?XDEBUG_SESSION_START=phpstorm HTTP/1.1" 200 OK
+INFO:     79.124.40.174:46342 - "GET /actuator/gateway/routes HTTP/1.1" 404 Not Found
+INFO:     95.232.0.14:56660 - "GET / HTTP/1.1" 200 OK
+INFO:     204.76.203.30:43560 - "GET http%3A//ip-api.com/json/ HTTP/1.1" 404 Not Found
+INFO:     150.241.87.73:44402 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     45.194.92.18:54496 - "GET / HTTP/1.1" 200 OK
+INFO:     45.194.92.18:54498 - "GET /index.htm HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     204.76.203.6:33230 - "GET /SDK/webLanguage HTTP/1.1" 404 Not Found
+INFO:     204.76.203.30:41950 - "GET http%3A//ip-api.com/json/ HTTP/1.1" 404 Not Found
+INFO:     193.142.147.209:23672 - "POST / HTTP/1.1" 405 Method Not Allowed
+INFO:     204.76.203.30:60178 - "GET http%3A//ip-api.com/json/ HTTP/1.1" 404 Not Found
+INFO:     64.227.152.126:42186 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     45.135.194.98:35982 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     204.76.203.30:48132 - "GET http%3A//ip-api.com/json/ HTTP/1.1" 404 Not Found
+INFO:     193.142.146.230:38466 - "GET /login HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     45.135.194.98:58836 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     89.42.231.200:33026 - "GET /SDK/webLanguage HTTP/1.1" 404 Not Found
+INFO:     204.76.203.30:50788 - "GET http%3A//ip-api.com/json/ HTTP/1.1" 404 Not Found
+INFO:     45.135.194.98:48792 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     204.76.203.30:49772 - "GET http%3A//ip-api.com/json/ HTTP/1.1" 404 Not Found
+INFO:     103.143.142.79:49050 - "CONNECT www.google.com%3A443 HTTP/1.1" 404 Not Found
+INFO:     193.142.147.209:27556 - "POST / HTTP/1.1" 405 Method Not Allowed
+INFO:     134.122.38.196:51632 - "GET /.env HTTP/1.1" 404 Not Found
+INFO:     134.122.38.196:51648 - "GET /.git/config HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     91.196.152.51:38353 - "GET / HTTP/1.1" 200 OK
+INFO:     91.196.152.157:52729 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     92.63.197.50:57594 - "GET / HTTP/1.1" 200 OK
+INFO:     202.107.226.2:44885 - "CONNECT www.baidu.com%3A443 HTTP/1.0" 404 Not Found
+INFO:     204.76.203.93:41328 - "GET http%3A//httpbin.org/ip HTTP/1.1" 404 Not Found
+INFO:     5.61.209.92:53956 - "GET /SDK/webLanguage HTTP/1.1" 404 Not Found
+INFO:     198.235.24.49:57352 - "GET / HTTP/1.1" 200 OK
+INFO:     23.94.162.106:50746 - "GET /SDK/webLanguage HTTP/1.1" 404 Not Found

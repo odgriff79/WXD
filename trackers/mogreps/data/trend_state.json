@@ -1,9 +1,9 @@
 {
-  "cold_signal_runs": 0,
+  "cold_signal_runs": 1,
   "warm_signal_runs": 0,
   "shift_direction": null,
   "shift_runs": 0,
-  "last_min_temp": -6.5,
-  "last_mean_temp": -6.1,
-  "last_posted_commentary": "Progressive cooling continues but less aggressive\u2014ensemble mean reaches -1.1\u00b0C by Sunday 25th (1\u00b0C warmer than last run's -1.9\u00b0C for Saturday 24th), marking modest run-on-run shift towards less severe cold."
+  "last_min_temp": -9.7,
+  "last_mean_temp": -5.8,
+  "last_posted_commentary": "Models remain aligned on deepening cold through next week, with mean trajectory tracking from near-normal today (+2C) down to -6C by Monday 26th January."
 }
