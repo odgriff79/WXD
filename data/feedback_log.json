@@ -1,5 +1,10 @@
 {
-  "topics": [],
+  "topics": [
+    {
+      "text": "User interested in cross-model comparisons - suggests this might be valuable content to surface in posts",
+      "date": "2026-01-19"
+    }
+  ],
   "feedback": [
     {
       "text": "User found the model bias/blocking explanation helpful and appreciated the educational content",
@@ -10,7 +15,16 @@
     {
       "text": "Used Kelvin incorrectly when discussing temperature thresholds - should always stick to Celsius for consistency and clarity in UK context",
       "date": "2026-01-18"
+    },
+    {
+      "text": "Reply system triggered duplicate response - possible double-processing bug in reply_listener.py or ntfy notification handling",
+      "date": "2026-01-19"
     }
   ],
-  "improvements": []
+  "improvements": [
+    {
+      "text": "User interested in cross-model comparisons - feature request for synthesized multi-tracker analysis in replies",
+      "date": "2026-01-19"
+    }
+  ]
 }
