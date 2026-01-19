@@ -205,7 +205,7 @@ def analyze_reply_images(images: list) -> str:
     print(f"    Reply has {len(images)} image(s) - analyzing (temp only, no storage)...")
 
     analyses = []
-    for i, img in enumerate(images[:1]):  # Max 1 image - multi-image rare
+    for i, img in enumerate(images[:4]):  # Bluesky allows max 4 images per post
         alt_text = img.get('alt', '')
         analysis = analyze_image_with_claude(
             img['url'],
