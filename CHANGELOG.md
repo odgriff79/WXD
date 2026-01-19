@@ -43,17 +43,32 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ---
 
-### False Warnings Fix (daily_summary.py)
+### 48-Hour Warning Rule - PROJECT-WIDE
 
-**Problem:** Posted "Met Office Yellow Warning Friday 23 Jan - Sunday 1 Feb" - but this was the long-range FORECAST period header, not an actual warning. Met Office doesn't issue warnings 4+ days ahead.
+**Problem:** Multiple trackers were posting unvalidated Met Office warnings:
+- "Yellow warning Friday 23 Jan - Sunday 1 Feb" (forecast header, not real warning)
+- Warnings beyond 48 hours (Met Office doesn't issue these)
+- Missing regions or levels
 
-**Root cause:** `generate_warnings_post()` was extracting date ranges from `long_range_detail` (forecast text) instead of actual warning data.
+**Root cause:** Each tracker had its own `fetch_current_warnings()` passing through raw data without validation.
 
-**Fix:**
-- Only use `uk_warnings` data from Met Office warnings page
-- Filter to warnings within next 48 hours only
-- Require structured warning data format (e.g., "Tue 20 Jan: Yellow")
-- Removed hazard guessing from forecast text
+**Fix - Single shared filter applied everywhere:**
+- New `filter_warnings_48h()` function in `daily_summary.py`
+- Strict validation: must have date + level + regions + be within 48h
+- Returns empty string if ANY validation fails
+- Used by: `post_bluesky.py`, `trackers/shared/commentary.py` (ICON, UKMO, MOGREPS)
+
+**Validation rules:**
+1. Structured date format only ("Tue 20 Jan: Yellow") - rejects vague ranges
+2. Must have "Affected:" with actual regions (England/Scotland/Wales/NI)
+3. Within 48 hours only
+4. If proof is missing → no warning mentioned
+
+**Files changed:**
+- `daily_summary.py` - added `filter_warnings_48h()`
+- `post_bluesky.py` - uses shared filter
+- `trackers/shared/commentary.py` - uses shared filter
+- `CLAUDE.md` - documented as project rule
 
 ---
 

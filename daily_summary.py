@@ -73,6 +73,97 @@ def clean_text(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
+def filter_warnings_48h(uk_warnings: str) -> str:
+    """Filter Met Office warnings - STRICT validation, 48h max, no BS.
+
+    PROJECT-WIDE RULE: Only return warnings that have PROOF:
+    1. Structured date format (Day DD Mon: Level) - not forecast headers
+    2. Warning level (Yellow/Amber/Red)
+    3. Affected regions listed
+    4. Within 48 hours
+
+    If ANY requirement fails, returns empty string. No guessing. No inferring.
+
+    Args:
+        uk_warnings: Raw warning string from fetch_metoffice_narrative()['uk_warnings']
+
+    Returns:
+        Validated warning string, or empty string if validation fails.
+    """
+    from datetime import timedelta
+
+    # No data = no warnings
+    if not uk_warnings or "No warnings" in uk_warnings:
+        return ""
+
+    # MUST have "Affected:" with regions - this proves it's real warning data
+    if "Affected:" not in uk_warnings:
+        return ""
+
+    # Extract affected regions
+    affected_match = re.search(r'Affected:\s*(.+?)(?:\||$)', uk_warnings)
+    if not affected_match:
+        return ""
+
+    affected_text = affected_match.group(1).strip()
+
+    # Must mention at least one actual region
+    regions = ['England', 'Scotland', 'Wales', 'Northern Ireland']
+    found_regions = [r for r in regions if r.lower() in affected_text.lower()]
+    if not found_regions:
+        return ""
+
+    # Parse ONLY structured warning format: "Tue 20 Jan: Yellow"
+    # This format comes from the warnings page, NOT forecast headers
+    warning_pattern = r'(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec):\s*(Yellow|Amber|Red)'
+    warning_matches = re.findall(warning_pattern, uk_warnings)
+
+    if not warning_matches:
+        return ""  # No structured warning data = no proof
+
+    # Filter to 48 hours ONLY
+    now = datetime.utcnow()
+    cutoff = now + timedelta(hours=48)
+    current_year = now.year
+
+    month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+                 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
+
+    valid_warnings = []
+    for day_name, day_num, month, level in warning_matches:
+        try:
+            month_num = month_map.get(month, 1)
+            warn_date = datetime(current_year, month_num, int(day_num))
+            # Handle year boundary
+            if warn_date < now - timedelta(days=30):
+                warn_date = datetime(current_year + 1, month_num, int(day_num))
+
+            if now <= warn_date <= cutoff:
+                valid_warnings.append((f"{day_name} {day_num} {month}", level))
+        except ValueError:
+            continue
+
+    if not valid_warnings:
+        return ""  # Nothing within 48 hours
+
+    # Build output with ONLY validated data
+    # Format: "Yellow warning Tue 20 Jan - Wed 21 Jan for England, Wales (Met Office)"
+    highest_level = "Yellow"
+    for _, level in valid_warnings:
+        if level == "Red":
+            highest_level = "Red"
+            break
+        elif level == "Amber" and highest_level != "Red":
+            highest_level = "Amber"
+
+    if len(valid_warnings) == 1:
+        date_str = valid_warnings[0][0]
+    else:
+        date_str = f"{valid_warnings[0][0]} - {valid_warnings[-1][0]}"
+
+    return f"{highest_level} warning {date_str} for {', '.join(found_regions)} (Met Office)"
+
+
 def fetch_metoffice_narrative() -> dict:
     """Fetch Met Office UK forecast narrative from HTML."""
     if not HAS_REQUESTS:

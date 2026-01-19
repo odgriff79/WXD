@@ -392,6 +392,29 @@ ssh -i "$SSH_KEY" ubuntu@$VM_IP "cd ~/wxd && source venv/bin/activate && source 
 4. **Update CHANGELOG.md** after any code changes
 5. **MANDATORY: Thread numbering** - ALL multi-post Bluesky threads MUST include `[X/Y]` at the start of each message (e.g., `[1/4]`, `[2/4]`). No exceptions.
 
+## Met Office Warnings - 48 Hour Rule (PROJECT-WIDE)
+
+**NEVER mention Met Office warnings unless ALL criteria are met:**
+
+1. **48 hours max** - Warning must be within next 48 hours
+2. **Specific date** - Must have structured format like "Tue 20 Jan" (not vague ranges like "Friday 23 Jan - Sunday 1 Feb")
+3. **Regions affected** - Must explicitly list England/Scotland/Wales/Northern Ireland
+4. **Warning level** - Must have Yellow/Amber/Red level
+
+**If ANY of these are missing → don't mention warnings at all.**
+
+**Implementation:**
+- Single shared function: `filter_warnings_48h()` in `daily_summary.py`
+- Used by: `post_bluesky.py`, `trackers/shared/commentary.py`
+- Returns empty string if validation fails
+
+**Why this rule exists:**
+- 2026-01-19: Posted "Yellow warning Friday 23 Jan - Sunday 1 Feb" which was a **forecast period header**, not an actual warning
+- Met Office doesn't issue warnings 4+ days ahead
+- Vague date ranges from forecast text were being confused with real warnings
+
+**Test:** If you can't point to specific date + level + regions in the raw data, it's not a real warning.
+
 ## Troubleshooting
 
 | Issue | Check |

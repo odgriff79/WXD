@@ -36,36 +36,37 @@ except ImportError:
 
 # Import Met Office warnings
 try:
-    from daily_summary import fetch_metoffice_narrative
+    from daily_summary import fetch_metoffice_narrative, filter_warnings_48h
     HAS_METOFFICE = True
 except ImportError:
     HAS_METOFFICE = False
     fetch_metoffice_narrative = None
+    filter_warnings_48h = None
 
 
 def fetch_current_warnings() -> str:
-    """Fetch and format current Met Office warnings for Claude prompt."""
+    """Fetch and format current Met Office warnings for Claude prompt.
+
+    Uses filter_warnings_48h() for STRICT validation:
+    - Only structured warning data (not forecast headers)
+    - Must have date, level, AND regions
+    - Within 48 hours only
+    """
     if not HAS_METOFFICE or not fetch_metoffice_narrative:
         return ""
-    
+
     try:
         mo_data = fetch_metoffice_narrative()
-        
-        warnings_parts = []
-
-        # UK warnings with dates and regions (from dedicated warnings page - reliable)
         uk_warn = mo_data.get("uk_warnings", "")
-        if uk_warn and "No warnings" not in uk_warn:
-            warnings_parts.append("ACTIVE UK WARNINGS (Met Office): " + uk_warn)
 
-        # NOTE: long_range_warning REMOVED - was producing false positives by
-        # incorrectly linking generic warning banners with unrelated date ranges
+        # Use strict 48h filter - returns empty string if validation fails
+        filtered = filter_warnings_48h(uk_warn) if filter_warnings_48h else ""
 
-        if warnings_parts:
-            return "MET OFFICE WARNINGS (VERIFIED FROM OFFICIAL SOURCE): " + " | ".join(warnings_parts)
+        if filtered:
+            return f"MET OFFICE WARNINGS (VERIFIED, 48H): {filtered}"
         else:
             return "MET OFFICE WARNINGS: None currently in force. DO NOT invent or assume warnings."
-            
+
     except Exception as e:
         print(f"  Warning fetch error: {e}")
         return ""
