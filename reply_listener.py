@@ -2004,6 +2004,7 @@ CRITICAL RULE - USE YOUR TOOLS:
 - For warnings/forecasts: INVOKE WebSearch to verify current conditions
 - NEVER answer technical questions from memory alone - SEARCH FIRST
 - If WebSearch fails, give a SHORT answer and say "I couldn't verify this"
+- NEVER write fake placeholders like "[searching...]" - either USE the tool or don't mention searching
 
 SOURCE QUALITY - PREFER IN ORDER:
 1. Academic journals (Nature, Science, AMS journals, QJ Royal Met Soc)
@@ -2116,6 +2117,20 @@ Output JSON only:
             # Validate response - split into multiple posts if needed
             if response.get('should_respond') and response.get('response_text'):
                 text = response['response_text']
+
+                # Detect fake search placeholders (WebSearch didn't work)
+                fake_search_patterns = ['[searching', '[looking up', '[checking', '[fetching']
+                has_fake_search = any(p in text.lower() for p in fake_search_patterns)
+                if has_fake_search:
+                    print("    WARNING: Response contains fake search placeholders - WebSearch may have failed")
+                    # Strip fake search placeholders from output
+                    import re
+                    text = re.sub(r'\[searching[^\]]*\]', '', text, flags=re.IGNORECASE)
+                    text = re.sub(r'\[looking up[^\]]*\]', '', text, flags=re.IGNORECASE)
+                    text = re.sub(r'\[checking[^\]]*\]', '', text, flags=re.IGNORECASE)
+                    text = re.sub(r'\s+', ' ', text).strip()  # Clean up extra whitespace
+                    response['response_text'] = text
+
                 if len(text) > 300:
                     # Split into multiple posts instead of truncating
                     response['response_posts'] = split_into_posts(text)
