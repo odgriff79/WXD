@@ -571,66 +571,79 @@ def generate_stats_post(model_summary: str) -> str:
 
 
 def generate_warnings_post(metoffice: dict) -> str:
-    """Generate standalone warnings post if active warnings exist.
+    """Generate standalone warnings post if active warnings exist within 48 hours.
 
-    Returns None if no significant warnings to report.
+    Returns None if no verified warnings in the next 48 hours.
+    Only reports warnings with clear evidence from the Met Office warnings page.
     """
-    # Check if we have any warning info
-    has_warning = (metoffice.get("long_range_warning") or
-                   (metoffice.get("uk_warnings") and "No warnings" not in (metoffice.get("uk_warnings") or "")))
+    from datetime import datetime, timedelta
 
-    if not has_warning:
+    uk_warnings = metoffice.get("uk_warnings") or ""
+
+    # Must have actual warning data
+    if not uk_warnings or "No warnings" in uk_warnings:
         return None
 
-    # Determine warning level
+    # Parse warning days with their levels: "Tue 20 Jan: Yellow"
+    warning_pattern = r'(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec):\s*(Yellow|Amber|Red)'
+    warning_matches = re.findall(warning_pattern, uk_warnings)
+
+    if not warning_matches:
+        return None  # No structured warning data found
+
+    # Filter to warnings within next 48 hours
+    now = datetime.utcnow()
+    cutoff = now + timedelta(hours=48)
+    current_year = now.year
+
+    month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+                 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
+
+    valid_warnings = []
+    for day_name, day_num, month, level in warning_matches:
+        try:
+            month_num = month_map.get(month, 1)
+            warn_date = datetime(current_year, month_num, int(day_num))
+            # Handle year boundary
+            if warn_date < now - timedelta(days=30):
+                warn_date = datetime(current_year + 1, month_num, int(day_num))
+
+            if now <= warn_date <= cutoff:
+                valid_warnings.append((f"{day_name} {day_num} {month}", level))
+        except ValueError:
+            continue
+
+    if not valid_warnings:
+        return None  # No warnings within 48 hours
+
+    # Determine highest warning level
     warning_level = "Yellow"
-    all_text = ((metoffice.get("long_range_warning") or "") + " " +
-                (metoffice.get("uk_warnings") or "") + " " +
-                (metoffice.get("long_range_detail") or ""))
-
-    if "Amber" in all_text:
-        warning_level = "Amber"
-    if "Red" in all_text:
-        warning_level = "Red"
-
-    # Extract date range from long_range_warning or long_range_detail
-    date_range = None
-    for text in [(metoffice.get("long_range_warning") or ""), (metoffice.get("long_range_detail") or "")]:
-        range_match = re.search(
-            r'(Sat(?:urday)?|Sun(?:day)?|Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?)\s+\d{1,2}\s+\w{3,9}\s*[-–]\s*(Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)\s+\d{1,2}\s+\w{3,9}',
-            text
-        )
-        if range_match:
-            date_range = range_match.group(0)
+    for _, level in valid_warnings:
+        if level == "Amber":
+            warning_level = "Amber"
+        if level == "Red":
+            warning_level = "Red"
             break
 
-    # Get affected nations - check all UK nations
+    # Build date range from valid warnings only
+    if len(valid_warnings) == 1:
+        date_range = valid_warnings[0][0]
+    else:
+        date_range = f"{valid_warnings[0][0]} - {valid_warnings[-1][0]}"
+
+    # Get affected nations from uk_warnings
     nations_affected = []
     for nation in ['Scotland', 'England', 'Wales', 'Northern Ireland']:
-        if nation.lower() in all_text.lower():
+        if nation.lower() in uk_warnings.lower():
             nations_affected.append(nation)
 
-    # If no specific nations mentioned, it's likely UK-wide
-    if not nations_affected and ("UK" in all_text or "widespread" in all_text.lower()):
+    if not nations_affected:
         nations_affected = ["UK-wide"]
 
-    # Build concise post
+    # Build concise post with verified data only
     lines = [f"Met Office {warning_level} Warning"]
-
-    if date_range:
-        lines.append(f"{date_range}")
-
-    if nations_affected:
-        lines.append(f"Affects: {', '.join(nations_affected)}")
-
-    # Add brief context - just the hazard type
-    detail = metoffice.get("long_range_detail") or ""
-    hazards = []
-    for hazard in ['snow', 'ice', 'icy', 'frost', 'cold', 'wind', 'rain', 'fog']:
-        if hazard in detail.lower():
-            hazards.append(hazard)
-    if hazards:
-        lines.append(f"Hazards: {', '.join(hazards[:3])}")
+    lines.append(date_range)
+    lines.append(f"Affects: {', '.join(nations_affected)}")
 
     post = "\n".join(lines)
 
