@@ -581,7 +581,7 @@ def generate_qa_post(questions: list) -> str:
         for q in selected
     ])
 
-    prompt = f"""You are WXD, a weather tracking project for London. Write a friendly Q&A post answering community questions.
+    prompt = f"""You are WXD, a weather tracking project for London. Write a Q&A post answering community questions.
 
 QUESTIONS FROM FOLLOWERS:
 {questions_text}
@@ -589,11 +589,11 @@ QUESTIONS FROM FOLLOWERS:
 Write a Bluesky thread (2-3 posts, each max 280 chars).
 
 RULES:
-- Be friendly and approachable
-- Give accurate, helpful answers
+- Be helpful and informative - factual over chatty
+- Give accurate answers - if unsure, say so
 - Keep it simple for general audience
 - Reference WXD tracking where relevant
-- Thank people for their questions
+- Brief thanks to contributors is fine, but prioritise useful content
 
 FORMAT: Return posts separated by ---
 Post 1 should acknowledge the questions
@@ -639,12 +639,14 @@ CRITICAL FORMAT:
 - Plain text only
 
 CONTENT RULES:
-- Be friendly, informative, not condescending
+- Be informative and measured - factual over chatty
 - Use simple language, explain jargon
 - Relate to WXD project where natural
 - No emojis
 - End with something that invites engagement (question, thought)
-- Be factually accurate about meteorology and technology
+- FACTUAL ACCURACY IS CRITICAL - do not make claims you cannot verify
+- If stating a specific fact (e.g., "850hPa roughly correlates to X surface temp"), it must be correct
+- When in doubt, be vaguer rather than confidently wrong
 
 Structure:
 - First post: Hook/intro to the topic

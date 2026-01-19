@@ -44,6 +44,22 @@ import sys
 os.chdir('/home/ubuntu/wxd')
 sys.stdout.reconfigure(line_buffering=True)
 
+# Load Bluesky credentials from ~/.wxd_env
+wxd_env_path = os.path.expanduser('~/.wxd_env')
+if os.path.exists(wxd_env_path):
+    with open(wxd_env_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                # Handle export VAR=value or VAR=value
+                if line.startswith('export '):
+                    line = line[7:]
+                key, _, value = line.partition('=')
+                # Remove quotes if present
+                value = value.strip('"').strip("'")
+                os.environ[key] = value
+    print('Loaded credentials from ~/.wxd_env')
+
 print('WXD ntfy listener started')
 print('Commands:')
 print('  Tracker A: "preview" (quick) or "fresh" (fetch new)')

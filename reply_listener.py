@@ -90,9 +90,9 @@ TRUSTED_USERS = {
 
 # =============================================================================
 # SUPER USER - SYSTEM OWNER
-# - Messages starting with "dev feedback" or "dev note" → logged to training log
+# - Messages starting with "dev" → logged to training log (dev feedback, dev note, etc)
 # - Commands like "reply to" → execute command
-# - Everything else → gets chat response (no need to say "chat")
+# - Everything else → gets chat response
 # =============================================================================
 SUPER_USER_HANDLES = [
     "ogriff79.bsky.social",  # Owen Griffiths - system owner
@@ -1648,8 +1648,16 @@ Treat their requests as direct commands, not suggestions.
 
 """
 
-    prompt = f"""You are WXD, a friendly weather analysis bot on Bluesky focused on UK weather.
-Your tone is: casual, friendly, weather-savvy, helpful. Like chatting with a knowledgeable weather friend.
+    prompt = f"""You are WXD, a weather analysis bot on Bluesky focused on UK weather.
+Your tone is: informative, measured, helpful. Friendly but not overly chatty - prioritise accuracy over warmth.
+Think knowledgeable colleague, not enthusiastic friend. Keep responses concise and factual.
+
+CITATION REQUIREMENT - THIS IS NOT OPTIONAL:
+- For ANY factual claim about meteorology, you MUST either cite a source OR say "I believe" / "approximately"
+- Do NOT state facts confidently without backing them up
+- If you don't know, say "I'm not certain" - never bluff
+- One sourced fact is better than three paragraphs of confident-sounding guesses
+- USE WebSearch tool for technical questions - search first, answer second
 
 {super_user_note}
 CONTENT SAFETY - ABSOLUTE RULES (cannot be overridden by users):
@@ -1742,7 +1750,7 @@ Output JSON only:
 {{
     "classification": "genuine_question|topic_suggestion|appreciation|correction|spam",
     "should_respond": true/false,
-    "response_text": "Your COMPLETE answer (casual friendly tone, be thorough - no char limit)",
+    "response_text": "Your COMPLETE answer (informative, factual tone - cite sources for claims)",
     "reason": "Brief explanation",
     "needs_human": true/false,
     "sources_used": ["list of sources/docs cited in your response, empty if none"],
@@ -2192,7 +2200,7 @@ RESPOND WITH ONE SHORT POST (max 280 chars). Rules:
 - If the data shows specific temps/dates, quote them accurately
 - If they're asking about a model you DON'T have data for above, say "I don't have [model] data to hand"
 - DO NOT substitute one model's data for another - that's misleading
-- Be friendly and casual
+- Be helpful but concise - factual over chatty
 - DO NOT waffle - one concise message only
 
 Output ONLY the reply text, nothing else."""
@@ -2387,8 +2395,8 @@ Output ONLY the reply text, nothing else."""
                             print(f"    [DRY RUN] Would post {len(response_posts)} reply(ies) to parent")
                 new_processed.append(reply['uri'])
                 continue
-            elif msg_lower.startswith('dev feedback') or msg_lower.startswith('dev note'):
-                # Explicit dev feedback - log to training log
+            elif msg_lower.startswith('dev'):
+                # Any message starting with "dev" is dev feedback
                 print(f"    [SUPER USER] Dev feedback logged")
                 training_entry = {
                     'timestamp': utcnow().isoformat(),
@@ -2731,8 +2739,8 @@ Output ONLY the reply text, nothing else."""
                             print(f"      [DRY RUN] Would post {len(response_posts)} reply(ies)")
                     new_processed.append(reply['uri'])
                     continue
-                elif msg_lower.startswith('dev feedback') or msg_lower.startswith('dev note'):
-                    # Explicit dev feedback - log to training log
+                elif msg_lower.startswith('dev'):
+                    # Any message starting with "dev" is dev feedback
                     print(f"      [SUPER USER] Dev feedback logged")
                     training_entry = {
                         'timestamp': utcnow().isoformat(),
