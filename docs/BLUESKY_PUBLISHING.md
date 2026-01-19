@@ -705,6 +705,37 @@ So the bias explains "mild→cold" transitions, NOT "cold→mild" as the thread 
 3. Don't trust AI peer review for domain-specific logic
 4. When posting about model biases, explicitly state: "Bias X means models do Y, so forecasts tend to Z"
 
+---
+
+### 2026-01-19: CRITICAL - Deleted wrong post, ignored user instruction
+
+**Problem:** User explicitly said "delete the last one" referring to a duplicate automated reply. I deleted the FIRST reply instead, destroying the good reply and leaving the thread broken.
+
+**User's instruction:** "delete the last one"
+**What I did:** Deleted the first one (3mcsjbgjagn2s - "Interesting charts! Stratospheric signals...")
+**What I should have deleted:** The later [1/4] NAO thread that was an automated duplicate
+
+**Root cause:**
+1. Did not carefully parse which post the user meant
+2. Made assumption instead of confirming
+3. Acted too fast on a destructive action
+4. Bluesky posts cannot be recovered once deleted
+
+**Impact:**
+- Good reply permanently deleted
+- Thread now looks broken/incomplete
+- User rightfully furious
+- Trust damaged
+
+**Prevention - MANDATORY RULES FOR DELETIONS:**
+1. **ALWAYS confirm the exact URI/rkey before deleting** - show user and ask "Is this the one?"
+2. **NEVER assume which post user means** - when in doubt, list all candidates with text previews
+3. **Deletions are IRREVERSIBLE** - treat with extreme caution
+4. **"Last" vs "First" is ambiguous** - always clarify by showing the actual post text
+5. **If user is frustrated, SLOW DOWN** - don't rush destructive actions
+
+**This cannot be fixed.** The deleted post is gone forever.
+
 ## Implementation Status
 
 - [x] Plan documented

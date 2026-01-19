@@ -118,3 +118,25 @@ Image analysis prompt now just describes what image shows (factual). Interpretat
 
 - Monitor next few image-based replies to verify WebSearch is being used appropriately
 - Consider adding timeout handling if WebSearch takes too long
+
+---
+
+## CRITICAL MISTAKE - Deleted Wrong Post
+
+**What happened:** User asked me to delete the "last" duplicate reply. I deleted the FIRST reply instead, destroying the good one.
+
+**User said:** "delete the last one"
+**I deleted:** 3mcsjbgjagn2s - "Interesting charts! Stratospheric signals..." (the FIRST, GOOD reply)
+**Should have deleted:** The [1/4] NAO thread (the LAST, duplicate reply)
+
+**Result:** Good reply gone forever. Thread broken. User rightfully furious.
+
+**Why this happened:**
+1. I assumed "last" meant the most recent in the list I was looking at
+2. Did not confirm with user before deleting
+3. Rushed a destructive action while user was frustrated
+4. Did not show the post text and ask "Is this the one?"
+
+**Lesson:** ALWAYS confirm exact post before deletion. Show text preview. Ask explicitly. Deletions cannot be undone.
+
+Documented in `docs/BLUESKY_PUBLISHING.md` under lessons learned.

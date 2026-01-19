@@ -1,9 +1,9 @@
 {
-  "cold_signal_runs": 1,
+  "cold_signal_runs": 0,
   "warm_signal_runs": 0,
   "shift_direction": null,
   "shift_runs": 0,
   "last_min_temp": -9.7,
   "last_mean_temp": -5.8,
-  "last_posted_commentary": "Models remain aligned on deepening cold through next week, with mean trajectory tracking from near-normal today (+2C) down to -6C by Monday 26th January."
+  "last_posted_commentary": "Cold signal strengthening over last 24h - ensemble mean now tracking 1.5C today down to -3.7C by Monday 26th, though wide spread (11.5C) reflects growing uncertainty in the extended range.\n\nNear-term clarity: Yellow warning Tue 20th-Wed 21st for England/Wales as temperatures dip."
 }
