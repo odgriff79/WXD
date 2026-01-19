@@ -2130,6 +2130,24 @@ Output JSON only:
     }
 
 
+def has_wxd_already_replied(client: Client, parent_uri: str) -> bool:
+    """Check if WXD has already replied to this post.
+
+    Prevents duplicate replies when manual posting bypasses state management.
+    """
+    try:
+        thread = client.get_post_thread(uri=parent_uri, depth=1)
+        if hasattr(thread.thread, 'replies') and thread.thread.replies:
+            wxd_did = client.me.did
+            for reply in thread.thread.replies:
+                if hasattr(reply, 'post') and reply.post.author.did == wxd_did:
+                    return True
+        return False
+    except Exception as e:
+        print(f"    Dedup check error: {e}")
+        return False  # Allow reply on error to avoid blocking
+
+
 def post_reply(client: Client, text: str, reply_to: dict, root: dict = None, image_path: str = None, alt_text: str = None) -> dict:
     """Post a reply to a post.
 
@@ -2144,6 +2162,11 @@ def post_reply(client: Client, text: str, reply_to: dict, root: dict = None, ima
     Returns:
         dict with 'uri' and 'cid' of posted reply, or None on failure
     """
+    # DEDUP CHECK: Skip if WXD already replied to this post
+    if has_wxd_already_replied(client, reply_to['uri']):
+        print(f"    SKIP: WXD already replied to this post (dedup)")
+        return None
+
     try:
         parent_ref = atproto_models.ComAtprotoRepoStrongRef.Main(
             uri=reply_to['uri'],
