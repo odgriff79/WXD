@@ -2,6 +2,69 @@
 
 All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
+## 2026-01-19: Commentary Patience, Citation Enforcement, False Warnings Fix
+
+### Main Tracker Commentary - Patience Over Drama
+
+**Problem:** Run-on-run commentary was see-sawing between "backing off cold!" and "firming up!" on small model variations (1-3°C), treating normal noise as headlines.
+
+**Fix (post_bluesky.py):**
+- Added "RUN-ON-RUN CHANGES - PATIENCE REQUIRED" section to prompt
+- Small changes now described as "marginally warmer/colder" - wait for confirmation
+- Only escalate language when: multiple consecutive runs agree, ALL models shift, or change exceeds normal variability
+- Added to AVOID list: "backed off significantly", "firming up", "models have flipped"
+- MULTI-RUN TRENDS now requires 3+ consecutive runs, not single shifts
+
+---
+
+### Reply System - Citations and Tone
+
+**Problem:** Chat responses were "know it all without citations" - too confident, too chatty.
+
+**Fixes (reply_listener.py):**
+1. Moved CITATION REQUIREMENT to TOP of prompt (was buried at line 1672)
+2. Tone changed from "casual, friendly, like chatting with a friend" to "informative, measured, knowledgeable colleague"
+3. Added: "Do NOT state facts confidently without backing them up"
+4. Response instruction changed to "factual tone - cite sources for claims"
+
+**Engagement posts (engagement_post.py):**
+- Educational: "informative and measured - factual over chatty"
+- Added "FACTUAL ACCURACY IS CRITICAL" rule
+- Q&A: prioritise useful content over friendliness
+
+---
+
+### Super User Rules Simplified
+
+**Old:** Only "dev feedback" or "dev note" prefix logged to training
+**New:** Any message starting with "dev" logs to training, everything else gets chat response
+
+**Removes:** Need to say "chat" to start conversation - super user now treated as normal follower for chat.
+
+---
+
+### False Warnings Fix (daily_summary.py)
+
+**Problem:** Posted "Met Office Yellow Warning Friday 23 Jan - Sunday 1 Feb" - but this was the long-range FORECAST period header, not an actual warning. Met Office doesn't issue warnings 4+ days ahead.
+
+**Root cause:** `generate_warnings_post()` was extracting date ranges from `long_range_detail` (forecast text) instead of actual warning data.
+
+**Fix:**
+- Only use `uk_warnings` data from Met Office warnings page
+- Filter to warnings within next 48 hours only
+- Require structured warning data format (e.g., "Tue 20 Jan: Yellow")
+- Removed hazard guessing from forecast text
+
+---
+
+### ntfy Listener Credentials Fix
+
+**Problem:** `respond` command via ntfy failed with "BSKY_HANDLE and BSKY_PASSWORD must be set"
+
+**Fix (ntfy_listener.py):** Load `~/.wxd_env` credentials at startup so subprocesses inherit them.
+
+---
+
 ## 2026-01-18: Major Reply System Overhaul + Educational Content Rules
 
 ### Commentary Date Hallucination Fix
