@@ -1,6 +1,16 @@
 {
   "topics": [],
-  "feedback": [],
-  "criticism": [],
+  "feedback": [
+    {
+      "text": "User found the model bias/blocking explanation helpful and appreciated the educational content",
+      "date": "2026-01-18"
+    }
+  ],
+  "criticism": [
+    {
+      "text": "Used Kelvin incorrectly when discussing temperature thresholds - should always stick to Celsius for consistency and clarity in UK context",
+      "date": "2026-01-18"
+    }
+  ],
   "improvements": []
 }
