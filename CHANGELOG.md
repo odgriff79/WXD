@@ -2,6 +2,55 @@
 
 All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
+## 2026-01-19 (Evening): Image Analysis & WebSearch Citation Fix
+
+### Image Analysis for User-Shared Charts (NEW FEATURE)
+
+**Purpose:** Analyze weather charts that users share in replies/mentions.
+
+**Components:**
+- `extract_image_urls()` - Extract images from Bluesky posts (handles both view and record embeds)
+- `analyze_image_with_claude()` - Download to temp, analyze with Claude CLI, delete immediately (GDPR compliant)
+- `analyze_reply_images()` - Wrapper for multi-image analysis (up to 4 per Bluesky limit)
+
+**Key Fix - BlobRef Handling:**
+Bluesky notifications use BlobRef (record embed) not direct URLs (view embed). Now constructs CDN URLs:
+```
+https://cdn.bsky.app/img/feed_fullsize/plain/{author_did}/{cid}@{ext}
+```
+
+---
+
+### WebSearch Enabled for Chat Responses (CRITICAL FIX)
+
+**Problem:** Prompt told Claude to "USE WEBSEARCH" but CLI invocation didn't enable tools. Citation rules were documented but couldn't be applied.
+
+**Fix:** Added `--tools WebSearch,WebFetch` to CLI call in `generate_chat_response()`.
+
+**Result:** Claude can now:
+- Search for signal meanings (e.g., "NAO negative UK weather impact")
+- Cite Met Office, ECMWF, and academic sources
+- Follow existing source preference rules
+
+**Before (broken):**
+> "SSW signal is clear - that cold signal shows up in our models"
+(No search, no citations, wrong causality)
+
+**After (working):**
+> "NAO- typically means weaker westerlies... According to ECMWF's regime analysis... Sources: Met Office NAO description, ECMWF regime forecast documentation"
+
+---
+
+### Image Analysis Simplified
+
+**Problem:** First attempt added hardcoded chart type rules ([STRAT], [SYNOPTIC], [SURFACE]) - doesn't scale.
+
+**Fix:** Image analysis just describes what image shows. Interpretation uses WebSearch in main reply generation.
+
+**Journal:** See `docs/DEV_JOURNAL_2026-01-19.md` for full session details.
+
+---
+
 ## 2026-01-19: Commentary Patience, Citation Enforcement, False Warnings Fix
 
 ### Cross-Tracker Analysis (NEW FEATURE)

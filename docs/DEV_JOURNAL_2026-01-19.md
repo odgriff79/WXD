@@ -1,0 +1,120 @@
+# Dev Journal - 2026-01-19
+
+## Session Summary: Image Analysis & Citation System Fixes
+
+### Context
+User shared ECMWF charts (stratospheric zonal wind + weather regime forecast) asking about UK weather changes. WXD's initial reply had critical flaws.
+
+---
+
+## Issue 1: Image Extraction from Notifications
+
+**Problem:** `extract_image_urls()` returned 0 images for Bluesky notifications.
+
+**Root Cause:** Notifications have BlobRef (record embed) not direct URLs (view embed).
+
+**Fix:** Updated function to handle both formats:
+```python
+# View embed (from get_post_thread) - has fullsize/thumb URLs directly
+# Record embed (from notifications) - construct URL from BlobRef:
+url = f"https://cdn.bsky.app/img/feed_fullsize/plain/{author_did}/{cid}@{ext}"
+```
+
+**File:** `reply_listener.py` lines 78-135
+
+---
+
+## Issue 2: Overconfident Reply About SSW
+
+**Problem:** Initial reply stated "SSW signal is clear" and directly linked stratospheric charts to 850hPa cold - both wrong:
+1. SSW hadn't happened yet (forecast, not observed)
+2. Stratospheric effects take 2-4 weeks to reach surface
+3. No caveats about uncertainty
+
+**First (Wrong) Approach:** Added hardcoded chart type rules ([STRAT], [SYNOPTIC], [SURFACE]) - doesn't scale.
+
+**Correct Fix:**
+1. Simplified image analysis to just describe what image shows
+2. Added instruction to USE WEBSEARCH for understanding signals
+3. **Enabled WebSearch/WebFetch tools in CLI call** - this was the key missing piece
+
+**File:** `reply_listener.py` line 2074-2077
+```python
+['claude', '--dangerously-skip-permissions', '--model', 'sonnet',
+ '--tools', 'WebSearch,WebFetch',  # Enable web search for citations
+ '-p', prompt]
+```
+
+---
+
+## Issue 3: NAO- Signal Ignored
+
+**Problem:** Second chart showed strong NAO- (negative NAO) signal for February - directly relevant to UK surface weather - but reply focused only on stratospheric caveats.
+
+**Root Cause:** Same as Issue 2 - without WebSearch, Claude couldn't look up what NAO- means.
+
+**Fix:** With WebSearch enabled, Claude now:
+1. Searches "NAO negative UK weather impact"
+2. Cites Met Office and ECMWF sources
+3. Explains relevance (weaker westerlies, colder, drier, blocking potential)
+
+**Result:** Posted proper 4-part reply with citations:
+- Met Office NAO description
+- ECMWF regime forecast documentation
+
+---
+
+## Key Lessons
+
+### 1. Don't Hardcode Domain Knowledge
+Wrong: Adding rules for every chart type (STRAT, SYNOPTIC, SURFACE)
+Right: Enable WebSearch and let Claude look things up
+
+### 2. CLI Tools Must Be Explicitly Enabled
+The prompt said "USE WEBSEARCH" but `--tools` flag wasn't set. Prompt instructions are useless if the tool isn't available.
+
+### 3. Citation Rules Already Existed
+We had documented:
+- "Search first, answer second"
+- Source preferences (academic journals, Met Office, ECMWF)
+- "One sourced fact beats five paragraphs of plausible-sounding guesses"
+
+The rules were right - they just weren't being applied because tools weren't enabled.
+
+### 4. Image Analysis Should Be Simple
+Image analysis prompt now just describes what image shows (factual). Interpretation and searching happens in the main reply generation where WebSearch is available.
+
+---
+
+## Commits This Session
+
+1. `ab074e9` - Fix image extraction for Bluesky notification embeds (BlobRef handling)
+2. `dbdd228` - Add factual accuracy rules for image analysis (later simplified)
+3. `a5755ba` - Simplify image analysis - use WebSearch instead of hardcoded rules
+4. `ff208e6` - Enable WebSearch/WebFetch tools in chat response generation
+
+---
+
+## Files Modified
+
+- `reply_listener.py`
+  - `extract_image_urls()` - handles both view and record embeds
+  - `analyze_image_with_claude()` - simplified prompt
+  - `generate_chat_response()` - added `--tools WebSearch,WebFetch`
+  - Image section in prompt - simplified to "use WebSearch if needed"
+
+---
+
+## Testing Done
+
+1. Image extraction: Successfully extracted 2 images from user's mention
+2. Image analysis: Correctly identified ECMWF zonal wind and regime charts
+3. WebSearch reply: Generated proper response citing Met Office and ECMWF sources
+4. Live posting: Deleted bad reply, posted corrected 4-part thread with citations
+
+---
+
+## Outstanding
+
+- Monitor next few image-based replies to verify WebSearch is being used appropriately
+- Consider adding timeout handling if WebSearch takes too long
