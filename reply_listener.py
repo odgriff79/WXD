@@ -1569,6 +1569,60 @@ def add_ai_signature(posts: list) -> list:
     return posts
 
 
+# Chart paths for each tracker
+CHART_PATHS = {
+    'main': Path('/home/ubuntu/wxd/data/chart_latest.png'),
+    'icon': Path('/home/ubuntu/wxd/trackers/icon/data/chart_latest.png'),
+    'ukmo': Path('/home/ubuntu/wxd/trackers/ukmo/data/chart_latest.png'),
+    'mogreps': Path('/home/ubuntu/wxd/trackers/mogreps/data/chart_latest.png'),
+}
+
+CHART_ALT_TEXT = {
+    'main': '850hPa temperature forecast chart showing GFS, ECMWF, AIFS and GEM models',
+    'icon': '850hPa temperature forecast chart from ICON-EU 40-member ensemble',
+    'ukmo': '850hPa temperature forecast chart from UK Met Office global model',
+    'mogreps': '850hPa temperature forecast chart from MOGREPS-G 18-member ensemble',
+}
+
+
+def select_chart_for_query(text: str) -> tuple:
+    """Select appropriate chart based on query content.
+
+    Returns (chart_path, alt_text) or (None, None) if no chart relevant.
+    """
+    text_lower = text.lower()
+
+    # Specific model mentions -> specific chart (check these first)
+    if 'icon' in text_lower and 'icon-' not in text_lower:
+        return CHART_PATHS['icon'], CHART_ALT_TEXT['icon']
+    if 'ukmo' in text_lower or 'met office' in text_lower or 'uk met' in text_lower:
+        return CHART_PATHS['ukmo'], CHART_ALT_TEXT['ukmo']
+    if 'mogreps' in text_lower:
+        return CHART_PATHS['mogreps'], CHART_ALT_TEXT['mogreps']
+
+    # Keywords that suggest a chart would be helpful
+    chart_keywords = [
+        'forecast', 'model', 'temperature', 'temp', 'cold', 'warm',
+        'weekend', 'week', 'tomorrow', 'thursday', 'friday', 'saturday', 'sunday',
+        'monday', 'tuesday', 'wednesday', 'chart', 'show', 'look like',
+        'what do', 'how does', 'compare', 'comparison', 'all models',
+        '850', 'hpa', 'ensemble', 'spread', 'gfs', 'ecmwf', 'aifs', 'gem'
+    ]
+
+    # Check if query is forecast-related
+    is_forecast_query = any(kw in text_lower for kw in chart_keywords)
+    if not is_forecast_query:
+        return None, None
+
+    # Cross-tracker or general model questions -> main chart (shows 4 models)
+    cross_keywords = ['all model', 'compare', 'cross', 'gfs', 'ecmwf', 'aifs', 'gem', 'they all', 'models show']
+    if any(kw in text_lower for kw in cross_keywords):
+        return CHART_PATHS['main'], CHART_ALT_TEXT['main']
+
+    # General forecast question -> main chart
+    return CHART_PATHS['main'], CHART_ALT_TEXT['main']
+
+
 def add_thread_numbers(posts: list) -> list:
     """Add [X/Y] thread numbering to multi-post replies.
 
@@ -1881,7 +1935,7 @@ Output JSON only:
     }
 
 
-def post_reply(client: Client, text: str, reply_to: dict, root: dict = None) -> dict:
+def post_reply(client: Client, text: str, reply_to: dict, root: dict = None, image_path: str = None, alt_text: str = None) -> dict:
     """Post a reply to a post.
 
     Args:
@@ -1889,6 +1943,8 @@ def post_reply(client: Client, text: str, reply_to: dict, root: dict = None) -> 
         text: Reply text
         reply_to: dict with 'uri' and 'cid' of post to reply to
         root: dict with 'uri' and 'cid' of thread root (if different from reply_to)
+        image_path: Optional path to image to attach
+        alt_text: Alt text for image (default: "WXD forecast chart")
 
     Returns:
         dict with 'uri' and 'cid' of posted reply, or None on failure
@@ -1910,7 +1966,22 @@ def post_reply(client: Client, text: str, reply_to: dict, root: dict = None) -> 
             root=root_ref
         )
 
-        response = client.send_post(text=text, reply_to=reply_ref)
+        # Attach image if provided
+        embed = None
+        if image_path:
+            img_path = Path(image_path)
+            if img_path.exists():
+                with open(img_path, 'rb') as f:
+                    img_data = f.read()
+                upload = client.upload_blob(img_data)
+                embed = atproto_models.AppBskyEmbedImages.Main(
+                    images=[atproto_models.AppBskyEmbedImages.Image(
+                        alt=alt_text or "WXD forecast chart",
+                        image=upload.blob
+                    )]
+                )
+
+        response = client.send_post(text=text, reply_to=reply_ref, embed=embed)
 
         return {
             'uri': response.uri,
@@ -2667,10 +2738,17 @@ Output ONLY the reply text, nothing else."""
             response_posts = add_ai_signature(response_posts)
 
         if response_posts:
+            # Select chart if relevant to the query
+            chart_path, chart_alt = select_chart_for_query(reply['text'])
+            if chart_path:
+                print(f"    Chart selected: {chart_path.name}")
+
             print(f"    Response ({len(response_posts)} post(s)): {response_posts[0][:80]}...")
 
             if dry_run:
                 print(f"    [DRY RUN - would post {len(response_posts)} reply(ies)]")
+                if chart_path:
+                    print(f"    [DRY RUN - would attach chart: {chart_path.name}]")
             else:
                 # Post as threaded replies
                 last_reply = {'uri': reply['uri'], 'cid': reply['cid']}
@@ -2678,9 +2756,13 @@ Output ONLY the reply text, nothing else."""
                         'cid': reply.get('root_cid', reply['cid'])}
 
                 for i, post_text in enumerate(response_posts):
-                    post_result = post_reply(client, post_text, reply_to=last_reply, root=root)
+                    # Attach chart to first post only
+                    img = str(chart_path) if (i == 0 and chart_path) else None
+                    alt = chart_alt if (i == 0 and chart_path) else None
+                    post_result = post_reply(client, post_text, reply_to=last_reply, root=root, image_path=img, alt_text=alt)
                     if post_result:
-                        print(f"    Posted reply {i+1}/{len(response_posts)}: {post_result['uri']}")
+                        chart_note = " [+chart]" if (i == 0 and chart_path) else ""
+                        print(f"    Posted reply {i+1}/{len(response_posts)}{chart_note}: {post_result['uri']}")
                         last_reply = post_result  # Chain replies
                         if i == 0:
                             replies_sent += 1
@@ -3016,18 +3098,29 @@ Output ONLY the reply text, nothing else."""
                 response_posts = add_ai_signature(response_posts)
 
             if response_posts:
+                # Select chart if relevant to the query
+                chart_path, chart_alt = select_chart_for_query(reply['text'])
+                if chart_path:
+                    print(f"      Chart selected: {chart_path.name}")
+
                 print(f"      Response ({len(response_posts)} post(s)): {response_posts[0][:80]}...")
 
                 if dry_run:
                     print(f"      [DRY RUN - would post {len(response_posts)} reply(ies)]")
+                    if chart_path:
+                        print(f"      [DRY RUN - would attach chart: {chart_path.name}]")
                 else:
                     last_reply_ref = {'uri': reply['uri'], 'cid': reply['cid']}
                     root_ref = {'uri': post['uri'], 'cid': post['cid']}
 
                     for i, post_text in enumerate(response_posts):
-                        post_result = post_reply(client, post_text, reply_to=last_reply_ref, root=root_ref)
+                        # Attach chart to first post only
+                        img = str(chart_path) if (i == 0 and chart_path) else None
+                        alt = chart_alt if (i == 0 and chart_path) else None
+                        post_result = post_reply(client, post_text, reply_to=last_reply_ref, root=root_ref, image_path=img, alt_text=alt)
                         if post_result:
-                            print(f"      Posted reply {i+1}/{len(response_posts)}: {post_result['uri']}")
+                            chart_note = " [+chart]" if (i == 0 and chart_path) else ""
+                            print(f"      Posted reply {i+1}/{len(response_posts)}{chart_note}: {post_result['uri']}")
                             last_reply_ref = post_result  # Chain replies
                             if i == 0:
                                 replies_sent += 1
