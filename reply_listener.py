@@ -48,7 +48,18 @@ try:
     HAS_LOOKUP = True
 except ImportError:
     HAS_LOOKUP = False
-    lookup_post = None
+
+# Import cross-tracker analysis for model comparison queries
+try:
+    from lib.cross_tracker import (
+        is_model_comparison_query,
+        build_model_query_response_context,
+    )
+    HAS_CROSS_TRACKER = True
+except ImportError:
+    HAS_CROSS_TRACKER = False
+    is_model_comparison_query = None
+    build_model_query_response_context = None
 
 # Import Met Office fetcher for ground truth warnings
 try:
@@ -1630,15 +1641,26 @@ def generate_chat_response(reply_text: str, parent_text: str, session: dict = No
         if spread_comparison:
             print(f"    Got spread comparison data ({len(spread_comparison)} chars)")
 
+    # Check if user is asking about model comparison (GFS vs ICON, all models, etc.)
+    cross_tracker_context = ""
+    if HAS_CROSS_TRACKER and is_model_comparison_query and is_model_comparison_query(reply_text):
+        print(f"    Detected model comparison question")
+        cross_tracker_context = build_model_query_response_context(reply_text) or ""
+        if cross_tracker_context:
+            print(f"    Got cross-tracker context ({len(cross_tracker_context)} chars)")
+
     # Add forecast context if available
     forecast_section = ""
-    if forecast_context or location_forecast or spread_comparison:
+    if forecast_context or location_forecast or spread_comparison or cross_tracker_context:
         forecast_section = "\n\nFORECAST DATA:\n"
+        if cross_tracker_context:
+            forecast_section += f"{cross_tracker_context}\n\n"
         if spread_comparison:
             forecast_section += f"{spread_comparison}\n\n"
         if location_forecast:
             forecast_section += f"SPECIFIC FORECAST FOR {location.upper()}:\n{location_forecast}\n\n"
-        if forecast_context:
+        if forecast_context and not cross_tracker_context:
+            # Only add basic forecast if cross-tracker not already providing detailed data
             forecast_section += f"WXD ENSEMBLE DATA:\n{forecast_context[:600]}\n"
 
     # Add research context if available

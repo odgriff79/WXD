@@ -4,6 +4,29 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
 ## 2026-01-19: Commentary Patience, Citation Enforcement, False Warnings Fix
 
+### Cross-Tracker Analysis (NEW FEATURE)
+
+**Purpose:** Compare all 7 tracked models (GFS, ECMWF, AIFS, GEM, ICON, UKMO, MOGREPS) in one view.
+
+**Components:**
+- `lib/cross_tracker.py` - Core module for loading and comparing model data
+- `cross_tracker_synthesis.py` - ntfy-triggered synthesis posts
+- `reply_listener.py` - Auto-detects model comparison questions in chat
+
+**Features:**
+- Load current data from all trackers
+- Track data freshness (e.g., "UKMO 30min old, ICON 4h old")
+- Find agreement/divergence across models
+- Parse natural language queries ("How does GFS differ from ICON?", "What do all the models show?")
+- Historical data lookup (planned)
+
+**Usage:**
+- ntfy: `curl -d "synthesis" ntfy.sh/YOUR_CHANNEL` (preview)
+- ntfy: `curl -d "synthesis-post" ntfy.sh/YOUR_CHANNEL` (live post)
+- Chat: Ask "compare all models" or "GFS vs ICON" and Claude gets cross-tracker context
+
+---
+
 ### Reply System - Session Message Indicator
 
 **Problem:** User reported "4 messages replied marked as 3" - session message count not shown to users.

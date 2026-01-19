@@ -68,6 +68,7 @@ print('  Tracker C: "mogreps" (quick) or "mogreps-fresh" (fetch new)')
 print('  Tracker D: "ukmo" (quick) or "ukmo-fresh" (fetch new)')
 print('  Daily: "summary" (Met Office summary preview)')
 print('  Engagement: "engagement" (preview)')
+print('  Synthesis: "synthesis" (cross-tracker preview) or "synthesis-post" (live post)')
 print('  Replies: "check" (dry-run) or "respond" (live)')
 print('  Status: "status" (quick system overview)')
 print('  Clear: "clear-feedback" (clear dashboard feedback queue)')
@@ -240,6 +241,20 @@ def handle_clear_feedback():
     )
     return result.stdout or result.stderr or 'Feedback queue cleared'
 
+def handle_synthesis():
+    """Cross-tracker synthesis - compare all models."""
+    print(f'Cross-tracker synthesis requested at {time.strftime("%H:%M:%S")}')
+    output = run_command(['/home/ubuntu/wxd/venv/bin/python', 'cross_tracker_synthesis.py'])
+    return output
+
+
+def handle_synthesis_post():
+    """Cross-tracker synthesis - compare all models and POST."""
+    print(f'Cross-tracker synthesis POST requested at {time.strftime("%H:%M:%S")}')
+    output = run_command(['/home/ubuntu/wxd/venv/bin/python', 'cross_tracker_synthesis.py', '--post'])
+    return output
+
+
 def handle_status():
     """Quick system status summary."""
     import json
@@ -357,6 +372,10 @@ while True:
                             output = handle_status()
                         elif cmd == 'clear-feedback':
                             output = handle_clear_feedback()
+                        elif cmd == 'synthesis':
+                            output = handle_synthesis()
+                        elif cmd == 'synthesis-post':
+                            output = handle_synthesis_post()
 
                         if output:
                             # Clean up output for ntfy
