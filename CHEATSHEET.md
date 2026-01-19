@@ -36,6 +36,8 @@ powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_C
 | `mogreps-fresh` | MOGREPS - fetch new data + preview |
 | `summary` | Daily Met Office summary preview |
 | `engagement` | Engagement post preview |
+| `cross` | Cross-tracker comparison (all 7 models) preview |
+| `cross-post` | Cross-tracker comparison - LIVE post |
 | `check` | Reply listener dry-run |
 | `respond` | Reply listener live |
 | `status` | Quick system status |
@@ -63,6 +65,10 @@ powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_C
 
 # Engagement
 powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'engagement'"
+
+# Cross-Tracker (compare all 7 models)
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'cross'"
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'cross-post'"
 ```
 
 ## VM Cron Schedule
@@ -178,6 +184,7 @@ python trackers/ukmo/post.py --dry-run
 python trackers/mogreps/post.py --dry-run
 python post_bluesky.py --dry-run
 python engagement/engagement_post.py --dry-run
+python cross_tracker_synthesis.py          # Cross-tracker comparison
 
 # Manual runs (live)
 python trackers/icon/fetch.py && python trackers/icon/post.py
