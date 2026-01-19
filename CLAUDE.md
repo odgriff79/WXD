@@ -415,6 +415,22 @@ ssh -i "$SSH_KEY" ubuntu@$VM_IP "cd ~/wxd && source venv/bin/activate && source 
 
 **Test:** If you can't point to specific date + level + regions in the raw data, it's not a real warning.
 
+## Location Inference Rule (PROJECT-WIDE)
+
+**All locations are assumed to be UK unless explicitly stated otherwise.**
+
+When users mention places:
+- Winchester → Winchester, UK (use London data as proxy)
+- Boston → Boston, Lincolnshire, UK (NOT Massachusetts)
+- Any ambiguous city → UK interpretation first
+
+**Why:** WXD is a UK weather project. All our models use London coordinates. Users asking about "their weekend weather" are UK-based.
+
+**For cross-tracker responses:**
+- Always use our standard London 850hPa data
+- Location names mentioned just indicate the user's local area
+- Don't try to fetch location-specific data - our data IS the relevant data
+
 ## Troubleshooting
 
 | Issue | Check |

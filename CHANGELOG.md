@@ -18,12 +18,28 @@ All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 - Track data freshness (e.g., "UKMO 30min old, ICON 4h old")
 - Find agreement/divergence across models
 - Parse natural language queries ("How does GFS differ from ICON?", "What do all the models show?")
+- **Date range queries:** "What do models show Wednesday to Saturday?", "Compare the weekend"
+- **Trending data:** Shows warming/cooling direction and coldest day for each model in range
 - Historical data lookup (planned)
 
 **Usage:**
 - ntfy: `curl -d "cross" ntfy.sh/YOUR_CHANNEL` (preview)
 - ntfy: `curl -d "cross-post" ntfy.sh/YOUR_CHANNEL` (live post)
 - Chat: Ask "compare all models" or "GFS vs ICON" and Claude gets cross-tracker context
+- Chat: Date ranges like "Wed to Sat" or "the weekend" show daily temps + trends
+
+---
+
+### UK Location Inference Rule (PROJECT-WIDE)
+
+**Problem:** Ambiguous location names could be misinterpreted (Winchester = UK or USA?)
+
+**Rule:** All locations are assumed to be UK unless explicitly stated otherwise.
+- Winchester → Winchester, UK (use London data as proxy)
+- Boston → Boston, Lincolnshire, UK (NOT Massachusetts)
+- Users asking about "their weekend weather" are UK-based
+
+**Documented in:** CLAUDE.md, under "Location Inference Rule"
 
 ---
 

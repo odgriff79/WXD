@@ -407,7 +407,7 @@ def detect_target_date(text: str) -> Optional[datetime]:
             if days_ahead == 0:
                 days_ahead = 7  # Next week if today
             target = now + timedelta(days=days_ahead)
-            return target.replace(hour=12, minute=0, second=0, microsecond=0)
+            return target.replace(hour=12, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
 
     # Date patterns: "23rd", "23 Jan", "Jan 23"
     date_pattern = r'(\d{1,2})(?:st|nd|rd|th)?\s*(?:of\s*)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?'
@@ -436,11 +436,117 @@ def detect_target_date(text: str) -> Optional[datetime]:
 
     # "tomorrow", "today"
     if 'tomorrow' in text_lower:
-        return (now + timedelta(days=1)).replace(hour=12, minute=0, second=0, microsecond=0)
+        return (now + timedelta(days=1)).replace(hour=12, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
     if 'today' in text_lower:
-        return now.replace(hour=12, minute=0, second=0, microsecond=0)
+        return now.replace(hour=12, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
 
     return None
+
+
+def detect_date_range(text: str) -> Optional[Tuple[datetime, datetime]]:
+    """Detect if user is asking about a date range.
+
+    Supports patterns like:
+    - "Wednesday to Saturday"
+    - "Wed - Sat"
+    - "from Thursday to Sunday"
+    - "between Monday and Friday"
+
+    Returns (start_date, end_date) or None if no range found.
+    """
+    text_lower = text.lower()
+    now = utcnow()
+
+    days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+    days_short = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+
+    # Build pattern for day names
+    day_pattern = '|'.join(days + days_short)
+
+    # Range patterns: "X to Y", "X - Y", "from X to Y", "between X and Y"
+    range_patterns = [
+        rf'from\s+({day_pattern})\s+to\s+({day_pattern})',
+        rf'between\s+({day_pattern})\s+and\s+({day_pattern})',
+        rf'({day_pattern})\s*(?:to|-)\s*({day_pattern})',
+    ]
+
+    for pattern in range_patterns:
+        match = re.search(pattern, text_lower)
+        if match:
+            start_day_str = match.group(1)
+            end_day_str = match.group(2)
+
+            # Convert day name to index
+            def day_to_index(day_str):
+                for i, (full, short) in enumerate(zip(days, days_short)):
+                    if day_str == full or day_str == short:
+                        return i
+                return None
+
+            start_idx = day_to_index(start_day_str)
+            end_idx = day_to_index(end_day_str)
+
+            if start_idx is not None and end_idx is not None:
+                current_weekday = now.weekday()
+
+                # Calculate days ahead for start
+                start_ahead = (start_idx - current_weekday) % 7
+                if start_ahead == 0:
+                    start_ahead = 7
+
+                # Calculate days ahead for end
+                end_ahead = (end_idx - current_weekday) % 7
+                if end_ahead == 0:
+                    end_ahead = 7
+                # End must be after start
+                if end_ahead <= start_ahead:
+                    end_ahead += 7
+
+                start_date = (now + timedelta(days=start_ahead)).replace(
+                    hour=12, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+                )
+                end_date = (now + timedelta(days=end_ahead)).replace(
+                    hour=12, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+                )
+
+                return (start_date, end_date)
+
+    # Also support "the weekend" = Saturday to Sunday
+    if 'weekend' in text_lower:
+        current_weekday = now.weekday()
+        sat_ahead = (5 - current_weekday) % 7
+        if sat_ahead == 0:
+            sat_ahead = 7
+        sat = (now + timedelta(days=sat_ahead)).replace(
+            hour=12, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+        )
+        sun = sat + timedelta(days=1)
+        return (sat, sun)
+
+    return None
+
+
+def get_temps_for_range(data: Dict, start_date: datetime, end_date: datetime) -> List[Tuple[datetime, float]]:
+    """Get temperatures for a date range from model data.
+
+    Returns list of (date, temp) tuples for each day in range.
+    """
+    values = data.get('values', [])
+    timestamps = data.get('timestamps', [])
+
+    if not values or not timestamps:
+        return []
+
+    results = []
+    current = start_date
+    while current <= end_date:
+        result = get_temp_for_date(data, current)
+        if result:
+            temp, time_str = result
+            results.append((current, temp))
+        current += timedelta(days=1)
+
+    return results
 
 
 def get_temp_for_date(data: Dict, target_date: datetime) -> Optional[Tuple[float, str]]:
@@ -522,12 +628,18 @@ def parse_model_query(text: str) -> Dict:
             'models': ['gfs', 'icon'],
             'times': {'default': 'latest', 'gfs': 'yesterday'},
             'comparison_type': 'difference' | 'all' | 'single',
-            'target_date': datetime or None
+            'target_date': datetime or None,
+            'date_range': (start, end) or None
         }
     """
     models = detect_models_in_query(text)
     times = detect_time_reference(text)
     target_date = detect_target_date(text)
+    date_range = detect_date_range(text)
+
+    # If date range found, target_date should be None (range takes precedence)
+    if date_range:
+        target_date = None
 
     if not models:
         # No specific models mentioned - might be general question
@@ -547,6 +659,7 @@ def parse_model_query(text: str) -> Dict:
         'times': times,
         'comparison_type': comparison_type,
         'target_date': target_date,
+        'date_range': date_range,
     }
 
 
@@ -599,18 +712,22 @@ def load_historical_run(tracker: str, target_time: str) -> Optional[Dict]:
     return None
 
 
-def build_comparison_context(models: List[str] = None, parsed_query: Dict = None) -> str:
+def build_comparison_context(models: List[str] = None, parsed_query: Dict = None, date_range: Tuple[datetime, datetime] = None) -> str:
     """Build formatted context string for Claude.
 
     Can be called with:
     - models=['gfs', 'icon'] for specific comparison
     - models=['all'] for all models
     - parsed_query from parse_model_query() for complex queries (includes target_date)
+    - date_range=(start, end) for range comparison
     """
     target_date = None
     if parsed_query:
         models = parsed_query.get('models', [])
         target_date = parsed_query.get('target_date')
+        # Check for date range in parsed query
+        if not date_range:
+            date_range = parsed_query.get('date_range')
 
     if not models:
         models = ['all']
@@ -626,8 +743,12 @@ def build_comparison_context(models: List[str] = None, parsed_query: Dict = None
     lines = []
     now = utcnow()
 
-    # Header - include target date if specified
-    if target_date:
+    # Header - include date range or target date if specified
+    if date_range:
+        start_str = date_range[0].strftime('%A %d %b')
+        end_str = date_range[1].strftime('%A %d %b')
+        lines.append(f"CROSS-TRACKER DATA FOR {start_str.upper()} TO {end_str.upper()} ({now.strftime('%d %b %H:%M')} UTC):")
+    elif target_date:
         date_str = target_date.strftime('%A %d %b')
         lines.append(f"CROSS-TRACKER DATA FOR {date_str.upper()} ({now.strftime('%d %b %H:%M')} UTC):")
     else:
@@ -641,8 +762,49 @@ def build_comparison_context(models: List[str] = None, parsed_query: Dict = None
     lines.append("Data freshness: " + ", ".join(freshness))
     lines.append("")
 
+    # If date range specified, show temps for each day in range
+    if date_range:
+        start_date, end_date = date_range
+        lines.append(f"TEMPERATURES BY DAY:")
+        lines.append("")
+
+        # Track trends per model
+        model_trends = {}
+
+        current = start_date
+        while current <= end_date:
+            date_str = current.strftime('%A %d %b')
+            lines.append(f"  {date_str}:")
+            temps_for_date = {}
+            for name, data in models_data.items():
+                result = get_temp_for_date(data, current)
+                if result:
+                    temp, time_str = result
+                    temps_for_date[name] = temp
+                    lines.append(f"    {name.upper()}: {temp:.1f}C")
+                    # Track for trend
+                    if name not in model_trends:
+                        model_trends[name] = []
+                    model_trends[name].append((current, temp))
+                else:
+                    lines.append(f"    {name.upper()}: No data")
+            lines.append("")
+            current += timedelta(days=1)
+
+        # Add trend summary for range
+        lines.append("TRENDS OVER RANGE:")
+        for name, temps in model_trends.items():
+            if len(temps) >= 2:
+                first_temp = temps[0][1]
+                last_temp = temps[-1][1]
+                coldest = min(temps, key=lambda x: x[1])
+                warmest = max(temps, key=lambda x: x[1])
+                delta = last_temp - first_temp
+                trend_dir = "warming" if delta > 0 else "cooling" if delta < 0 else "flat"
+                lines.append(f"  {name.upper()}: {trend_dir} ({delta:+.1f}C), coldest {coldest[0].strftime('%a')}: {coldest[1]:.1f}C")
+
     # If target date specified, show temps for that date
-    if target_date:
+    elif target_date:
         date_str = target_date.strftime('%A %d %b')
         lines.append(f"TEMPERATURES FOR {date_str}:")
         temps_for_date = {}
