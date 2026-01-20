@@ -1721,20 +1721,30 @@ def get_temporal_comparison_context(time_ref: str = 'yesterday') -> str:
         if not hist_data:
             continue
 
-        # Extract key values from historical run
-        hist_temps = hist_data.get('temperatures', {})
-        hist_mean = hist_data.get('ensemble_mean') or hist_data.get('mean')
-        hist_min = hist_data.get('coldest') or hist_data.get('min_temp')
-        hist_max = hist_data.get('warmest') or hist_data.get('max_temp')
         hist_time = hist_data.get('fetched_at', 'unknown')[:16]
 
-        if hist_mean is not None:
-            lines.append(f"{tracker.upper()} ({time_ref}, {hist_time}): mean={hist_mean:.1f}°C, min={hist_min:.1f}°C, max={hist_max:.1f}°C")
+        # Data structure varies by tracker - mean/min/max are lists (time series)
+        if tracker == 'main':
+            # Main tracker has multi_model_mean
+            multi_mean = hist_data.get('multi_model_mean', [])
+            if multi_mean:
+                coldest = min(multi_mean)
+                warmest = max(multi_mean)
+                avg = sum(multi_mean) / len(multi_mean)
+                lines.append(f"{tracker.upper()} ({hist_time}): avg={avg:.1f}°C, coldest={coldest:.1f}°C, warmest={warmest:.1f}°C")
+        else:
+            # Other trackers have mean as a list
+            mean_series = hist_data.get('mean', [])
+            if mean_series and isinstance(mean_series, list):
+                coldest = min(mean_series)
+                warmest = max(mean_series)
+                avg = sum(mean_series) / len(mean_series)
+                lines.append(f"{tracker.upper()} ({hist_time}): avg={avg:.1f}°C, coldest={coldest:.1f}°C, warmest={warmest:.1f}°C")
 
     if not lines:
         return ""
 
-    return "HISTORICAL COMPARISON DATA:\n" + "\n".join(lines)
+    return f"HISTORICAL COMPARISON DATA ({time_ref}):\n" + "\n".join(lines)
 
 
 def extract_location(text: str) -> str:
