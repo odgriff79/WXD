@@ -30,8 +30,16 @@ trackers/*/data/alert_state.json
 # Local secrets (VM connection, credentials - never commit)
 .vm_config
 
-# Note: data/*.json files ARE tracked (that's the whole point)
-# Timestamped files: gfs_2025-12-27_0730Z.json
-# Latest symlinks: gfs_latest.json
+# Runtime data files (regenerated, don't need version control)
+data/*.json
+data/reply_listener_state.json
+data/post_registry.json
+data/tracker_state.json
+trackers/*/data/*.json
+ssw/*.json
+
+# Logs
+logs/*.log
+ntfy_listener.log
 .claude/
 cron_replies.log

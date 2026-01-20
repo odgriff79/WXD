@@ -1,9 +1,9 @@
 {
   "cold_signal_runs": 0,
   "warm_signal_runs": 0,
-  "shift_direction": null,
-  "shift_runs": 0,
+  "shift_direction": "warmer",
+  "shift_runs": 3,
   "last_min_temp": -6.9,
   "last_mean_temp": -6.3,
-  "last_posted_commentary": "Latest run keeps Wednesday's brief cool dip to -0.8C, but confirms Thursday 22nd warming to +2.8C as previously indicated. Models trending colder through the period however, with cooling evident beyond Friday \u2014 coldest point now Sunday 25th at -1.7C, with cold signals returning at period..."
+  "last_posted_commentary": "Sharp warming revision: models now show Wednesday 21st at -0.9C (previously forecast -0.8C), Thursday 22nd surging to +2.9C, then oscillating colder through the period. Yellow warning Wednesday-Thursday for England and Wales."
 }

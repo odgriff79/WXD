@@ -118,6 +118,16 @@
       "current_u10": 32.0,
       "level": "NORMAL",
       "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-20T13:00:01.669546+00:00",
+      "cycle": "06",
+      "probability": 3.2,
+      "n_reversals": 1,
+      "n_members": 31,
+      "current_u10": 33.3,
+      "level": "NORMAL",
+      "data_age_hours": 7.0
     }
   ]
 }

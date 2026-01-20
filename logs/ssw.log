@@ -122,3 +122,13 @@ oc_open: server error retrieving url: code=0 message="/gefs/gefs20260119/gefs_pg
 2026-01-20 07:00:36,908 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
 2026-01-20 07:00:36,908 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
 2026-01-20 07:00:36,908 - INFO - SSW status: NORMAL | 0% prob | U10: 32.0 m/s
+2026-01-20 13:00:01,669 - INFO - SSW monitor starting at 2026-01-20T13:00:01.669546+00:00
+2026-01-20 13:00:01,669 - INFO - LATENCY: Targeting 20260120/06z (data age: 7.0h)
+2026-01-20 13:00:01,669 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260120/gefs_pgrb2ap5_all_06z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-20 13:00:07,922 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-20 13:00:33,398 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-20 13:00:33,410 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-20 13:00:33,410 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-20 13:00:33,410 - INFO - SSW status: NORMAL | 3% prob | U10: 33.3 m/s

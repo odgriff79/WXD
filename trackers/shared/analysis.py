@@ -458,15 +458,21 @@ def analyze_run_diff_ensemble(data: dict) -> Optional[dict]:
     # Find max difference at MATCHING timestamps only
     max_diff = 0
     max_diff_ts = None
+    max_diff_curr_temp = None
+    max_diff_prev_temp = None
     matching_count = 0
-    
+
     for ts_key in curr_map:
         if ts_key in prev_map:
             matching_count += 1
-            diff = curr_map[ts_key] - prev_map[ts_key]
+            curr_temp = curr_map[ts_key]
+            prev_temp = prev_map[ts_key]
+            diff = curr_temp - prev_temp
             if abs(diff) > abs(max_diff):
                 max_diff = diff
                 max_diff_ts = ts_key
+                max_diff_curr_temp = curr_temp
+                max_diff_prev_temp = prev_temp
 
     if matching_count < 3:
         return None
@@ -474,7 +480,14 @@ def analyze_run_diff_ensemble(data: dict) -> Optional[dict]:
     if abs(max_diff) >= SIGNIFICANT_SHIFT:
         date = max_diff_ts[:10] if max_diff_ts else "unknown"
         direction = "warmer" if max_diff > 0 else "colder"
-        return {"shift": round(max_diff, 1), "direction": direction, "date": date, "confirming": False}
+        return {
+            "shift": round(max_diff, 1),
+            "direction": direction,
+            "date": date,
+            "confirming": False,
+            "prev_temp": round(max_diff_prev_temp, 1) if max_diff_prev_temp is not None else None,
+            "curr_temp": round(max_diff_curr_temp, 1) if max_diff_curr_temp is not None else None
+        }
     else:
         return {"shift": round(max_diff, 1), "direction": "steady", "confirming": True}
 
@@ -518,15 +531,21 @@ def analyze_run_diff_deterministic(data: dict) -> Optional[dict]:
     # Find max difference at MATCHING timestamps only
     max_diff = 0
     max_diff_ts = None
+    max_diff_curr_temp = None
+    max_diff_prev_temp = None
     matching_count = 0
 
     for ts_key in curr_map:
         if ts_key in prev_map:
             matching_count += 1
-            diff = curr_map[ts_key] - prev_map[ts_key]
+            curr_temp = curr_map[ts_key]
+            prev_temp = prev_map[ts_key]
+            diff = curr_temp - prev_temp
             if abs(diff) > abs(max_diff):
                 max_diff = diff
                 max_diff_ts = ts_key
+                max_diff_curr_temp = curr_temp
+                max_diff_prev_temp = prev_temp
 
     if matching_count == 0:
         return None
@@ -538,7 +557,9 @@ def analyze_run_diff_deterministic(data: dict) -> Optional[dict]:
             "shift": round(max_diff, 1),
             "direction": direction,
             "date": date,
-            "confirming": False
+            "confirming": False,
+            "prev_temp": round(max_diff_prev_temp, 1) if max_diff_prev_temp is not None else None,
+            "curr_temp": round(max_diff_curr_temp, 1) if max_diff_curr_temp is not None else None
         }
     else:
         # Runs agree - this is a confirming signal, not a shift
@@ -864,7 +885,13 @@ def run_full_analysis(
         context_parts.append(f"TIMING: {timing_window['label']}")
 
     if run_diff and not run_diff.get("confirming"):
-        context_parts.append(f"SHIFT: Model moved {abs(run_diff['shift'])}C {run_diff['direction']} since last run around {run_diff['date']}")
+        # Include actual temperature values to prevent Claude citing wrong values
+        prev_temp = run_diff.get('prev_temp')
+        curr_temp = run_diff.get('curr_temp')
+        if prev_temp is not None and curr_temp is not None:
+            context_parts.append(f"SHIFT: Model moved {abs(run_diff['shift'])}C {run_diff['direction']} since last run around {run_diff['date']} ({prev_temp:+.1f}C → {curr_temp:+.1f}C) - USE THESE EXACT VALUES IF MENTIONING THE SHIFT")
+        else:
+            context_parts.append(f"SHIFT: Model moved {abs(run_diff['shift'])}C {run_diff['direction']} since last run around {run_diff['date']}")
     elif run_diff and run_diff.get("confirming"):
         context_parts.append("CONSISTENCY: Latest run confirms previous forecast (no significant change)")
 

@@ -9,8 +9,9 @@
 - Bluesky work? Read "Bluesky Publishing - EXPERT MODULE" section first
 - Reply system? Read "Reply System" section first
 - Posting? Read "Mandatory Rules" section first
+- Feedback/post lookup? Use `data/post_registry.json` - DO NOT fumble with raw API calls
 
-**DO NOT GUESS.** Check method names, follow documented patterns. Repeat offenses logged.
+**DO NOT GUESS.** Check method names, follow documented patterns. Use existing systems. Repeat offenses logged.
 
 ---
 ## ⚠️ MANDATORY: VM CONNECTION - READ FIRST ⚠️
@@ -85,6 +86,16 @@ When reviewing user feedback on automated posts:
 2. Run `python reply_listener.py --feedback` to display feedback with tracker identification
 3. The system automatically looks up `parent_uri` in the post registry to identify the tracker
 4. Fix the correct code file based on tracker shown
+
+**Post Lookup (when investigating feedback):**
+```bash
+# Look up a post URI in the registry - USE THIS, don't fumble with raw API calls
+grep "3mcujppwwgf2v" data/post_registry.json
+
+# Or use jq for cleaner output
+jq '.posts[] | select(.uri | contains("3mcujppwwgf2v"))' data/post_registry.json
+```
+The registry contains: uri, tracker, model, text_preview, timestamp. All trackers register their posts here.
 
 Scripts:
 - `reply_listener.py` - Main processor (cron every 4h)
@@ -472,6 +483,7 @@ When users mention places:
 - Use git stash/pop carelessly (can lose DB data and state files)
 - Process live data when testing fixes (verify with dry-run first, preserve test cases)
 - Guess function/class names when importing - always grep for actual definition first
+- **Fumble with raw Bluesky API calls when looking up posts** - USE `data/post_registry.json` (grep or jq). The registry exists for a reason. Incident logged 2026-01-20.
 
 ## Commentary Hallucination Prevention
 

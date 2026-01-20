@@ -657,6 +657,202 @@
       "model": "mogreps-g",
       "text_preview": "[3/3] Wide ensemble spread: 10.5C range at coldest point indicates higher uncertainty. Expect adjust",
       "timestamp": "2026-01-20T09:02:59.090462+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcttrmq6m72z",
+      "tracker": "Main",
+      "model": "4-model-ensemble",
+      "text_preview": "[1/3] Chilly outlook emerging. Models hint at cooling through next week, with 850hPa temps dropping ",
+      "timestamp": "2026-01-20T09:28:46.280895+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcttrnxvvx2m",
+      "tracker": "Main",
+      "model": "4-model-ensemble",
+      "text_preview": "[2/3] GFS has backed off from its previous cold signal (3\u00b0C warmer this run), reducing confidence. Y",
+      "timestamp": "2026-01-20T09:28:47.223880+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcttrouzki2v",
+      "tracker": "Main",
+      "model": "4-model-ensemble",
+      "text_preview": "[3/3] \u2744\ufe0f Multi-model cold signal: GFS -5.3\u00b0C, ECM -5.2\u00b0C at 850hPa around 2026-01-26. 2/4 models bel",
+      "timestamp": "2026-01-20T09:28:48.176292+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcttuahmmi2v",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[1/5] UK Daily 20 01 2026 - Met Office says:\n\nRemaining unsettled throughout the rest of the week.",
+      "timestamp": "2026-01-20T09:30:13.713450+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcttubdzph2a",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[2/5] WXD Alert: Met Office Yellow warnings continue Tue-Fri across England/Wales. High ground snow ",
+      "timestamp": "2026-01-20T09:30:14.645141+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcttucaot42p",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[3/5] Outlook for Thursday to Saturday:\nStaying unsettled with further rain or showers for much of t",
+      "timestamp": "2026-01-20T09:30:15.572491+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcttud4rb42p",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[4/5] Long range (Saturday 24 Jan - Monday 2 Feb): The UK will likely continue to sit in the battleg",
+      "timestamp": "2026-01-20T09:30:16.506571+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcttudzcd524",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[5/5] north and northeast.\n\nLondon 850hPa:\nMain ensemble: GFS: -5.3C, ECMWF_IFS: -5.2C, ECMWF_AIFS: ",
+      "timestamp": "2026-01-20T09:30:17.445081+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcttuewkqp2a",
+      "tracker": "met_warnings",
+      "model": null,
+      "text_preview": "Met Office Yellow Warning\nWed 21 Jan - Thu 22 Jan\nAffects: England, Wales",
+      "timestamp": "2026-01-20T09:30:18.396569+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mctvkhwf2g2w",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[1/4] Latest run confirms the oscillating pattern: Wednesday's cool dip to -0.8C, Thursday's recover",
+      "timestamp": "2026-01-20T10:00:33.901101+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mctvkiii7r22",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[2/4] Wide ensemble spread (10.7C range) shows low agreement on timing and magnitude\u2014some members ne",
+      "timestamp": "2026-01-20T10:00:34.080645+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mctvkinvuo2m",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[3/4] Yellow warning in force Wed 21 Jan - Thu 22 Jan for England, Wales (Met Office, Rain/Wind).",
+      "timestamp": "2026-01-20T10:00:34.246967+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mctvkisy3o2w",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[4/4] Wide ensemble spread: 10.7C range at coldest point indicates higher uncertainty. Expect adjust",
+      "timestamp": "2026-01-20T10:00:34.412977+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcu4cfiofp2p",
+      "tracker": "engagement",
+      "model": null,
+      "text_preview": "[1/5] Perfect! All posts are under 280 characters. Here's the final Q&A thread:",
+      "timestamp": "2026-01-20T12:01:18.689289+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcu4cfntfk2v",
+      "tracker": "engagement",
+      "model": null,
+      "text_preview": "[2/5] Great questions from @winchesterweather, @daveosw16, and @metjam! Let me tackle these one by o",
+      "timestamp": "2026-01-20T12:01:18.867506+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcu4cftbek22",
+      "tracker": "engagement",
+      "model": null,
+      "text_preview": "[3/5] Winchester snow: Models show cold air arriving (~-4C at 850hPa by 28 Jan), but precipitation t",
+      "timestamp": "2026-01-20T12:01:19.038631+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcu4cfyjb62w",
+      "tracker": "engagement",
+      "model": null,
+      "text_preview": "[4/5] Blocking highs: Westerlies struggle because winds flow clockwise around highs, creating a barr",
+      "timestamp": "2026-01-20T12:01:19.208165+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcu4cg5o732d",
+      "tracker": "engagement",
+      "model": null,
+      "text_preview": "[5/5] What weather or forecasting topics would you like WXD to discuss? Reply with your suggestions ",
+      "timestamp": "2026-01-20T12:01:19.368615+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcudn4knon22",
+      "tracker": "engagement",
+      "model": null,
+      "text_preview": "[1/4] The polar vortex is real - but not what the tabloids tell you. It's a high-altitude band of co",
+      "timestamp": "2026-01-20T14:12:34.607040+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcudn4ptog2o",
+      "tracker": "engagement",
+      "model": null,
+      "text_preview": "[2/4] According to the Met Office, when we track 850hPa temps (about 1.5km up), we're seeing the lay",
+      "timestamp": "2026-01-20T14:12:34.796121+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcudn4vkza2d",
+      "tracker": "engagement",
+      "model": null,
+      "text_preview": "[3/4] WXD tracks these shifts through 7 different forecast models. When models disagree on timing or",
+      "timestamp": "2026-01-20T14:12:34.967596+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcudn52rbw2o",
+      "tracker": "engagement",
+      "model": null,
+      "text_preview": "[4/4] What weather or forecasting topics would you like WXD to discuss? Reply with your suggestions ",
+      "timestamp": "2026-01-20T14:12:35.135506+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcugh7jvev2d",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[1/3] MOGREPS shows cooling trend through next week, coldest point now seen Monday 26th around -2C. ",
+      "timestamp": "2026-01-20T15:02:58.062014+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcugha4ch52p",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[2/3] indicate sustained cooling develops through weekend with cold strengthening towards end of for",
+      "timestamp": "2026-01-20T15:02:58.231484+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcughabhlb22",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[3/3] Wide ensemble spread: 8.8C range at coldest point indicates higher uncertainty. Expect adjustm",
+      "timestamp": "2026-01-20T15:02:58.400729+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcujppwwgf2v",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[1/3] Sharp warming revision: models now show Wednesday 21st at -0.9C (previously forecast -0.8C), T",
+      "timestamp": "2026-01-20T16:01:24.827237+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcujpqgjic2w",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[2/3] Cold trend continues with Sunday 25th reaching -4.3C, and late-period signals showing sustaine",
+      "timestamp": "2026-01-20T16:01:25.005738+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcujpqlrg52v",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[3/3] Wide ensemble spread: 9.7C range at coldest point indicates higher uncertainty. Expect adjustm",
+      "timestamp": "2026-01-20T16:01:25.183978+00:00"
     }
   ]
 }
