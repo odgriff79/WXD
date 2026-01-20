@@ -853,6 +853,20 @@
       "model": "icon-eu-eps",
       "text_preview": "[3/3] Wide ensemble spread: 9.7C range at coldest point indicates higher uncertainty. Expect adjustm",
       "timestamp": "2026-01-20T16:01:25.183978+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcutpkyns32v",
+      "tracker": "UKMO",
+      "model": "ukmo-global",
+      "text_preview": "[1/2] UKMO's reversed course overnight - where yesterday showed modest weekend cold, model now jumps",
+      "timestamp": "2026-01-20T19:00:17.063575+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcutpli4qr2a",
+      "tracker": "UKMO",
+      "model": "ukmo-global",
+      "text_preview": "[2/2] that warmer revision kicks in. Cold returning by end of period.",
+      "timestamp": "2026-01-20T19:00:17.230871+00:00"
     }
   ]
 }
