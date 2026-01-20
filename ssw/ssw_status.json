@@ -1,26 +1,26 @@
 {
-  "timestamp": "2026-01-19T19:00:01.769798+00:00",
-  "model_run": "20260119/12z",
+  "timestamp": "2026-01-20T07:00:01.848590+00:00",
+  "model_run": "20260120/00z",
   "data_age_hours": 7.0,
   "status": "ok",
   "ssw_probability_pct": 0.0,
-  "vulnerable_probability_pct": 12.9,
-  "current_u10_60n_ms": 28.3,
+  "vulnerable_probability_pct": 6.5,
+  "current_u10_60n_ms": 32.0,
   "ensemble": {
     "n_members": 31,
     "n_reversals": 0,
-    "mean_u10": 25.0,
-    "min_u10": 5.1,
-    "max_u10": 21.7
+    "mean_u10": 25.3,
+    "min_u10": 2.7,
+    "max_u10": 22.6
   },
   "alert": {
     "level": "NORMAL",
     "color": "green",
-    "vortex_state": "moderate",
+    "vortex_state": "strong",
     "should_alert": false
   },
   "lead_window": "Day 5.0-16.0",
   "n_timesteps": 45,
-  "ecmwf_chart_url": "https://charts.ecmwf.int/products/extended-zonal-mean-zonal-wind?area=nh&base_time=202601190000",
+  "ecmwf_chart_url": "https://charts.ecmwf.int/products/extended-zonal-mean-zonal-wind?area=nh&base_time=202601200000",
   "ssw_definition": "Major SSW = zonal-mean zonal wind at 10 hPa, 60\u00b0N reverses to easterly (U < 0)"
 }

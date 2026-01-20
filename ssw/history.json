@@ -98,6 +98,26 @@
       "current_u10": 28.3,
       "level": "NORMAL",
       "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-20T01:00:02.216696+00:00",
+      "cycle": "18",
+      "probability": 0.0,
+      "n_reversals": 0,
+      "n_members": 31,
+      "current_u10": 31.3,
+      "level": "NORMAL",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-20T07:00:01.848590+00:00",
+      "cycle": "00",
+      "probability": 0.0,
+      "n_reversals": 0,
+      "n_members": 31,
+      "current_u10": 32.0,
+      "level": "NORMAL",
+      "data_age_hours": 7.0
     }
   ]
 }

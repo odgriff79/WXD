@@ -636,6 +636,27 @@
       "model": "ukmo-global",
       "text_preview": "[4/4] Cold alert: UKMO shows -6.5C around 2026-01-26, crossing the -5C threshold.",
       "timestamp": "2026-01-20T07:00:19.820350+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mctsdiu5i52d",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[1/3] Models now showing oscillating temperature pattern through the week rather than steady cooling",
+      "timestamp": "2026-01-20T09:02:58.753200+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mctsdjfp742p",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[2/3] Monday 26th. Ensemble spread widening to 10.5C by late period, indicating growing uncertainty ",
+      "timestamp": "2026-01-20T09:02:58.921527+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mctsdjkt5l24",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[3/3] Wide ensemble spread: 10.5C range at coldest point indicates higher uncertainty. Expect adjust",
+      "timestamp": "2026-01-20T09:02:59.090462+00:00"
     }
   ]
 }
