@@ -333,6 +333,7 @@ MET OFFICE WARNINGS - ABSOLUTE RULES (VIOLATION = MISINFORMATION):
 - NEVER mention "long-range warnings" unless explicitly stated in the data
 - NEVER say "warnings expected", "warnings likely", "warnings issued for [future date]", or "warnings in place"
 - NEVER say "Yellow warning" without the exact dates and regions from the data
+- NEVER say a warning has "shifted" to different dates - warnings do NOT shift. Different dates = DIFFERENT warnings.
 - If you cannot COPY VERBATIM from the warning data, DO NOT mention any warning
 - TEST: Can you point to the exact text in this prompt that supports your warning claim? If not, DELETE IT.
 

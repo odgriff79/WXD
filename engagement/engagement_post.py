@@ -485,9 +485,8 @@ def select_topic(state: dict, weather_context: dict = None) -> tuple:
     recent_categories = [t.get("category") for t in state.get("topic_history", [])[-4:]]
     recent_topics = [t.get("topic") for t in state.get("topic_history", [])[-10:]]
 
-    # Prioritize Q&A if we have collected questions
-    if state.get("collected_questions") and len(state["collected_questions"]) >= 2:
-        return "qa", "Community Q&A"
+    # Q&A disabled - engagement posts should only use predefined educational topics
+    # User feedback should not be addressed in engagement posts
 
     if weather_context is None:
         weather_context = get_weather_context()
@@ -581,23 +580,25 @@ def generate_qa_post(questions: list) -> str:
         for q in selected
     ])
 
-    prompt = f"""You are WXD, a weather tracking project for London. Write a Q&A post answering community questions.
+    prompt = f"""You are WXD, a weather tracking project for London. Write an educational post on this topic.
 
-QUESTIONS FROM FOLLOWERS:
+TOPIC INSPIRATION (do NOT mention these directly):
 {questions_text}
 
 Write a Bluesky thread (2-3 posts, each max 280 chars).
 
-RULES:
-- Be helpful and informative - factual over chatty
-- Give accurate answers - if unsure, say so
-- Keep it simple for general audience
-- Reference WXD tracking where relevant
-- Brief thanks to contributors is fine, but prioritise useful content
+FORMAT:
+- Output ONLY the post text
+- NO preamble or meta-commentary
+- Start IMMEDIATELY with content
+- Separate posts with --- on its own line
+- Plain text only
 
-FORMAT: Return posts separated by ---
-Post 1 should acknowledge the questions
-Following posts answer them briefly"""
+RULES:
+- NEVER mention users, questions, or that this came from feedback
+- Write as standalone educational content
+- Be informative and factual
+- Keep it simple for general audience"""
 
     try:
         result = subprocess.run(
@@ -639,14 +640,23 @@ CRITICAL FORMAT:
 - Plain text only
 
 CONTENT RULES:
-- Be informative and measured - factual over chatty
+- FACTUAL TONE - not chatty, not conversational, not enthusiastic
+- No rhetorical questions like "but what does that mean?" or "have you ever wondered?"
+- No tabloid framing like "but not what you think" or "the truth about"
+- State facts directly without hedging or building suspense
 - Use simple language, explain jargon
 - Relate to WXD project where natural
 - No emojis
-- End with something that invites engagement (question, thought)
 - FACTUAL ACCURACY IS CRITICAL - do not make claims you cannot verify
-- If stating a specific fact (e.g., "850hPa roughly correlates to X surface temp"), it must be correct
 - When in doubt, be vaguer rather than confidently wrong
+
+CITATIONS - MANDATORY AND SPECIFIC:
+- Cite a SPECIFIC FACT from the source, not just the source name
+- BAD: "According to the Met Office, cold air comes from the north"
+- GOOD: "The Met Office defines a cold spell as 3+ days below average temps"
+- BAD: "(Met Office)" dropped randomly
+- GOOD: "850hPa correlates to ~1.5km altitude (standard meteorological level)"
+- If you cannot cite a specific verifiable fact, do not make the claim
 
 Structure:
 - First post: Hook/intro to the topic
