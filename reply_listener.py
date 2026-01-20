@@ -1707,6 +1707,28 @@ Return a concise 3-4 sentence summary of the forecast. Be specific with dates an
 AI_SIGNATURE = "—WXD Auto AI"
 
 
+def clean_web_content_leakage(posts: list) -> list:
+    """Remove web content pagination markers that leak into responses.
+
+    Web search results sometimes include [1/10], [Page 2], etc. which
+    conflict with our thread numbering. Strip these before adding our own.
+    """
+    import re
+    if not posts:
+        return posts
+
+    posts = list(posts)
+    for i, post in enumerate(posts):
+        # Remove patterns like [1/10], [2/15], [Page 1], etc.
+        post = re.sub(r'\s*\[\d+/\d+\]\s*', ' ', post)
+        post = re.sub(r'\s*\[Page \d+\]\s*', ' ', post, flags=re.IGNORECASE)
+        # Clean up any double spaces
+        post = re.sub(r'  +', ' ', post).strip()
+        posts[i] = post
+
+    return posts
+
+
 def add_session_indicator(posts: list, message_count: int, msg_limit: int) -> list:
     """Add session message indicator [X/Y] to the last post.
 
@@ -2488,6 +2510,7 @@ def main():
                 if reply_to.get('uri') and reply_to.get('cid'):
                     response_posts = result.get('response_posts', [result.get('response_text')])
                     if response_posts:
+                        response_posts = clean_web_content_leakage(response_posts)
                         response_posts = add_thread_numbers(response_posts)
                         response_posts = add_ai_signature(response_posts)
                         last_ref = {'uri': reply_to['uri'], 'cid': reply_to['cid']}
@@ -2980,6 +3003,7 @@ Output ONLY the reply text, nothing else."""
 
         # Add thread numbers, session indicator [X/Y] and AI signature (only for Claude-generated responses)
         if response_posts and result.get('should_respond'):
+            response_posts = clean_web_content_leakage(response_posts)
             response_posts = add_thread_numbers(response_posts)
             if session_msg_count > 0 and session_msg_limit > 0:
                 response_posts = add_session_indicator(response_posts, session_msg_count, session_msg_limit)
@@ -3340,6 +3364,7 @@ Output ONLY the reply text, nothing else."""
 
             # Add thread numbers, session indicator [X/Y] and AI signature (only for Claude-generated responses)
             if response_posts and 'result' in dir() and result and result.get('should_respond'):
+                response_posts = clean_web_content_leakage(response_posts)
                 response_posts = add_thread_numbers(response_posts)
                 if session_msg_count > 0 and session_msg_limit > 0:
                     response_posts = add_session_indicator(response_posts, session_msg_count, session_msg_limit)
