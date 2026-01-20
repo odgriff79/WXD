@@ -2,6 +2,43 @@
 
 All notable changes to WXD (Weather Ensemble Data Pipeline) documented here.
 
+## 2026-01-20 (Evening): Temporal Comparison, Feedback Tracker Lookup & Duplicate Reply Fixes
+
+### Temporal Comparison Feature (NEW)
+
+**Problem:** Users asking "how does tonight compare to 24hrs ago?" got responses without actual historical data.
+
+**Fix:** Added temporal comparison detection and historical data loading:
+- `detect_temporal_comparison()` - Detects questions about yesterday, 24h ago, last run, etc.
+- `get_temporal_comparison_context()` - Loads historical data via `load_historical_run()` from cross_tracker module
+- Added to `generate_chat_response()` context building
+
+**Import:** Added `load_historical_run` to cross_tracker imports.
+
+**File:** `reply_listener.py` lines 54-64, 1660-1737, 2023-2030, 2038-2039
+
+---
+
+### Feedback Tracker Lookup Fix
+
+**Problem:** `wxd feedback` showed "Tracker: unknown" for all entries because it looked up `parent_uri` (WXD's reply) instead of `root_uri` (original tracker post).
+
+**Fix:** Changed feedback display to check `root_uri` first for registry lookup, falling back to `parent_uri`. Also displays "Root:" instead of "Parent:" in output.
+
+**File:** `reply_listener.py` lines 2302-2323, 2337-2357
+
+---
+
+### Duplicate Reply Prevention Fix
+
+**Problem:** Replies could be processed twice - once in "threaded replies" phase and again in "replies to original posts" phase - because `processed_set` wasn't updated between phases.
+
+**Fix:** Added `processed_set.update(new_processed)` between phase 3a and 3b to prevent duplicates.
+
+**File:** `reply_listener.py` line 3168-3169
+
+---
+
 ## 2026-01-19 (Late Evening): WebSearch Reliability & SSW Monitor Fixes
 
 ### Fake WebSearch Placeholder Detection (ROBUSTNESS FIX)

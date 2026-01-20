@@ -54,12 +54,14 @@ try:
     from lib.cross_tracker import (
         is_model_comparison_query,
         build_model_query_response_context,
+        load_historical_run,
     )
     HAS_CROSS_TRACKER = True
 except ImportError:
     HAS_CROSS_TRACKER = False
     is_model_comparison_query = None
     build_model_query_response_context = None
+    load_historical_run = None
 
 # Import Met Office fetcher for ground truth warnings
 try:
@@ -1655,6 +1657,86 @@ def get_spread_comparison(target_date: str = None, hours_back: int = 48) -> str:
     return "\n".join(lines)
 
 
+def detect_temporal_comparison(text: str) -> tuple[bool, str | None]:
+    """Detect if user is asking about run-to-run or temporal comparison.
+
+    Returns:
+        (is_comparison_question, time_reference)
+        time_reference: 'yesterday', 'yesterday_0z', 'yesterday_12z', '24h', etc.
+    """
+    text_lower = text.lower()
+
+    # Keywords indicating comparison question
+    comparison_keywords = ['compare', 'comparison', 'changed', 'change', 'differ', 'shift', 'vs', 'versus', 'than']
+    temporal_keywords = ['yesterday', '24h', '24 hours', 'last run', 'previous', '0z', '12z', '00z', 'ago', 'earlier', 'before', 'last night', 'this morning']
+
+    has_comparison = any(kw in text_lower for kw in comparison_keywords)
+    has_temporal = any(kw in text_lower for kw in temporal_keywords)
+
+    if not (has_comparison or has_temporal):
+        return False, None
+
+    # If both comparison and temporal, it's definitely a comparison question
+    # If just temporal, check for question patterns
+    if has_temporal:
+        question_patterns = ['how', 'what', 'has', 'did', 'is', '?']
+        has_question = any(pat in text_lower for pat in question_patterns)
+        if not has_question and not has_comparison:
+            return False, None
+
+    # Determine time reference
+    time_ref = None
+    if 'yesterday' in text_lower:
+        if '0z' in text_lower or '00z' in text_lower:
+            time_ref = 'yesterday_0z'
+        elif '12z' in text_lower:
+            time_ref = 'yesterday_12z'
+        else:
+            time_ref = 'yesterday'
+    elif '24h' in text_lower or '24 hours' in text_lower or 'ago' in text_lower:
+        time_ref = 'yesterday'
+    elif 'last run' in text_lower or 'previous' in text_lower:
+        time_ref = 'yesterday'
+
+    return True, time_ref
+
+
+def get_temporal_comparison_context(time_ref: str = 'yesterday') -> str:
+    """Get historical forecast data for comparison.
+
+    Args:
+        time_ref: 'yesterday', 'yesterday_0z', 'yesterday_12z'
+
+    Returns:
+        Formatted string with historical vs current data
+    """
+    if not HAS_CROSS_TRACKER or not load_historical_run:
+        return ""
+
+    lines = []
+    trackers = ['main', 'icon', 'ukmo', 'mogreps']
+
+    for tracker in trackers:
+        hist_data = load_historical_run(tracker, time_ref)
+        if not hist_data:
+            continue
+
+        # Extract key values from historical run
+        hist_temps = hist_data.get('temperatures', {})
+        hist_mean = hist_data.get('ensemble_mean') or hist_data.get('mean')
+        hist_min = hist_data.get('coldest') or hist_data.get('min_temp')
+        hist_max = hist_data.get('warmest') or hist_data.get('max_temp')
+        hist_time = hist_data.get('fetched_at', 'unknown')[:16]
+
+        if hist_mean is not None:
+            lines.append(f"{tracker.upper()} ({time_ref}, {hist_time}): mean={hist_mean:.1f}°C, min={hist_min:.1f}°C, max={hist_max:.1f}°C")
+
+    if not lines:
+        return ""
+
+    return "HISTORICAL COMPARISON DATA:\n" + "\n".join(lines)
+
+
 def extract_location(text: str) -> str:
     """Extract UK location from text if mentioned."""
     # Common UK cities/towns
@@ -1938,12 +2020,23 @@ def generate_chat_response(reply_text: str, parent_text: str, session: dict = No
         if cross_tracker_context:
             print(f"    Got cross-tracker context ({len(cross_tracker_context)} chars)")
 
+    # Check if user is asking about temporal comparison (24h ago, yesterday, etc.)
+    temporal_comparison = ""
+    is_temporal_q, time_ref = detect_temporal_comparison(reply_text)
+    if is_temporal_q:
+        print(f"    Detected temporal comparison question (ref: {time_ref or 'default'})")
+        temporal_comparison = get_temporal_comparison_context(time_ref or 'yesterday')
+        if temporal_comparison:
+            print(f"    Got temporal comparison data ({len(temporal_comparison)} chars)")
+
     # Add forecast context if available
     forecast_section = ""
-    if forecast_context or location_forecast or spread_comparison or cross_tracker_context:
+    if forecast_context or location_forecast or spread_comparison or cross_tracker_context or temporal_comparison:
         forecast_section = "\n\nFORECAST DATA:\n"
         if cross_tracker_context:
             forecast_section += f"{cross_tracker_context}\n\n"
+        if temporal_comparison:
+            forecast_section += f"{temporal_comparison}\n\n"
         if spread_comparison:
             forecast_section += f"{spread_comparison}\n\n"
         if location_forecast:
@@ -2300,19 +2393,27 @@ def main():
                     ts = entry.get('timestamp', '')[:19]
                     msg = entry.get('message', '')[:80]
                     parent_uri = entry.get('parent_uri', '')
+                    root_uri = entry.get('root_uri', '')
                     ctx = entry.get('context', '')
-                    # Try registry lookup first, fall back to text identification
+                    # Try registry lookup: root_uri first (original tracker post), then parent_uri
                     tracker = None
-                    if HAS_LOOKUP and lookup_post and parent_uri:
-                        post_info = lookup_post(parent_uri)
-                        if post_info:
-                            tracker = post_info.get('tracker', None)
+                    if HAS_LOOKUP and lookup_post:
+                        # root_uri is more likely to be the original tracker post
+                        if root_uri:
+                            post_info = lookup_post(root_uri)
+                            if post_info:
+                                tracker = post_info.get('tracker', None)
+                        # Fall back to parent_uri if root_uri not found
+                        if not tracker and parent_uri:
+                            post_info = lookup_post(parent_uri)
+                            if post_info:
+                                tracker = post_info.get('tracker', None)
                     if not tracker:
                         tracker = identify_tracker_from_text(ctx)
                     print(f"  [{ts}] {msg}...")
                     print(f"      Tracker: {tracker}")
-                    if parent_uri:
-                        print(f"      Parent: {parent_uri}")
+                    if root_uri:
+                        print(f"      Root: {root_uri}")
                     if ctx:
                         print(f"      Context: {ctx[:60]}...")
                 # Mark as pending (displayed once)
@@ -2327,18 +2428,26 @@ def main():
                     msg = entry.get('message', '')[:80]
                     ctx = entry.get('context', '')
                     parent_uri = entry.get('parent_uri', '')
-                    # Try registry lookup first, fall back to text identification
+                    root_uri = entry.get('root_uri', '')
+                    # Try registry lookup: root_uri first (original tracker post), then parent_uri
                     tracker = None
-                    if HAS_LOOKUP and lookup_post and parent_uri:
-                        post_info = lookup_post(parent_uri)
-                        if post_info:
-                            tracker = post_info.get('tracker', None)
+                    if HAS_LOOKUP and lookup_post:
+                        # root_uri is more likely to be the original tracker post
+                        if root_uri:
+                            post_info = lookup_post(root_uri)
+                            if post_info:
+                                tracker = post_info.get('tracker', None)
+                        # Fall back to parent_uri if root_uri not found
+                        if not tracker and parent_uri:
+                            post_info = lookup_post(parent_uri)
+                            if post_info:
+                                tracker = post_info.get('tracker', None)
                     if not tracker:
                         tracker = identify_tracker_from_text(ctx)
                     print(f"  [{ts}] {msg}")
                     print(f"      Tracker: {tracker}")
-                    if parent_uri:
-                        print(f"      Parent: {parent_uri}")
+                    if root_uri:
+                        print(f"      Root: {root_uri}")
                     if ctx:
                         print(f"      Context: {ctx[:60]}...")
 
@@ -3055,6 +3164,9 @@ Output ONLY the reply text, nothing else."""
                 print(f"    Logged to chat research: {get_chat_research_path(reply_thread).name}")
 
         new_processed.append(reply['uri'])
+
+    # Update processed_set with newly processed replies to avoid duplicates in phase 3b
+    processed_set.update(new_processed)
 
     # -------------------------------------------------------------
     # 3b: Process replies to original posts (existing flow)
