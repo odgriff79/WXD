@@ -986,6 +986,174 @@
       "model": "ukmo-global",
       "text_preview": "[2/2] Forecast period trends marginally cooler overall - week-long settled pattern near or slightly ",
       "timestamp": "2026-01-21T07:00:20.530247+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcwaxzzxz52t",
+      "tracker": "Main",
+      "model": "4-model-ensemble",
+      "text_preview": "[1/3] Cold signal easing from previous run - models now converge on a modest dip around Monday 26th-",
+      "timestamp": "2026-01-21T08:30:19.709467+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcway3cz542a",
+      "tracker": "Main",
+      "model": "4-model-ensemble",
+      "text_preview": "[2/3] Some milder temperatures mid-week before the late-January dip arrives.",
+      "timestamp": "2026-01-21T08:30:20.723600+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcway4blnm2a",
+      "tracker": "Main",
+      "model": "4-model-ensemble",
+      "text_preview": "[3/3] \u2744\ufe0f Cold signal: ECM showing -6.2\u00b0C at 850hPa for 2026-01-27. Elevated snow risk for UK uplands",
+      "timestamp": "2026-01-21T08:30:21.656400+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcwcsisj4m2p",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[1/4] MOGREPS 18-member ensemble shows cooling trajectory through week ahead, with temps sliding fro",
+      "timestamp": "2026-01-21T09:03:01.283839+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcwcsjbtcu24",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[2/4] Models diverging substantially on timing and magnitude though - coldest members see -8C, warme",
+      "timestamp": "2026-01-21T09:03:01.444220+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcwcsjgiin2v",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[3/4] Spread widening as forecast extends - ensemble mean reaches -3C Monday but individual members ",
+      "timestamp": "2026-01-21T09:03:02.440795+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcwcskevy42a",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[4/4] Wide ensemble spread: 10.5C range at coldest point indicates higher uncertainty. Expect adjust",
+      "timestamp": "2026-01-21T09:03:02.604119+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcwed5hpde2d",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[1/5] UK Daily 21 01 2026 - Met Office says:\n\nShowery outbreaks of rain moving northwards. Breezy.",
+      "timestamp": "2026-01-21T09:30:13.234052+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcwed6dxjs2d",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[2/5] WXD Alert: Yellow warnings Wed-Fri. Met Office flags \"rather cold far north\" - 850hPa models s",
+      "timestamp": "2026-01-21T09:30:14.156478+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcwed7alu524",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[3/5] Staying unsettled as we move into the weekend, with showers or longer spells of rain. Temperat",
+      "timestamp": "2026-01-21T09:30:15.099632+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcweda4rye2d",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[4/5] Long range (Sunday 25 Jan - Tuesday 3 Feb): Weather systems moving in from the Atlantic will c",
+      "timestamp": "2026-01-21T09:30:16.017407+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcwedayzjx22",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[5/5] As a result, further spells of rain or showers are likely at times.\n\nLondon 850hPa:\nMain ensem",
+      "timestamp": "2026-01-21T09:30:16.944323+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcwedbvvdv24",
+      "tracker": "met_warnings",
+      "model": null,
+      "text_preview": "Met Office Yellow Warning\nThu 22 Jan - Fri 23 Jan\nAffects: UK-wide",
+      "timestamp": "2026-01-21T09:30:17.887381+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcwgalx3wp2a",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[1/3] ICON confirms Thursday's brief warmth (+3.1C) before progressive cooling drops temperatures to",
+      "timestamp": "2026-01-21T10:04:35.689732+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcwgamjymt2p",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[2/3] Cold strengthens further at forecast end, with late-period signal returning to -2.3C mean by d",
+      "timestamp": "2026-01-21T10:04:35.854576+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcwgamozwi2o",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[3/3] Wide ensemble spread: 8.9C range at coldest point indicates higher uncertainty. Expect adjustm",
+      "timestamp": "2026-01-21T10:04:36.017742+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcwwwbp6hx2p",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[1/2] Cold peak hitting today at -1C, but sharp turnaround follows - MOGREPS shows temps jumping to ",
+      "timestamp": "2026-01-21T15:03:03.001839+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcwwwcbswl2a",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[2/2] The prolonged cooling to -3C flagged in Monday's run has failed to materialise - models have s",
+      "timestamp": "2026-01-21T15:03:03.166316+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcx256bl462s",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[1/3] ICON shows progressive cooling through next week. Brief warmth today (+4C) drops sharply Frida",
+      "timestamp": "2026-01-21T16:00:35.436460+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcx256rqtg2w",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[2/3] Cold signal strengthening at forecast end suggests further drops possible beyond day 7.",
+      "timestamp": "2026-01-21T16:00:35.602521+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcx256wt5g2o",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[3/3] Wide ensemble spread: 8.7C range at coldest point indicates higher uncertainty. Expect adjustm",
+      "timestamp": "2026-01-21T16:00:35.768696+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcxe6hsv5o24",
+      "tracker": "UKMO",
+      "model": "ukmo-global",
+      "text_preview": "[1/2] Cold peak passed yesterday (-1\u00b0C as forecast), now models shift notably warmer. Sharp upturn t",
+      "timestamp": "2026-01-21T19:00:16.496205+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcxe6ifml32d",
+      "tracker": "UKMO",
+      "model": "ukmo-global",
+      "text_preview": "[2/2] Overall trend is progressive warming through the period - previous cold signal has dissipated,",
+      "timestamp": "2026-01-21T19:00:16.665331+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcxe764uks2a",
+      "tracker": "ssw",
+      "model": null,
+      "text_preview": "\ud83c\udf00 SSW Watch: 16% of GEFS members (5/31) show reversal signal in 5-16 day window.\n\nVortex currently s",
+      "timestamp": "2026-01-21T19:00:39.445802+00:00"
     }
   ]
 }

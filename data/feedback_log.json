@@ -49,6 +49,10 @@
     {
       "text": "Educational content about polar vortex should distinguish between stratospheric (15-50km, seasonal) and tropospheric (surface-15km, year-round) vortices - conflating them reduces technical accuracy",
       "date": "2026-01-20"
+    },
+    {
+      "text": "Reply system context is too limited - when user asks about specific part of forecast (e.g. colder trend at end of run), system only provides near-term summary instead of full forecast period data. Needs to include complete run data to answer questions about any part of the forecast.",
+      "date": "2026-01-21"
     }
   ]
 }
