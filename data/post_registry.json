@@ -867,6 +867,125 @@
       "model": "ukmo-global",
       "text_preview": "[2/2] that warmer revision kicks in. Cold returning by end of period.",
       "timestamp": "2026-01-20T19:00:17.230871+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcuyqmevde2p",
+      "tracker": "Main",
+      "model": "4-model-ensemble",
+      "text_preview": "[1/3] Models showing gradual cooling into next week - multi-model mean dropping from +1\u00b0C today to a",
+      "timestamp": "2026-01-20T20:30:20.830872+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcuyqnnl3m2p",
+      "tracker": "Main",
+      "model": "4-model-ensemble",
+      "text_preview": "[2/3] GEM members split between cold (-7.6\u00b0C) and mild (+0.9\u00b0C) scenarios by early Feb - uncertainty",
+      "timestamp": "2026-01-20T20:30:21.775046+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcuyqoka3e2p",
+      "tracker": "Main",
+      "model": "4-model-ensemble",
+      "text_preview": "[3/3] \u2744\ufe0f Multi-model cold signal: GFS -5.4\u00b0C, ECM -5.4\u00b0C at 850hPa around 2026-01-26. 2/4 models bel",
+      "timestamp": "2026-01-20T20:30:22.710941+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcv2l22idm2z",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[1/3] MOGREPS ensemble showing progressive cooling through the week ahead, with coldest conditions n",
+      "timestamp": "2026-01-20T21:03:01.231389+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcv2l2iqfe2z",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[2/3] Near-normal temperatures to start (around +1C today, brief climb to +3C Wednesday 21st), then ",
+      "timestamp": "2026-01-20T21:03:01.400178+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcv2l2nuho22",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[3/3] This run-on-run cooling trend marks a shift from earlier milder signals\u2014models converging on b",
+      "timestamp": "2026-01-20T21:03:01.567644+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcv5ruy2mc2z",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[1/3] Wednesday's briefly milder pulse now confirmed at +2.9C on Thursday 22nd, but ICON shows progr",
+      "timestamp": "2026-01-20T22:00:32.026090+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcv5rvgmhg22",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[2/3] Wide spread (9.7C range) reflects low agreement on intensity. Models hint at further cooling i",
+      "timestamp": "2026-01-20T22:00:32.193758+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcv5rvlqi62p",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[3/3] Wide ensemble spread: 9.7C range at coldest point indicates higher uncertainty. Expect adjustm",
+      "timestamp": "2026-01-20T22:00:32.363472+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcvoornfxa22",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[1/2] Cold signal crystallising as forecast period extends - ensemble mean cooling from +3C today to",
+      "timestamp": "2026-01-21T03:03:01.549814+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcvoos64qh2a",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[2/2] Spread widening to 7C range, indicating growing uncertainty on cold intensity - coldest member",
+      "timestamp": "2026-01-21T03:03:01.721158+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcvrvu5brh2d",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[1/4] ICON confirms Thursday's milder pulse as forecast, then progressive cooling takes hold\u2014mean te",
+      "timestamp": "2026-01-21T04:00:40.203307+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcvrvulusp2z",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[2/4] Wide ensemble spread (8.9C range) indicates low confidence on exact timing, but direction is c",
+      "timestamp": "2026-01-21T04:00:40.374917+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcvrvurcpr2p",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[3/4] Coldest members reach -8.7C, suggesting potential for notably cold conditions if lower end ver",
+      "timestamp": "2026-01-21T04:00:40.550250+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcvrvuwgsh22",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[4/4] Wide ensemble spread: 8.9C range at coldest point indicates higher uncertainty. Expect adjustm",
+      "timestamp": "2026-01-21T04:00:40.720339+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcw3x4uquf2o",
+      "tracker": "UKMO",
+      "model": "ukmo-global",
+      "text_preview": "[1/2] Cold peak arriving today at -1\u00b0C, then sharp pivot to milder Thursday 22nd (3\u00b0C). Model shows ",
+      "timestamp": "2026-01-21T07:00:20.352294+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcw3x5dsw32a",
+      "tracker": "UKMO",
+      "model": "ukmo-global",
+      "text_preview": "[2/2] Forecast period trends marginally cooler overall - week-long settled pattern near or slightly ",
+      "timestamp": "2026-01-21T07:00:20.530247+00:00"
     }
   ]
 }
