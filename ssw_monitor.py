@@ -650,22 +650,20 @@ def generate_post_text(result: dict, state: dict, recent_runs: dict, reason: str
     elevated_count = recent_runs.get("elevated_count", 0)
 
     if reason == "signal_subsided":
-        return "🌀 SSW signal subsided: Back below 10%. Vortex stable."
+        return f"🌀 GEFS SSW: NORMAL ({prob:.0f}%)\n\nSignal subsided below 10%. Vortex {vortex} ({u10:.0f} m/s)."
 
-    # Build main post
+    # Build main post - clear GEFS SSW header with level
     if level == "STRONG":
-        emoji_level = "🌀 SSW Strong Signal"
+        header = f"🌀 GEFS SSW: STRONG ({prob:.0f}%)"
     elif level == "ALERT":
         last_prob = state.get("last_probability", 0)
-        if prob > last_prob:
-            emoji_level = "🌀 SSW Alert ↑"
-        else:
-            emoji_level = "🌀 SSW Alert"
+        arrow = " ↑" if prob > last_prob else ""
+        header = f"🌀 GEFS SSW: ALERT{arrow} ({prob:.0f}%)"
     else:
-        emoji_level = "🌀 SSW Watch"
+        header = f"🌀 GEFS SSW: WATCH ({prob:.0f}%)"
 
     # Main text
-    text = f"{emoji_level}: {prob:.0f}% of GEFS members ({n_reversals}/{n_members}) show reversal signal in 5-16 day window.\n\n"
+    text = f"{header}\n\n{n_reversals}/{n_members} members show reversal signal in 5-16 day window.\n\n"
     text += f"Vortex currently {vortex} ({u10:.0f} m/s)."
 
     # Run agreement context
