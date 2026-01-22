@@ -1266,6 +1266,139 @@
       "model": "ukmo-global",
       "text_preview": "[2/2] Pattern less oscillatory than previous run suggested - more linear cooling trend into the week",
       "timestamp": "2026-01-22T07:01:18.875850+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcyrgw7gdy2o",
+      "tracker": "Main",
+      "model": "4-model-ensemble",
+      "text_preview": "Cold trend firming up through late January. All models show gradual cooling from near-normal now (2.",
+      "timestamp": "2026-01-22T08:30:18.243517+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcytaiqcd42p",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[1/2] Sharp cold arriving Friday 23rd (Yellow warning issued by Met Office for England, Wales), bott",
+      "timestamp": "2026-01-22T09:02:31.149225+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcytajyt2u24",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[2/2] Models show tight agreement (2.9C spread) on this cold phase, but recovery signal clear: temps",
+      "timestamp": "2026-01-22T09:02:31.316609+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcyuscagku22",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[1/5] UK Daily 22 01 2026 - Met Office says:\n\nSpells of wet and windy weather. Hill snow over Scotla",
+      "timestamp": "2026-01-22T09:30:20.898743+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcyusd4w7c2a",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[2/5] WXD Alert: Amber warning Thu 22 Jan, Yellow Fri 23 Jan (England/Wales). Met Office flags wintr",
+      "timestamp": "2026-01-22T09:30:21.835306+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcyusdzen62p",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[3/5] Outlook for Saturday to Monday:\nWet and windy on Saturday, especially across the southwest. Tu",
+      "timestamp": "2026-01-22T09:30:22.770597+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcyusew2ht2w",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[4/5] Long range (Monday 26 Jan - Wednesday 4 Feb): Weather systems moving in from the Atlantic will",
+      "timestamp": "2026-01-22T09:30:23.707112+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcyusfsimt2w",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[5/5] As a result, further spells of rain or showers are likely at times.\n\nLondon 850hPa:\nMain ensem",
+      "timestamp": "2026-01-22T09:30:24.635647+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcyusgp2rq2p",
+      "tracker": "met_warnings",
+      "model": null,
+      "text_preview": "Met Office Yellow Warning\nFri 23 Jan\nAffects: England, Wales",
+      "timestamp": "2026-01-22T09:30:25.572123+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcywial7mv2a",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[1/3] Cold signal strengthening as Friday 23rd transition confirmed at 0\u00b0C, with Yellow warning now ",
+      "timestamp": "2026-01-22T10:00:31.391405+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcywiazfsu2m",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[2/3] members -8\u00b0C) reflects significant timing uncertainty around the cold peak. Models show potent",
+      "timestamp": "2026-01-22T10:00:31.559600+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mcywib6jwn2w",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[3/3] Wide ensemble spread: 9.7C range at coldest point indicates higher uncertainty. Expect adjustm",
+      "timestamp": "2026-01-22T10:00:31.726103+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mczheddyag2a",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[1/2] Cold signal rapidly advancing - models now showing Friday 23rd dropping to zero, not the +0.8C",
+      "timestamp": "2026-01-22T15:02:33.808290+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mczhedvnrh2d",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[2/2] Met Office Yellow warning remains in force Fri 23rd-Sat 24th for England, Wales. Brief recover",
+      "timestamp": "2026-01-22T15:02:33.972874+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mczkm4tfxn22",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[1/2] Cold signal holding as ICON confirms progressive cooling through Sunday 25th (-1\u00b0C) to Monday ",
+      "timestamp": "2026-01-22T16:00:36.783977+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mczkm5jpl32p",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[2/2] Models show 10\u00b0C ensemble spread with coldest members reaching -6\u00b0C - timing agreement solid b",
+      "timestamp": "2026-01-22T16:00:36.951897+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mczunh3mul2a",
+      "tracker": "UKMO",
+      "model": "ukmo-global",
+      "text_preview": "[1/2] Cold signal continuing through the weekend, with Saturday 24th now forecast at -1\u00b0C as expecte",
+      "timestamp": "2026-01-22T19:00:18.397172+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mczunholow22",
+      "tracker": "UKMO",
+      "model": "ukmo-global",
+      "text_preview": "[2/2] period.\n\nYellow warning remains in force for England & Wales Friday 23rd-Saturday 24th (Met Of",
+      "timestamp": "2026-01-22T19:00:18.570319+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mczuo24fmz2p",
+      "tracker": "ssw",
+      "model": null,
+      "text_preview": "\ud83c\udf00 SSW signal subsided: Back below 10%. Vortex stable.",
+      "timestamp": "2026-01-22T19:00:37.899991+00:00"
     }
   ]
 }
