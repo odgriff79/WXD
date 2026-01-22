@@ -1314,6 +1314,67 @@ def get_latest_forecast_context(client: Client, handle: str) -> str:
     return "\n\n".join(context_parts) if context_parts else ""
 
 
+def get_ssw_context() -> str:
+    """Get SSW (Sudden Stratospheric Warming) context from history for Claude.
+
+    Returns formatted string with recent SSW probability history and current status.
+    """
+    try:
+        import json
+        from pathlib import Path
+        from datetime import datetime, timezone, timedelta
+
+        history_path = Path('/home/ubuntu/wxd/ssw/history.json')
+        status_path = Path('/home/ubuntu/wxd/ssw/ssw_status.json')
+
+        if not history_path.exists():
+            return ""
+
+        with open(history_path) as f:
+            history = json.load(f)
+
+        runs = history.get('runs', [])
+        if not runs:
+            return ""
+
+        # Get last 7 days of data for context
+        cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+        recent_runs = [r for r in runs if datetime.fromisoformat(
+            r["timestamp"].replace("Z", "+00:00")) > cutoff]
+
+        if not recent_runs:
+            return ""
+
+        # Build context string
+        latest = recent_runs[-1]
+        current_prob = latest.get('probability', 0)
+        current_level = latest.get('level', 'NORMAL')
+        current_u10 = latest.get('current_u10', 0)
+
+        # Get min/max over last 7 days
+        probs = [r.get('probability', 0) for r in recent_runs]
+        min_prob = min(probs)
+        max_prob = max(probs)
+
+        # Count WATCH events
+        watch_count = sum(1 for r in recent_runs if r.get('level') in ['WATCH', 'ALERT', 'STRONG'])
+
+        context = f"""SSW (SUDDEN STRATOSPHERIC WARMING) STATUS:
+Current probability: {current_prob:.0f}% ({current_level})
+Current polar vortex: {current_u10:.0f} m/s ({"strong" if current_u10 > 30 else "moderate" if current_u10 > 15 else "weak"})
+Last 7 days range: {min_prob:.0f}%-{max_prob:.0f}%
+WATCH events (≥10%): {watch_count} in last 7 days
+
+Thresholds: WATCH ≥10%, ALERT ≥25%, STRONG ≥50%
+SSW = stratospheric wind reversal that can bring cold spells to UK 2-4 weeks later."""
+
+        return context
+
+    except Exception as e:
+        print(f"    Error loading SSW context: {e}")
+        return ""
+
+
 def detect_model_reference(text: str) -> str | None:
     """Detect which weather model is being referenced in the text.
 
@@ -2039,10 +2100,21 @@ def generate_chat_response(reply_text: str, parent_text: str, session: dict = No
         if temporal_comparison:
             print(f"    Got temporal comparison data ({len(temporal_comparison)} chars)")
 
+    # Check if user is asking about SSW / stratosphere
+    ssw_context = ""
+    ssw_keywords = ['ssw', 'stratospher', 'polar vortex', 'vortex', 'strat', 'sudden warming', '10hpa', '10 hpa']
+    if any(kw in reply_text.lower() for kw in ssw_keywords) or any(kw in parent_text.lower() for kw in ssw_keywords):
+        print(f"    Detected SSW/stratosphere question")
+        ssw_context = get_ssw_context()
+        if ssw_context:
+            print(f"    Got SSW context ({len(ssw_context)} chars)")
+
     # Add forecast context if available
     forecast_section = ""
-    if forecast_context or location_forecast or spread_comparison or cross_tracker_context or temporal_comparison:
+    if forecast_context or location_forecast or spread_comparison or cross_tracker_context or temporal_comparison or ssw_context:
         forecast_section = "\n\nFORECAST DATA:\n"
+        if ssw_context:
+            forecast_section += f"{ssw_context}\n\n"
         if cross_tracker_context:
             forecast_section += f"{cross_tracker_context}\n\n"
         if temporal_comparison:

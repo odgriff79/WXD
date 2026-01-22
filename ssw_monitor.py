@@ -20,6 +20,16 @@ from pathlib import Path
 import logging
 import sys
 
+# Matplotlib (optional - for chart generation)
+try:
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+
 # Add parent for lib imports
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -55,8 +65,8 @@ STATE_FILE = OUTPUT_DIR / 'state.json'
 
 # Posting configuration
 POST_COOLDOWN_HOURS = 24
-HISTORY_DAYS_NORMAL = 7
-HISTORY_DAYS_ELEVATED = 30  # Keep longer history during active signal
+HISTORY_DAYS_NORMAL = 30   # Keep 30 days for AI context/engagement
+HISTORY_DAYS_ELEVATED = 30  # Same during active signal
 
 # === DYNAMIC DIMENSION DETECTION ===
 # GEFS uses various naming conventions; detect dynamically
@@ -471,6 +481,116 @@ def get_trend_description(history: dict) -> str:
         return "stable"
 
 
+# === CHART GENERATION ===
+
+def generate_ssw_history_chart(history: dict, output_path: Path) -> bool:
+    """
+    Generate rolling SSW probability chart from history.
+    Shows last 7 days of probability with threshold lines.
+    """
+    if not HAS_MATPLOTLIB:
+        logger.warning("matplotlib not installed, skipping chart")
+        return False
+
+    try:
+        runs = history.get("runs", [])
+        if len(runs) < 2:
+            logger.warning("Not enough history for chart")
+            return False
+
+        # Filter to last 7 days for chart (history may have 30 days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+        runs = [r for r in runs if datetime.fromisoformat(
+            r["timestamp"].replace("Z", "+00:00")) > cutoff]
+
+        if len(runs) < 2:
+            logger.warning("Not enough recent history for chart")
+            return False
+
+        # Extract timestamps and probabilities
+        timestamps = []
+        probabilities = []
+        levels = []
+
+        for run in runs:
+            try:
+                ts = datetime.fromisoformat(run["timestamp"].replace("Z", "+00:00"))
+                timestamps.append(ts)
+                probabilities.append(run.get("probability", 0))
+                levels.append(run.get("level", "NORMAL"))
+            except Exception:
+                continue
+
+        if len(timestamps) < 2:
+            logger.warning("Not enough valid data points for chart")
+            return False
+
+        # Dark theme matching other WXD charts
+        plt.style.use('dark_background')
+        fig, ax = plt.subplots(figsize=(10, 5))
+
+        # Plot probability line
+        ax.plot(timestamps, probabilities, color='#4ECDC4', linewidth=2.5,
+                marker='o', markersize=4, label='SSW Probability')
+
+        # Fill under the line
+        ax.fill_between(timestamps, 0, probabilities, color='#4ECDC4', alpha=0.2)
+
+        # Threshold lines
+        ax.axhline(y=PROB_THRESHOLDS['watch'], color='#FFD93D', linestyle='--',
+                   alpha=0.8, linewidth=1.5, label=f"WATCH ({PROB_THRESHOLDS['watch']}%)")
+        ax.axhline(y=PROB_THRESHOLDS['alert'], color='#FF8C42', linestyle='--',
+                   alpha=0.8, linewidth=1.5, label=f"ALERT ({PROB_THRESHOLDS['alert']}%)")
+        ax.axhline(y=PROB_THRESHOLDS['strong'], color='#FF6B6B', linestyle='--',
+                   alpha=0.8, linewidth=1.5, label=f"STRONG ({PROB_THRESHOLDS['strong']}%)")
+
+        # Mark WATCH/ALERT/STRONG points with colored markers
+        for i, (ts, prob, level) in enumerate(zip(timestamps, probabilities, levels)):
+            if level == 'WATCH':
+                ax.scatter([ts], [prob], color='#FFD93D', s=80, zorder=5, edgecolors='white', linewidths=1)
+            elif level == 'ALERT':
+                ax.scatter([ts], [prob], color='#FF8C42', s=100, zorder=5, edgecolors='white', linewidths=1)
+            elif level == 'STRONG':
+                ax.scatter([ts], [prob], color='#FF6B6B', s=120, zorder=5, edgecolors='white', linewidths=1)
+
+        # Formatting
+        ax.set_xlabel('Date (UTC)', fontsize=12)
+        ax.set_ylabel('SSW Probability (%)', fontsize=12)
+        ax.set_ylim(0, max(60, max(probabilities) + 10))
+
+        # Title with current value
+        current_prob = probabilities[-1] if probabilities else 0
+        current_level = levels[-1] if levels else "NORMAL"
+        ax.set_title(f'SSW Probability - Rolling History (Current: {current_prob:.0f}% {current_level})',
+                     fontsize=14)
+
+        ax.legend(loc='upper left', fontsize=9)
+        ax.grid(True, alpha=0.3)
+
+        # Date formatting
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d %b'))
+        ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
+        fig.autofmt_xdate()
+
+        # Watermark
+        fig.text(0.99, 0.01, 'wxd-london.bsky.social | GEFS 31-member ensemble',
+                 fontsize=8, color='gray', alpha=0.6,
+                 ha='right', va='bottom', transform=fig.transFigure)
+
+        plt.tight_layout()
+        plt.savefig(output_path, dpi=150, facecolor='#1a1a2e')
+        plt.close()
+
+        logger.info(f"SSW chart saved: {output_path}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Error generating SSW chart: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
 # === POSTING DECISION LOGIC ===
 
 def should_post(current_result: dict, state: dict, recent_runs: dict) -> tuple[bool, str]:
@@ -600,32 +720,75 @@ No emoji. No hype. One or two sentences max."""
     return None
 
 
-def post_to_bluesky(text: str, commentary: str = None, dry_run: bool = False) -> bool:
-    """Post to Bluesky using lib/bluesky.py."""
+def post_to_bluesky(text: str, commentary: str = None, image_path: Path = None, dry_run: bool = False) -> bool:
+    """Post to Bluesky with optional image using atproto client directly."""
     if dry_run:
         logger.info(f"[DRY RUN] Would post:\n{text}")
+        if image_path and image_path.exists():
+            logger.info(f"[DRY RUN] With image: {image_path}")
         if commentary:
             logger.info(f"[DRY RUN] With commentary reply:\n{commentary}")
         return True
 
     try:
-        from lib.bluesky import BlueskyClient
-        client = BlueskyClient()
+        import os
+        from atproto import Client
+        from atproto import models as atproto_models
+
+        # Load credentials
+        handle = os.environ.get('BSKY_HANDLE')
+        password = os.environ.get('BSKY_PASSWORD')
+        if not handle or not password:
+            raise ValueError("BSKY_HANDLE and BSKY_PASSWORD must be set")
+
+        client = Client()
+        client.login(handle, password)
+
+        # Upload image if provided
+        embed = None
+        if image_path and image_path.exists():
+            with open(image_path, 'rb') as f:
+                image_data = f.read()
+            upload = client.upload_blob(image_data)
+            embed = {
+                '$type': 'app.bsky.embed.images',
+                'images': [{
+                    'alt': 'SSW probability rolling history chart',
+                    'image': upload.blob
+                }]
+            }
+            logger.info(f"Image uploaded: {image_path}")
 
         # Post main text
-        result = client.post(text, tracker='ssw', model=None)
-        logger.info(f"Posted: {result.get('url', 'OK')}")
+        if embed:
+            response = client.send_post(text=text, embed=embed)
+        else:
+            response = client.send_post(text=text)
+        logger.info(f"Posted: https://bsky.app/profile/{handle}/post/{response.uri.split('/')[-1]}")
+
+        # Register in post registry
+        try:
+            from data.post_registry import register_post
+            register_post(uri=response.uri, tracker='ssw', model=None, text_preview=text[:100])
+        except Exception as e:
+            logger.warning(f"Failed to register post: {e}")
 
         # Post commentary as reply if provided
-        if commentary and result.get('uri'):
-            # Post as reply to main post
-            reply_result = client.post(commentary, tracker='ssw', model=None)
-            logger.info(f"Commentary posted: {reply_result.get('url', 'OK')}")
+        if commentary:
+            parent_ref = atproto_models.create_strong_ref(response)
+            reply_ref = atproto_models.AppBskyFeedPost.ReplyRef(
+                parent=parent_ref,
+                root=parent_ref
+            )
+            reply_response = client.send_post(text=commentary, reply_to=reply_ref)
+            logger.info(f"Commentary posted as reply")
 
         return True
 
     except Exception as e:
         logger.error(f"Bluesky post failed: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
@@ -821,11 +984,19 @@ def run_ssw_monitor(debug: bool = False, post: bool = False, dry_run: bool = Fal
             post_text = generate_post_text(output, state, recent_runs, reason)
             logger.info(f"Post text ({len(post_text)} chars): {post_text[:100]}...")
 
+            # Generate rolling history chart
+            chart_path = OUTPUT_DIR / 'ssw_history_chart.png'
+            chart_ok = generate_ssw_history_chart(history, chart_path)
+            if chart_ok:
+                logger.info(f"Chart generated: {chart_path}")
+            else:
+                chart_path = None  # Don't try to attach if generation failed
+
             # Generate AI commentary for significant events
             commentary = generate_claude_commentary(output, history, state)
 
-            # Post to Bluesky
-            if post_to_bluesky(post_text, commentary, dry_run=dry_run):
+            # Post to Bluesky with chart
+            if post_to_bluesky(post_text, commentary, image_path=chart_path, dry_run=dry_run):
                 # Update state after successful post
                 state["last_post_time"] = run_time.isoformat()
                 state["last_posted_commentary"] = post_text
