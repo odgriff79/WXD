@@ -1399,6 +1399,83 @@
       "model": null,
       "text_preview": "\ud83c\udf00 SSW signal subsided: Back below 10%. Vortex stable.",
       "timestamp": "2026-01-22T19:00:37.899991+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3mczzofhckh2d",
+      "tracker": "Main",
+      "model": "4-model-ensemble",
+      "text_preview": "Cold trend continues but less aggressive than previous runs - ECM backed off 3C. Now showing gradual",
+      "timestamp": "2026-01-22T20:30:18.844412+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md23hwanbf2d",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[1/2] Cold signal delivering as forecast - Friday 23rd now at -0.1C (tighter than yesterday's zero),",
+      "timestamp": "2026-01-22T21:02:29.014282+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md23hwp47k24",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[2/2] Brief midweek recovery to +0.5C Tuesday 27th before settling back to -1.0C by period end. Yell",
+      "timestamp": "2026-01-22T21:02:29.182241+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md26ppuqbc2p",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[1/2] ICON holding steady on gradual cooling through coming week - temps trending from +2C Thursday ",
+      "timestamp": "2026-01-22T22:00:32.007905+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md26pqdsds2a",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[2/2] Ensemble spread moderate at 6C range - coldest members showing -6C while warmest stay near 0C,",
+      "timestamp": "2026-01-22T22:00:32.185964+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md2plrhg5q2o",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[1/2] Cold pattern holding through weekend - models now showing deeper trough with Sunday 25th at -1",
+      "timestamp": "2026-01-23T03:02:33.120565+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md2plry42s2p",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[2/2] Ensemble spread widening to 6.1C range as members diverge on timing and depth of cold pool, in",
+      "timestamp": "2026-01-23T03:02:33.286720+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md2stn55a724",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[1/2] Gradual cooling trend holding through the weekend - ICON ensemble tracks temps sliding from +0",
+      "timestamp": "2026-01-23T04:00:38.366917+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md2stnrdns2d",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[2/2] Ensemble agreement high with tight 2.2C spread. Yellow warning Saturday 24th for England and W",
+      "timestamp": "2026-01-23T04:00:38.533409+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md34uvvy6y2t",
+      "tracker": "UKMO",
+      "model": "ukmo-global",
+      "text_preview": "[1/2] Cold trajectory steepening through early next week - Saturday 24th at -0.4C (matching the Yell",
+      "timestamp": "2026-01-23T07:00:18.375700+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md34uwf4e22z",
+      "tracker": "UKMO",
+      "model": "ukmo-global",
+      "text_preview": "[2/2] Key shift: Tuesday 27th has moved sharply colder from +2.8C last run to -0.7C now, removing th",
+      "timestamp": "2026-01-23T07:00:18.538173+00:00"
     }
   ]
 }
