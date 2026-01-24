@@ -1365,8 +1365,13 @@ Current polar vortex: {current_u10:.0f} m/s ({"strong" if current_u10 > 30 else 
 Last 7 days range: {min_prob:.0f}%-{max_prob:.0f}%
 WATCH events (≥10%): {watch_count} in last 7 days
 
-Thresholds: WATCH ≥10%, ALERT ≥25%, STRONG ≥50%
-SSW = stratospheric wind reversal that can bring cold spells to UK 2-4 weeks later."""
+WXD probability thresholds: WATCH ≥10%, ALERT ≥25%, STRONG ≥50%
+
+CRITICAL - SSW DEFINITION (DO NOT GET THIS WRONG):
+- Major SSW criterion: zonal wind REVERSAL at 60°N, 10hPa (westerly → easterly, i.e. crossing 0 m/s)
+- The m/s value above is CURRENT VORTEX STRENGTH, NOT a threshold
+- A major SSW occurs when winds go NEGATIVE (easterly), not at any specific positive speed
+- Source: WMO definition, Charlton & Polvani 2007"""
 
         return context
 
