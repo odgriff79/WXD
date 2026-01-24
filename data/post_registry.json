@@ -1644,6 +1644,90 @@
       "model": "ukmo-global",
       "text_preview": "[2/2] Saturday 24th - Sunday 25th for England, Scotland, Wales (Met Office). Models now showing mild",
       "timestamp": "2026-01-23T19:00:18.227122+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md4k5edrwn2m",
+      "tracker": "Main",
+      "model": "4-model-ensemble",
+      "text_preview": "Cold pattern developing with temps dipping to -4\u00b0C by Friday 30th under ensemble mean. Yellow warnin",
+      "timestamp": "2026-01-23T20:30:20.317733+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md4lwvmxny2z",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[1/2] MOGREPS trending colder over recent runs - four of the last five showing progressive cooling. ",
+      "timestamp": "2026-01-23T21:02:31.057035+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md4lww47ly2d",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[2/2] -0.5C to -0.8C Saturday-Sunday 24th-25th, before brief warming to +1.4C Tuesday 27th. Cold the",
+      "timestamp": "2026-01-23T21:02:31.228804+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md4p6njnza2d",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[1/2] Models remain aligned on gradual cooling through Monday 26th, reaching -1.4C before a modest r",
+      "timestamp": "2026-01-23T22:00:32.264221+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md4p6o2cva24",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[2/2] Temperature trajectory straightforward: dipping from -0.3C today to -0.8C Saturday 24th, then ",
+      "timestamp": "2026-01-23T22:00:32.436453+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5a2m676t2o",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[1/2] Cold peak arriving Sunday 25th at -0.9C as MOGREPS ensemble tightens, then brief midweek recov",
+      "timestamp": "2026-01-24T03:02:30.235167+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5a2motkl2p",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[2/2] High model agreement with just 1.6C spread across 18 members \u2013 coldest at -1.7C, warmest -0.1C",
+      "timestamp": "2026-01-24T03:02:30.406117+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5dcjkxco2p",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[1/2] Models holding steady on modest cold through Monday 26th, ensemble mean bottoming at -1.6C bef",
+      "timestamp": "2026-01-24T04:00:37.299268+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5dck7jzi2d",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[2/2] -0.3C before resuming the cooling trend, then recovering to near +0.4C by Tuesday 27th. Overal",
+      "timestamp": "2026-01-24T04:00:37.471026+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5ndwismh24",
+      "tracker": "UKMO",
+      "model": "ukmo-global",
+      "text_preview": "[1/3] UKMO tracking gradual cooling through coming week - near-normal for now (Saturday 24th around ",
+      "timestamp": "2026-01-24T07:00:21.682605+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5ndwytkl2a",
+      "tracker": "UKMO",
+      "model": "ukmo-global",
+      "text_preview": "[2/3] Pattern is steady rather than dramatic, with temperatures edging lower each day through the fo",
+      "timestamp": "2026-01-24T07:00:21.850227+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5ndx5wqu22",
+      "tracker": "UKMO",
+      "model": "ukmo-global",
+      "text_preview": "[3/3] Cold signal returns at end of period, with Friday showing the deepest trough.",
+      "timestamp": "2026-01-24T07:00:22.018433+00:00"
     }
   ]
 }
