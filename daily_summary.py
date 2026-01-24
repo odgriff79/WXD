@@ -862,13 +862,7 @@ def main():
     print(f"  Post 4 - Stats ({len(post4)} chars):")
     print(f"    {post4[:80]}...")
 
-    # Separate standalone warnings post (if active warnings)
-    warnings_post = generate_warnings_post(metoffice)
-    if warnings_post:
-        print(f"  Warnings Post - STANDALONE ({len(warnings_post)} chars):")
-        print(f"    {warnings_post[:80]}...")
-    else:
-        print("  Warnings Post: (none - no active warnings)")
+    # NOTE: Standalone warnings post removed - redundant with warnings in daily summary thread
 
     # Combine all content into one flow, then split at char limit
     # This keeps engagement content visible in first message
@@ -934,10 +928,6 @@ def main():
             print(f"POST {i+1}/{total} ({len(post)} chars):")
             print(post)
             print()
-        if warnings_post:
-            print("=" * 50)
-            print("SEPARATE WARNINGS POST (standalone, not in thread):")
-            print(warnings_post)
         print("=" * 50)
         print()
         print("(Attribution in pinned post)")
@@ -974,17 +964,6 @@ def main():
 
     print()
     print("Daily summary thread posted successfully")
-
-    # Post standalone warnings alert if active warnings
-    if warnings_post:
-        print()
-        print("Posting standalone warnings alert...")
-        warnings_result = post_to_bluesky(warnings_post, handle=bsky_handle, password=bsky_password,
-                                          tracker='met_warnings', model=None)
-        if warnings_result:
-            print(f"  Warnings: {warnings_result['uri']}")
-        else:
-            print("  Failed to post warnings (non-critical)")
 
     return 0
 
