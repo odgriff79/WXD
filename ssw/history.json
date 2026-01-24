@@ -128,6 +128,256 @@
       "current_u10": 33.3,
       "level": "NORMAL",
       "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-20T19:00:02.521311+00:00",
+      "cycle": "12",
+      "probability": 3.2,
+      "n_reversals": 1,
+      "n_members": 31,
+      "current_u10": 35.1,
+      "level": "NORMAL",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-21T01:00:02.176673+00:00",
+      "cycle": "18",
+      "probability": 6.5,
+      "n_reversals": 2,
+      "n_members": 31,
+      "current_u10": 37.4,
+      "level": "NORMAL",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-21T07:00:02.403532+00:00",
+      "cycle": "00",
+      "probability": 6.5,
+      "n_reversals": 2,
+      "n_members": 31,
+      "current_u10": 40.0,
+      "level": "NORMAL",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-21T13:00:02.277344+00:00",
+      "cycle": "06",
+      "probability": 6.5,
+      "n_reversals": 2,
+      "n_members": 31,
+      "current_u10": 41.0,
+      "level": "NORMAL",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-21T19:00:01.962278+00:00",
+      "cycle": "12",
+      "probability": 16.1,
+      "n_reversals": 5,
+      "n_members": 31,
+      "current_u10": 42.4,
+      "level": "WATCH",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-22T01:00:01.658378+00:00",
+      "cycle": "18",
+      "probability": 6.5,
+      "n_reversals": 2,
+      "n_members": 31,
+      "current_u10": 40.4,
+      "level": "NORMAL",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-22T07:00:01.810768+00:00",
+      "cycle": "00",
+      "probability": 16.1,
+      "n_reversals": 5,
+      "n_members": 31,
+      "current_u10": 40.1,
+      "level": "WATCH",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-22T13:00:01.957892+00:00",
+      "cycle": "06",
+      "probability": 16.1,
+      "n_reversals": 5,
+      "n_members": 31,
+      "current_u10": 38.3,
+      "level": "WATCH",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-22T19:00:02.072412+00:00",
+      "cycle": "12",
+      "probability": 6.5,
+      "n_reversals": 2,
+      "n_members": 31,
+      "current_u10": 35.9,
+      "level": "NORMAL",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-22T20:32:21.366392+00:00",
+      "cycle": "12",
+      "probability": 6.5,
+      "n_reversals": 2,
+      "n_members": 31,
+      "current_u10": 35.9,
+      "level": "NORMAL",
+      "data_age_hours": 8.5
+    },
+    {
+      "timestamp": "2026-01-23T01:00:02.320270+00:00",
+      "cycle": "18",
+      "probability": 32.3,
+      "n_reversals": 10,
+      "n_members": 31,
+      "current_u10": 35.5,
+      "level": "ALERT",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-23T07:00:01.808422+00:00",
+      "cycle": "00",
+      "probability": 19.4,
+      "n_reversals": 6,
+      "n_members": 31,
+      "current_u10": 34.3,
+      "level": "WATCH",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-23T13:00:02.727693+00:00",
+      "cycle": "06",
+      "probability": 25.8,
+      "n_reversals": 8,
+      "n_members": 31,
+      "current_u10": 32.2,
+      "level": "ALERT",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-23T19:00:02.183416+00:00",
+      "cycle": "12",
+      "probability": 12.9,
+      "n_reversals": 4,
+      "n_members": 31,
+      "current_u10": 29.2,
+      "level": "WATCH",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-24T01:00:02.208999+00:00",
+      "cycle": "18",
+      "probability": 35.5,
+      "n_reversals": 11,
+      "n_members": 31,
+      "current_u10": 26.9,
+      "level": "ALERT",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-24T07:00:02.731388+00:00",
+      "cycle": "00",
+      "probability": 25.8,
+      "n_reversals": 8,
+      "n_members": 31,
+      "current_u10": 25.5,
+      "level": "ALERT",
+      "data_age_hours": 7.0
+    },
+    {
+      "timestamp": "2026-01-24T08:42:32.583512+00:00",
+      "cycle": "00",
+      "probability": 25.8,
+      "n_reversals": 8,
+      "n_members": 31,
+      "current_u10": 25.5,
+      "level": "ALERT",
+      "data_age_hours": 8.7
+    },
+    {
+      "timestamp": "2026-01-24T08:44:47.193972+00:00",
+      "cycle": "00",
+      "probability": 25.8,
+      "n_reversals": 8,
+      "n_members": 31,
+      "current_u10": 25.5,
+      "level": "ALERT",
+      "data_age_hours": 8.7
+    },
+    {
+      "timestamp": "2026-01-24T08:49:26.369393+00:00",
+      "cycle": "00",
+      "probability": 25.8,
+      "n_reversals": 8,
+      "n_members": 31,
+      "current_u10": 25.5,
+      "level": "ALERT",
+      "data_age_hours": 8.8
+    },
+    {
+      "timestamp": "2026-01-24T08:50:51.261078+00:00",
+      "cycle": "00",
+      "probability": 25.8,
+      "n_reversals": 8,
+      "n_members": 31,
+      "current_u10": 25.5,
+      "level": "ALERT",
+      "data_age_hours": 8.8
+    },
+    {
+      "timestamp": "2026-01-24T08:56:13.901673+00:00",
+      "cycle": "00",
+      "probability": 25.8,
+      "n_reversals": 8,
+      "n_members": 31,
+      "current_u10": 25.5,
+      "level": "ALERT",
+      "data_age_hours": 8.9
+    },
+    {
+      "timestamp": "2026-01-24T08:58:41.986548+00:00",
+      "cycle": "00",
+      "probability": 25.8,
+      "n_reversals": 8,
+      "n_members": 31,
+      "current_u10": 25.5,
+      "level": "ALERT",
+      "data_age_hours": 9.0
+    },
+    {
+      "timestamp": "2026-01-24T09:00:26.793957+00:00",
+      "cycle": "00",
+      "probability": 25.8,
+      "n_reversals": 8,
+      "n_members": 31,
+      "current_u10": 25.5,
+      "level": "ALERT",
+      "data_age_hours": 9.0
+    },
+    {
+      "timestamp": "2026-01-24T09:02:16.996175+00:00",
+      "cycle": "00",
+      "probability": 25.8,
+      "n_reversals": 8,
+      "n_members": 31,
+      "current_u10": 25.5,
+      "level": "ALERT",
+      "data_age_hours": 9.0
+    },
+    {
+      "timestamp": "2026-01-24T13:30:01.980954+00:00",
+      "cycle": "06",
+      "probability": 19.4,
+      "n_reversals": 6,
+      "n_members": 31,
+      "current_u10": 24.3,
+      "level": "WATCH",
+      "data_age_hours": 7.5
     }
   ]
 }

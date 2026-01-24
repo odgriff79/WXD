@@ -1,9 +1,9 @@
 {
   "cold_signal_runs": 0,
   "warm_signal_runs": 0,
-  "shift_direction": "warmer",
-  "shift_runs": 3,
+  "shift_direction": null,
+  "shift_runs": 0,
   "last_min_temp": -6.9,
   "last_mean_temp": -6.3,
-  "last_posted_commentary": "Sharp warming revision: models now show Wednesday 21st at -0.9C (previously forecast -0.8C), Thursday 22nd surging to +2.9C, then oscillating colder through the period. Yellow warning Wednesday-Thursday for England and Wales."
+  "last_posted_commentary": "Cold trough reaches lowest point Monday 26th at -1.5C, consistent with forecast. ICON ensemble tightly clustered (spread just 3.2C) showing high confidence in the signal. Tuesday 27th brings brief recovery to near-zero, then cooling resumes Wednesday 28th into Thursday 29th."
 }

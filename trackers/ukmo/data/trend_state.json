@@ -1,9 +1,9 @@
 {
-  "cold_signal_runs": 1,
+  "cold_signal_runs": 0,
   "warm_signal_runs": 0,
-  "shift_direction": "warmer",
-  "shift_runs": 2,
+  "shift_direction": null,
+  "shift_runs": 0,
   "last_min_temp": null,
   "last_mean_temp": -6.5,
-  "last_posted_commentary": "UKMO showing significant 3.5C warming adjustment since yesterday around Saturday 25th. Near-term pattern stays mixed: mild today around 1C, brief dip Wednesday 21st to -1C (Yellow warning Wed-Thu 21st-22nd for England, Wales - Met Office), then bouncing back Thursday 22nd to 3C.\n\nSharp..."
+  "last_posted_commentary": "UKMO tracking gradual cooling through coming week - near-normal for now (Saturday 24th around -1.3C), but models show progressive descent to -2.9C by Friday 30th."
 }

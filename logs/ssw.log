@@ -132,3 +132,208 @@ oc_open: server error retrieving url: code=0 message="/gefs/gefs20260119/gefs_pg
 2026-01-20 13:00:33,410 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
 2026-01-20 13:00:33,410 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
 2026-01-20 13:00:33,410 - INFO - SSW status: NORMAL | 3% prob | U10: 33.3 m/s
+2026-01-20 19:00:02,521 - INFO - SSW monitor starting at 2026-01-20T19:00:02.521311+00:00
+2026-01-20 19:00:02,521 - INFO - LATENCY: Targeting 20260120/12z (data age: 7.0h)
+2026-01-20 19:00:02,521 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260120/gefs_pgrb2ap5_all_12z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-20 19:00:08,834 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-20 19:00:30,988 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-20 19:00:31,001 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-20 19:00:31,001 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-20 19:00:31,001 - INFO - SSW status: NORMAL | 3% prob | U10: 35.1 m/s
+2026-01-20 19:00:31,002 - INFO - Post decision: False (below_threshold)
+2026-01-21 01:00:02,176 - INFO - SSW monitor starting at 2026-01-21T01:00:02.176673+00:00
+2026-01-21 01:00:02,176 - INFO - LATENCY: Targeting 20260120/18z (data age: 7.0h)
+2026-01-21 01:00:02,176 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260120/gefs_pgrb2ap5_all_18z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-21 01:00:03,527 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-21 01:00:33,442 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-21 01:00:33,454 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-21 01:00:33,455 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-21 01:00:33,455 - INFO - SSW status: NORMAL | 6% prob | U10: 37.4 m/s
+2026-01-21 07:00:02,403 - INFO - SSW monitor starting at 2026-01-21T07:00:02.403532+00:00
+2026-01-21 07:00:02,403 - INFO - LATENCY: Targeting 20260121/00z (data age: 7.0h)
+2026-01-21 07:00:02,403 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260121/gefs_pgrb2ap5_all_00z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-21 07:00:03,720 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-21 07:00:29,102 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-21 07:00:29,113 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-21 07:00:29,114 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-21 07:00:29,114 - INFO - SSW status: NORMAL | 6% prob | U10: 40.0 m/s
+2026-01-21 13:00:02,277 - INFO - SSW monitor starting at 2026-01-21T13:00:02.277344+00:00
+2026-01-21 13:00:02,277 - INFO - LATENCY: Targeting 20260121/06z (data age: 7.0h)
+2026-01-21 13:00:02,277 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260121/gefs_pgrb2ap5_all_06z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-21 13:00:07,713 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-21 13:00:32,688 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-21 13:00:32,700 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-21 13:00:32,701 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-21 13:00:32,701 - INFO - SSW status: NORMAL | 6% prob | U10: 41.0 m/s
+2026-01-21 19:00:01,962 - INFO - SSW monitor starting at 2026-01-21T19:00:01.962278+00:00
+2026-01-21 19:00:01,962 - INFO - LATENCY: Targeting 20260121/12z (data age: 7.0h)
+2026-01-21 19:00:01,962 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260121/gefs_pgrb2ap5_all_12z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-21 19:00:09,612 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-21 19:00:35,125 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-21 19:00:35,136 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-21 19:00:35,137 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-21 19:00:35,137 - INFO - SSW status: WATCH | 16% prob | U10: 42.4 m/s
+2026-01-21 19:00:35,137 - INFO - Post decision: True (level_change_NORMAL_to_WATCH)
+2026-01-21 19:00:35,138 - INFO - Post text (154 chars): 🌀 SSW Watch: 16% of GEFS members (5/31) show reversal signal in 5-16 day window.
+
+Vortex currently s...
+2026-01-21 19:00:38,831 - INFO - HTTP Request: POST https://bsky.social/xrpc/com.atproto.server.createSession "HTTP/1.1 200 OK"
+2026-01-21 19:00:39,278 - INFO - HTTP Request: GET https://calocybe.us-west.host.bsky.network/xrpc/app.bsky.actor.getProfile?actor=wxd-london.bsky.social "HTTP/1.1 200 OK"
+2026-01-21 19:00:39,444 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-21 19:00:39,447 - INFO - Posted: https://bsky.app/profile/wxd-london.bsky.social/post/3mcxe764uks2a
+2026-01-22 01:00:01,658 - INFO - SSW monitor starting at 2026-01-22T01:00:01.658378+00:00
+2026-01-22 01:00:01,658 - INFO - LATENCY: Targeting 20260121/18z (data age: 7.0h)
+2026-01-22 01:00:01,658 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260121/gefs_pgrb2ap5_all_18z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-22 01:00:03,221 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-22 01:00:32,619 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-22 01:00:32,632 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-22 01:00:32,633 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-22 01:00:32,633 - INFO - SSW status: NORMAL | 6% prob | U10: 40.4 m/s
+2026-01-22 07:00:01,810 - INFO - SSW monitor starting at 2026-01-22T07:00:01.810768+00:00
+2026-01-22 07:00:01,811 - INFO - LATENCY: Targeting 20260122/00z (data age: 7.0h)
+2026-01-22 07:00:01,811 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260122/gefs_pgrb2ap5_all_00z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-22 07:00:03,065 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-22 07:00:26,516 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-22 07:00:26,527 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-22 07:00:26,527 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-22 07:00:26,528 - INFO - SSW status: WATCH | 16% prob | U10: 40.1 m/s
+2026-01-22 13:00:01,957 - INFO - SSW monitor starting at 2026-01-22T13:00:01.957892+00:00
+2026-01-22 13:00:01,958 - INFO - LATENCY: Targeting 20260122/06z (data age: 7.0h)
+2026-01-22 13:00:01,958 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260122/gefs_pgrb2ap5_all_06z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-22 13:00:07,960 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-22 13:00:37,408 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-22 13:00:37,420 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-22 13:00:37,420 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-22 13:00:37,420 - INFO - SSW status: WATCH | 16% prob | U10: 38.3 m/s
+2026-01-22 19:00:02,072 - INFO - SSW monitor starting at 2026-01-22T19:00:02.072412+00:00
+2026-01-22 19:00:02,072 - INFO - LATENCY: Targeting 20260122/12z (data age: 7.0h)
+2026-01-22 19:00:02,072 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260122/gefs_pgrb2ap5_all_12z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-22 19:00:03,804 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-22 19:00:33,458 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-22 19:00:33,470 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-22 19:00:33,471 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-22 19:00:33,471 - INFO - SSW status: NORMAL | 6% prob | U10: 35.9 m/s
+2026-01-22 19:00:33,471 - INFO - Post decision: True (signal_subsided)
+2026-01-22 19:00:33,471 - INFO - Post text (53 chars): 🌀 SSW signal subsided: Back below 10%. Vortex stable....
+2026-01-22 19:00:37,277 - INFO - HTTP Request: POST https://bsky.social/xrpc/com.atproto.server.createSession "HTTP/1.1 200 OK"
+2026-01-22 19:00:37,730 - INFO - HTTP Request: GET https://calocybe.us-west.host.bsky.network/xrpc/app.bsky.actor.getProfile?actor=wxd-london.bsky.social "HTTP/1.1 200 OK"
+2026-01-22 19:00:37,898 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-22 19:00:37,901 - INFO - Posted: https://bsky.app/profile/wxd-london.bsky.social/post/3mczuo24fmz2p
+2026-01-23 01:00:02,320 - INFO - SSW monitor starting at 2026-01-23T01:00:02.320270+00:00
+2026-01-23 01:00:02,320 - INFO - LATENCY: Targeting 20260122/18z (data age: 7.0h)
+2026-01-23 01:00:02,320 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260122/gefs_pgrb2ap5_all_18z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-23 01:00:03,945 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-23 01:00:28,083 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-23 01:00:28,095 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-23 01:00:28,095 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-23 01:00:28,095 - WARNING - ⚠️  SSW ALERT: 32% probability | Current U10: 35.5 m/s | Vortex: strong
+2026-01-23 07:00:01,808 - INFO - SSW monitor starting at 2026-01-23T07:00:01.808422+00:00
+2026-01-23 07:00:01,808 - INFO - LATENCY: Targeting 20260123/00z (data age: 7.0h)
+2026-01-23 07:00:01,808 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260123/gefs_pgrb2ap5_all_00z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-23 07:00:03,568 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-23 07:00:31,096 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-23 07:00:31,109 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-23 07:00:31,109 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-23 07:00:31,109 - INFO - SSW status: WATCH | 19% prob | U10: 34.3 m/s
+2026-01-23 13:00:02,727 - INFO - SSW monitor starting at 2026-01-23T13:00:02.727693+00:00
+2026-01-23 13:00:02,727 - INFO - LATENCY: Targeting 20260123/06z (data age: 7.0h)
+2026-01-23 13:00:02,728 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260123/gefs_pgrb2ap5_all_06z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-23 13:00:04,769 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-23 13:00:35,257 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-23 13:00:35,269 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-23 13:00:35,269 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-23 13:00:35,269 - WARNING - ⚠️  SSW ALERT: 26% probability | Current U10: 32.2 m/s | Vortex: strong
+2026-01-23 19:00:02,183 - INFO - SSW monitor starting at 2026-01-23T19:00:02.183416+00:00
+2026-01-23 19:00:02,183 - INFO - LATENCY: Targeting 20260123/12z (data age: 7.0h)
+2026-01-23 19:00:02,183 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260123/gefs_pgrb2ap5_all_12z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-23 19:00:04,244 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-23 19:00:30,221 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-23 19:00:30,233 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-23 19:00:30,233 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-23 19:00:30,233 - INFO - SSW status: WATCH | 13% prob | U10: 29.2 m/s
+2026-01-23 19:00:30,234 - INFO - Post decision: True (level_change_ALERT_to_WATCH)
+2026-01-23 19:00:30,234 - INFO - Post text (153 chars): 🌀 GEFS SSW: WATCH (13%)
+
+4/31 members show reversal signal in 5-16 day window.
+
+Vortex currently mod...
+2026-01-23 19:00:30,520 - INFO - SSW chart saved: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-23 19:00:30,520 - INFO - Chart generated: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-23 19:00:34,561 - INFO - HTTP Request: POST https://bsky.social/xrpc/com.atproto.server.createSession "HTTP/1.1 200 OK"
+2026-01-23 19:00:35,027 - INFO - HTTP Request: GET https://calocybe.us-west.host.bsky.network/xrpc/app.bsky.actor.getProfile?actor=wxd-london.bsky.social "HTTP/1.1 200 OK"
+2026-01-23 19:00:35,672 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.uploadBlob "HTTP/1.1 200 OK"
+2026-01-23 19:00:35,672 - INFO - Image uploaded: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-23 19:00:36,156 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-23 19:00:36,156 - INFO - Posted: https://bsky.app/profile/wxd-london.bsky.social/post/3md4f4vmdbc2d
+2026-01-23 19:00:36,157 - WARNING - Failed to register post: No module named 'data.post_registry'
+2026-01-24 01:00:02,209 - INFO - SSW monitor starting at 2026-01-24T01:00:02.208999+00:00
+2026-01-24 01:00:02,209 - INFO - LATENCY: Targeting 20260123/18z (data age: 7.0h)
+2026-01-24 01:00:02,209 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260123/gefs_pgrb2ap5_all_18z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-24 01:00:03,724 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-24 01:00:27,349 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-24 01:00:27,361 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-24 01:00:27,361 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-24 01:00:27,362 - WARNING - ⚠️  SSW ALERT: 36% probability | Current U10: 26.9 m/s | Vortex: moderate
+2026-01-24 07:00:02,731 - INFO - SSW monitor starting at 2026-01-24T07:00:02.731388+00:00
+2026-01-24 07:00:02,731 - INFO - LATENCY: Targeting 20260124/00z (data age: 7.0h)
+2026-01-24 07:00:02,731 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260124/gefs_pgrb2ap5_all_00z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-24 07:00:06,236 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-24 07:00:31,520 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-24 07:00:31,532 - INFO - LATENCY: Fetch succeeded at 7.0h after cycle init
+2026-01-24 07:00:31,532 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-24 07:00:31,533 - WARNING - ⚠️  SSW ALERT: 26% probability | Current U10: 25.5 m/s | Vortex: moderate
+2026-01-24 13:30:01,980 - INFO - SSW monitor starting at 2026-01-24T13:30:01.980954+00:00
+2026-01-24 13:30:01,981 - INFO - LATENCY: Targeting 20260124/06z (data age: 7.5h)
+2026-01-24 13:30:01,981 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260124/gefs_pgrb2ap5_all_06z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-24 13:30:03,750 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-24 13:30:23,404 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-24 13:30:23,416 - INFO - LATENCY: Fetch succeeded at 7.5h after cycle init
+2026-01-24 13:30:23,417 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-24 13:30:23,417 - INFO - SSW status: WATCH | 19% prob | U10: 24.3 m/s
+2026-01-24 13:30:23,418 - INFO - Post decision: True (level_change_ALERT_to_WATCH)
+2026-01-24 13:30:23,418 - INFO - Post text (152 chars): 🌀 GEFS SSW: WATCH ↓ (19%)
+
+6/31 members show reversal signal in 5-16 day window.
+
+Vortex currently m...
+2026-01-24 13:30:23,793 - INFO - SSW chart saved: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-24 13:30:23,793 - INFO - Chart generated: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-24 13:30:28,054 - INFO - HTTP Request: POST https://bsky.social/xrpc/com.atproto.server.createSession "HTTP/1.1 200 OK"
+2026-01-24 13:30:28,502 - INFO - HTTP Request: GET https://calocybe.us-west.host.bsky.network/xrpc/app.bsky.actor.getProfile?actor=wxd-london.bsky.social "HTTP/1.1 200 OK"
+2026-01-24 13:30:29,219 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.uploadBlob "HTTP/1.1 200 OK"
+2026-01-24 13:30:29,220 - INFO - Image uploaded: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-24 13:30:29,715 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-24 13:30:29,716 - INFO - Posted: https://bsky.app/profile/wxd-london.bsky.social/post/3md6d5k655p2d
+2026-01-24 13:30:29,716 - WARNING - Failed to register post: No module named 'data.post_registry'

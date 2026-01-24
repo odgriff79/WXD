@@ -1728,6 +1728,132 @@
       "model": "ukmo-global",
       "text_preview": "[3/3] Cold signal returns at end of period, with Friday showing the deepest trough.",
       "timestamp": "2026-01-24T07:00:22.018433+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5sf545yn2p",
+      "tracker": "Main",
+      "model": "4-model-ensemble",
+      "text_preview": "[1/2] Cold pattern easing slightly with temps bottoming around -2\u00b0C by Sunday 1st February - margina",
+      "timestamp": "2026-01-24T08:30:30.835484+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5sf6cfpm2d",
+      "tracker": "Main",
+      "model": "4-model-ensemble",
+      "text_preview": "[2/2] Models showing broad agreement on gradual descent but peak timing still uncertain across 7+ da",
+      "timestamp": "2026-01-24T08:30:31.784135+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5u6bolkj2v",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[1/2] Cold peak today (24th) at -1.3C, then gradual recovery through the weekend. Yellow warning Sun",
+      "timestamp": "2026-01-24T09:02:28.184514+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5u6c3wvz2d",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[2/2] High model agreement through midweek, though spread widening for extended range suggests incre",
+      "timestamp": "2026-01-24T09:02:28.362167+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5vpvd63b2p",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[1/6] UK Daily 24 01 2026 - Met Office says:\n\nWXD Alert: Yellow warnings Sat-Sun. Unsettled througho",
+      "timestamp": "2026-01-24T09:30:12.682524+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5vpwabrk2z",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[2/6] Models show 850hPa -2 to -3C range (main ensemble), MOGREPS coldest member -6.6C - wintry pote",
+      "timestamp": "2026-01-24T09:30:13.637267+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5vpx52kd2a",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[3/6] Outlook for Monday to Wednesday:\nRemaining unsettled throughout, with bands of rain moving nor",
+      "timestamp": "2026-01-24T09:30:14.578762+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5vpy276s2w",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[4/6] Long range (Wednesday 28 Jan - Friday 6 Feb): Weather systems moving in from the Atlantic will",
+      "timestamp": "2026-01-24T09:30:15.534899+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5vpyxctc2w",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[5/6] As a result, further spells of rain or showers are expected at times. These may be heavy and p",
+      "timestamp": "2026-01-24T09:30:16.486687+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5vpzu2sb2p",
+      "tracker": "daily_summary",
+      "model": null,
+      "text_preview": "[6/6] London 850hPa:\nMain ensemble: GFS: -2.6C, ECMWF_IFS: -2.3C, ECMWF_AIFS: -3.1C, GEM: -2.7C | IC",
+      "timestamp": "2026-01-24T09:30:17.430646+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5vq2qpay2s",
+      "tracker": "met_warnings",
+      "model": null,
+      "text_preview": "Met Office Yellow Warning\nSun 25 Jan\nAffects: Scotland, England, Wales",
+      "timestamp": "2026-01-24T09:30:18.370318+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5xg5ffks22",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[1/2] Cold bottoming out Monday 26th at -1.6C as tracked, models now showing modest recovery Tuesday",
+      "timestamp": "2026-01-24T10:00:33.394712+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md5xg5u55c2p",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[2/2] Ensemble agreement decent (spread 4.0C), pattern stable across recent runs.\n\nYellow warning fr",
+      "timestamp": "2026-01-24T10:00:33.571458+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md6icbd7662v",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[1/3] Cold signal strengthening through the forecast period. Previously expected warming into early ",
+      "timestamp": "2026-01-24T15:02:36.954499+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md6icbtbbj2w",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[2/3] Ensemble mean tracks -1.1C to -0.6C through Monday 26th, brief uptick to +0.7C on Tuesday 27th",
+      "timestamp": "2026-01-24T15:02:37.124577+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md6icbyhgo2z",
+      "tracker": "MOGREPS",
+      "model": "mogreps-g",
+      "text_preview": "[3/3] showing later-week cooling rather than the recovery previously indicated.",
+      "timestamp": "2026-01-24T15:02:37.294567+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md6lk5rgy52m",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[1/2] Cold trough reaches lowest point Monday 26th at -1.5C, consistent with forecast. ICON ensemble",
+      "timestamp": "2026-01-24T16:00:42.832498+00:00"
+    },
+    {
+      "uri": "at://did:plc:5eaa3nk356f5vp7za5ddojip/app.bsky.feed.post/3md6lk67sg72d",
+      "tracker": "ICON",
+      "model": "icon-eu-eps",
+      "text_preview": "[2/2] Yellow warning now in force Sunday 25th - Monday 26th for all UK nations (Met Office). Signal ",
+      "timestamp": "2026-01-24T16:00:43.010934+00:00"
     }
   ]
 }
