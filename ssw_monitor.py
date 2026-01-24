@@ -64,7 +64,7 @@ HISTORY_FILE = OUTPUT_DIR / 'history.json'
 STATE_FILE = OUTPUT_DIR / 'state.json'
 
 # Posting configuration
-POST_COOLDOWN_HOURS = 24
+POST_COOLDOWN_HOURS = 24  # Only applies when signal is NORMAL
 HISTORY_DAYS_NORMAL = 30   # Keep 30 days for AI context/engagement
 HISTORY_DAYS_ELEVATED = 30  # Same during active signal
 
@@ -604,8 +604,9 @@ def should_post(current_result: dict, state: dict, recent_runs: dict) -> tuple[b
     last_level = state.get("last_level", "NORMAL")
     last_post_time = state.get("last_post_time")
 
-    # Check cooldown
-    if last_post_time:
+    # Cooldown only applies when NOT elevated - if above threshold, always post
+    # (cron schedule already rate-limits to 4x daily)
+    if level == "NORMAL" and last_post_time:
         try:
             last_dt = datetime.fromisoformat(last_post_time.replace("Z", "+00:00"))
             hours_since = (datetime.now(timezone.utc) - last_dt).total_seconds() / 3600
@@ -636,7 +637,7 @@ def should_post(current_result: dict, state: dict, recent_runs: dict) -> tuple[b
 
 # === POST TEXT GENERATION ===
 
-def generate_post_text(result: dict, state: dict, recent_runs: dict, reason: str) -> str:
+def generate_post_text(result: dict, state: dict, recent_runs: dict, reason: str, history: dict = None) -> str:
     """Generate Bluesky post text based on result and context."""
     prob = result.get("ssw_probability_pct", 0)
     level = result.get("alert", {}).get("level", "NORMAL")
@@ -645,6 +646,11 @@ def generate_post_text(result: dict, state: dict, recent_runs: dict, reason: str
     n_reversals = result.get("ensemble", {}).get("n_reversals", 0)
     n_members = result.get("ensemble", {}).get("n_members", 31)
 
+    # Get previous run probability from history (not state)
+    prev_prob = None
+    if history and len(history.get("runs", [])) >= 2:
+        prev_prob = history["runs"][-2].get("probability", 0)
+
     # Run agreement context
     run_count = recent_runs.get("count", 0)
     elevated_count = recent_runs.get("elevated_count", 0)
@@ -652,15 +658,20 @@ def generate_post_text(result: dict, state: dict, recent_runs: dict, reason: str
     if reason == "signal_subsided":
         return f"🌀 GEFS SSW: NORMAL ({prob:.0f}%)\n\nSignal subsided below 10%. Vortex {vortex} ({u10:.0f} m/s)."
 
-    # Build main post - clear GEFS SSW header with level
+    # Build main post - clear GEFS SSW header with level and trend
+    trend = ""
+    if prev_prob is not None:
+        if prob > prev_prob + 2:
+            trend = " ↑"
+        elif prob < prev_prob - 2:
+            trend = " ↓"
+
     if level == "STRONG":
-        header = f"🌀 GEFS SSW: STRONG ({prob:.0f}%)"
+        header = f"🌀 GEFS SSW: STRONG{trend} ({prob:.0f}%)"
     elif level == "ALERT":
-        last_prob = state.get("last_probability", 0)
-        arrow = " ↑" if prob > last_prob else ""
-        header = f"🌀 GEFS SSW: ALERT{arrow} ({prob:.0f}%)"
+        header = f"🌀 GEFS SSW: ALERT{trend} ({prob:.0f}%)"
     else:
-        header = f"🌀 GEFS SSW: WATCH ({prob:.0f}%)"
+        header = f"🌀 GEFS SSW: WATCH{trend} ({prob:.0f}%)"
 
     # Main text
     text = f"{header}\n\n{n_reversals}/{n_members} members show reversal signal in 5-16 day window.\n\n"
@@ -688,19 +699,76 @@ def generate_claude_commentary(result: dict, history: dict, state: dict) -> str:
         return None
 
     # Build history summary for prompt
-    runs = history.get("runs", [])[-28:]  # Last week
+    runs = history.get("runs", [])
     prob_history = [f"{r.get('probability', 0):.0f}%" for r in runs[-7:]]
     trend = get_trend_description(history)
 
-    prompt = f"""You are WXD, a weather bot. Write a brief (max 200 chars) follow-up comment on this SSW signal.
+    # Get previous run for comparison
+    prev_run = runs[-2] if len(runs) >= 2 else None
+    prev_prob = prev_run.get("probability", 0) if prev_run else 0
+    change = prob - prev_prob
+    change_str = f"up {change:.0f}%" if change > 0 else f"down {abs(change):.0f}%" if change < 0 else "unchanged"
+
+    # Calculate bigger picture trajectory
+    recent_probs = [r.get("probability", 0) for r in runs[-8:]]  # ~24h
+    peak_24h = max(recent_probs) if recent_probs else 0
+    min_24h = min(recent_probs) if recent_probs else 0
+
+    # Find when signal first emerged (crossed 10%)
+    first_elevated_idx = None
+    for i, r in enumerate(runs):
+        if r.get("probability", 0) >= 10:
+            first_elevated_idx = i
+            break
+    days_elevated = 0
+    if first_elevated_idx is not None:
+        from datetime import datetime, timezone
+        first_ts = runs[first_elevated_idx].get("timestamp", "")
+        if first_ts:
+            try:
+                first_dt = datetime.fromisoformat(first_ts.replace("Z", "+00:00"))
+                days_elevated = (datetime.now(timezone.utc) - first_dt).days
+            except:
+                pass
+
+    # Overall trajectory - compare 3-day-ago avg vs recent avg
+    all_probs = [r.get("probability", 0) for r in runs]
+    peak_ever = max(all_probs) if all_probs else 0
+
+    # Calculate multi-day trend direction
+    recent_avg = sum(recent_probs) / len(recent_probs) if recent_probs else 0
+    older_probs = [r.get("probability", 0) for r in runs[-16:-8]] if len(runs) > 8 else []
+    older_avg = sum(older_probs) / len(older_probs) if older_probs else 0
+    week_ago_probs = [r.get("probability", 0) for r in runs[:8]] if len(runs) > 16 else []
+    week_ago_avg = sum(week_ago_probs) / len(week_ago_probs) if week_ago_probs else 0
+
+    # Determine overall trend
+    if recent_avg > older_avg + 5:
+        overall_trend = "RISING"
+    elif recent_avg < older_avg - 5:
+        overall_trend = "FALLING"
+    else:
+        overall_trend = "STEADY"
+
+    prompt = f"""Write a brief follow-up comment for a Bluesky post about this SSW signal.
 
 Current: {prob:.0f}% probability, {level} level
-Recent trend: {trend}
+OVERALL TREND: {overall_trend} (week ago avg: {week_ago_avg:.0f}%, 2 days ago avg: {older_avg:.0f}%, last 24h avg: {recent_avg:.0f}%)
+Signal emerged {days_elevated} days ago from near zero
+Last 24h range: {min_24h:.0f}%-{peak_24h:.0f}%
 Last 7 runs: {' → '.join(prob_history)}
 Vortex: {result.get('alert', {}).get('vortex_state', 'unknown')} ({result.get('current_u10_60n_ms', 0):.0f} m/s)
 
-Be factual. Note if signal is emerging, strengthening, or persisting. Mention UK cold risk potential (2-4 weeks lag) if appropriate.
-No emoji. No hype. One or two sentences max."""
+Rules:
+- Output ONLY the comment text, nothing else
+- Max 200 characters
+- No markdown, no asterisks, no formatting
+- No emoji
+- No meta-commentary about character counts
+- IMPORTANT: Focus on the OVERALL TREND ({overall_trend}), not run-to-run noise
+- If RISING: emphasize signal is building/strengthening
+- Do NOT make weather predictions - only describe the SSW signal itself
+- One or two sentences max"""
 
     try:
         result = subprocess.run(
@@ -979,7 +1047,7 @@ def run_ssw_monitor(debug: bool = False, post: bool = False, dry_run: bool = Fal
 
         if do_post:
             # Generate post text
-            post_text = generate_post_text(output, state, recent_runs, reason)
+            post_text = generate_post_text(output, state, recent_runs, reason, history)
             logger.info(f"Post text ({len(post_text)} chars): {post_text[:100]}...")
 
             # Generate rolling history chart
