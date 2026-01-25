@@ -300,8 +300,7 @@ def handle_ssw():
         model_run = status.get('model_run', 'Unknown')
         data_age = status.get('data_age_hours', None)
         age_str = f" ({data_age:.1f}h old)" if data_age else ""
-        summary = f"SSW STATUS{age_str}\n{'='*30}\nProbability: {prob}%\nAlert: {level}\nCurrent U10 @60N: {u10} m/s\nRun: {model_run}"
-        return summary + "\n\n" + (output or '')
+        return f"SSW STATUS{age_str}\n{'='*30}\nProbability: {prob}%\nAlert: {level}\nCurrent U10 @60N: {u10} m/s\nRun: {model_run}"
     except Exception as e:
         return output or f"SSW check error: {e}"
 
