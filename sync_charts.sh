@@ -34,6 +34,11 @@ if [ -f trackers/mogreps/data/chart_latest.png ]; then
     echo "  mogreps.png updated"
 fi
 
+if [ -f ssw/ssw_history_chart.png ]; then
+    cp ssw/ssw_history_chart.png docs/charts/ssw.png
+    echo "  ssw.png updated"
+fi
+
 # Add charts (force to ensure new files are added)
 git add -f docs/charts/*.png 2>/dev/null || true
 

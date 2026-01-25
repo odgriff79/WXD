@@ -133,12 +133,33 @@
                      onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
                 <div class="chart-img-placeholder" style="display:none;">Chart not yet available</div>
             </div>
+
+            <div class="chart-card" id="ssw-card" style="display:none;">
+                <div class="chart-header">
+                    <div class="chart-title">SSW Probability History</div>
+                    <div class="chart-meta">GEFS 10hPa zonal wind reversal (Oct-Apr only)</div>
+                </div>
+                <img src="charts/ssw.png" alt="SSW probability history" class="chart-img"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                <div class="chart-img-placeholder" style="display:none;">Chart not yet available</div>
+            </div>
         </div>
+
+        <script>
+            // Show SSW card only Oct-Apr (winter season)
+            (function() {
+                var month = new Date().getMonth(); // 0-11
+                // Oct=9, Nov=10, Dec=11, Jan=0, Feb=1, Mar=2, Apr=3
+                if (month >= 9 || month <= 3) {
+                    document.getElementById('ssw-card').style.display = 'block';
+                }
+            })();
+        </script>
 
         <footer>
             <p>WXD is an automated weather ensemble tracker</p>
             <p style="margin-top: 10px;">
-                <a href="https://github.com/ogrisel/WXD">GitHub</a> |
+                <a href="https://github.com/odgriff79/WXD">GitHub</a> |
                 <a href="https://bsky.app/profile/wxd-london.bsky.social">Bluesky</a>
             </p>
             <p style="margin-top: 15px; font-size: 0.8em;">
