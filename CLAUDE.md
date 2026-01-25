@@ -87,6 +87,8 @@ When reviewing user feedback on automated posts:
 3. The system automatically looks up `parent_uri` in the post registry to identify the tracker
 4. Fix the correct code file based on tracker shown
 
+**IMPORTANT: Dev feedback = owner's notes.** The feedback system is for the project owner to leave development notes. It is NOT external user comments. When reporting feedback, never say "someone said" - it's always the owner's internal notes for fixes/improvements.
+
 **Post Lookup (when investigating feedback):**
 ```bash
 # Look up a post URI in the registry - USE THIS, don't fumble with raw API calls
