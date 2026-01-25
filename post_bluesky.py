@@ -1884,7 +1884,7 @@ def post_weekly(handle: str = None, password: str = None, dry_run: bool = False)
         from lib.bluesky import BlueskyClient
 
         client = BlueskyClient()
-        results = client.post_thread(posts, tracker='weekly', model=None)
+        results = client.post_thread(posts, auto_number=False, tracker='weekly', model=None)
 
         if results:
             print("Weekly recap posted successfully")

@@ -495,9 +495,14 @@ class BlueskyClient:
         if not posts:
             raise ValueError("No posts provided")
 
-        # Add thread numbering
+        # Add thread numbering (unless posts already have it)
+        import re
         total = len(posts)
-        if auto_number and total > 1:
+        already_numbered = any(re.match(r'^\[\d+/\d+\]', p.strip()) for p in posts)
+        if already_numbered and auto_number:
+            # Posts already have numbering, skip auto-numbering
+            numbered = posts
+        elif auto_number and total > 1:
             numbered = []
             for i, text in enumerate(posts):
                 indicator = f"[{i+1}/{total}] "
