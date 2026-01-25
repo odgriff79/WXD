@@ -789,7 +789,7 @@ RULES:
     for attempt in range(2):
         try:
             cli_result = subprocess.run(
-                ['claude', '--dangerously-skip-permissions', '-p', prompt],
+                ['claude', '--dangerously-skip-permissions', '--model', 'sonnet', '-p', prompt],
                 capture_output=True,
                 text=True,
                 timeout=45
