@@ -144,11 +144,44 @@ class ReplyContext:
 
 ## Progress Log
 
-### 2026-01-25 09:XX - Started
+### 2026-01-25 09:06 - Started
 - Created this document
 - Committed plan
 
-### [NEXT ENTRY HERE]
+### 2026-01-25 09:15 - Phase 1 Complete
+- Added `get_post_type()` to `lib/bluesky.py` (reused existing `lookup_post()`)
+- Returns normalized types: main, icon, ukmo, mogreps, ssw, engagement, unknown
+- Registry lookup is authoritative, text fallback for unregistered posts
+- Tested with SSW, ICON, MOGREPS URIs - all working
+
+### 2026-01-25 09:22 - Phase 2 Complete
+- Created `lib/context_builder.py` (250 lines)
+- ReplyContext class with unified build() method
+- Features: SSW context, forecast data, trend analysis, model comparison, temporal comparison
+- ALL features triggered by keywords work for ANY post type
+- Tested with 4 scenarios: SSW+trend, main+compare, unknown+stats, temporal
+- All tests pass
+
+### 2026-01-25 09:25 - Phase 3 Complete
+- Added `parent_uri` parameter to `generate_chat_response()`
+- Imported `build_reply_context` from unified builder
+- Replaced ~60 lines of scattered context assembly with single unified call
+- Kept location-specific and spread comparison (to migrate later)
+- Dry-run test: "Built unified context (952 chars)" - working!
+- Response includes real R², t-stat, acknowledges both users
+
+### 2026-01-25 09:28 - Phase 4 Complete
+- Tested 4 scenarios:
+  1. Main forecast + stats question → Has trend analysis ✓
+  2. ICON post + model comparison → Has model comparison ✓
+  3. Unknown post + SSW keywords → Has SSW context ✓
+  4. Any post + temporal question → Has run-to-run comparison ✓
+- ALL VALIDATIONS PASSED
+
+### 2026-01-25 09:30 - Phase 5 Complete
+- Updated CLAUDE.md with new architecture
+- Committed all changes
+- **STATUS: REFACTOR COMPLETE**
 
 ## Rollback Plan
 

@@ -162,3 +162,17 @@ Error: HTTPSConnectionPool(host='ntfy.sh', port=443): Max retries exceeded with 
 Error: HTTPSConnectionPool(host='ntfy.sh', port=443): Max retries exceeded with url: /wxd-cmd/json (Caused by NewConnectionError("HTTPSConnection(host='ntfy.sh', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable"))
 Error: HTTPSConnectionPool(host='ntfy.sh', port=443): Max retries exceeded with url: /wxd-cmd/json (Caused by NewConnectionError("HTTPSConnection(host='ntfy.sh', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable"))
 Error: HTTPSConnectionPool(host='ntfy.sh', port=443): Max retries exceeded with url: /wxd-cmd/json (Caused by NewConnectionError("HTTPSConnection(host='ntfy.sh', port=443): Failed to establish a new connection: [Errno 101] Network is unreachable"))
+Loaded credentials from ~/.wxd_env
+WXD ntfy listener started
+Commands:
+  Tracker A: "preview" (quick) or "fresh" (fetch new)
+  Tracker B: "icon" (quick) or "icon-fresh" (fetch new)
+  Tracker C: "mogreps" (quick) or "mogreps-fresh" (fetch new)
+  Tracker D: "ukmo" (quick) or "ukmo-fresh" (fetch new)
+  Daily: "summary" (Met Office summary preview)
+  Engagement: "engagement" (preview)
+  Cross: "cross" (cross-tracker preview) or "cross-post" (live post)
+  Replies: "check" (dry-run) or "respond" (live)
+  Status: "status" (quick system overview)
+  Clear: "clear-feedback" (clear dashboard feedback queue)
+Send to: https://ntfy.sh/wxd-cmd

@@ -938,9 +938,63 @@ def lookup_post(uri: str) -> dict:
         for entry in registry.get('posts', []):
             if entry.get('uri') == uri:
                 return entry
+            # Also match by rkey (last part of URI)
+            if uri and '/' in uri:
+                rkey = uri.split('/')[-1]
+                if entry.get('uri', '').endswith(rkey):
+                    return entry
         return None
     except Exception:
         return None
+
+
+def get_post_type(uri: str, fallback_text: str = "") -> str:
+    """Get normalized post type from registry or text fallback.
+
+    Returns one of: 'main', 'icon', 'ukmo', 'mogreps', 'ssw', 'engagement', 'unknown'
+
+    Args:
+        uri: The at:// URI to look up
+        fallback_text: Parent post text to use for detection if not in registry
+    """
+    # Try registry first (authoritative)
+    post = lookup_post(uri)
+    if post:
+        tracker = post.get('tracker', '').lower()
+        # Normalize tracker names
+        mapping = {
+            'main': 'main',
+            'tracker_a': 'main',
+            'gfs': 'main',
+            'ecm': 'main',
+            'icon': 'icon',
+            'icon-eu-eps': 'icon',
+            'ukmo': 'ukmo',
+            'ukmo-global': 'ukmo',
+            'mogreps': 'mogreps',
+            'mogreps-g': 'mogreps',
+            'ssw': 'ssw',
+            'engagement': 'engagement',
+            'manual': 'manual',
+        }
+        return mapping.get(tracker, 'main')
+
+    # Fallback: detect from text if not in registry
+    if fallback_text:
+        text_lower = fallback_text.lower()
+        if 'ssw' in text_lower or 'stratospher' in text_lower or 'polar vortex' in text_lower:
+            return 'ssw'
+        if 'icon' in text_lower and ('eps' in text_lower or 'ensemble' in text_lower or 'member' in text_lower):
+            return 'icon'
+        if 'ukmo' in text_lower or 'met office model' in text_lower:
+            return 'ukmo'
+        if 'mogreps' in text_lower:
+            return 'mogreps'
+        # Default to main for any forecast-looking post
+        if any(kw in text_lower for kw in ['°c', 'gfs', 'ecm', 'cold', 'warm', 'forecast']):
+            return 'main'
+
+    return 'unknown'
 
 
 def help():

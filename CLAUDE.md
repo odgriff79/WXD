@@ -101,6 +101,32 @@ Scripts:
 - `reply_listener.py` - Main processor (cron every 4h)
 - `fetch_own_posts.py` - Post history for audit
 
+### Unified Context Architecture (2026-01-25)
+
+Reply context is now built by a unified system - any feature added works for ALL post types:
+
+```
+lib/
+├── bluesky.py         # get_post_type() - authoritative post type from registry
+└── context_builder.py # ReplyContext class - unified context for all replies
+```
+
+**How it works:**
+1. `get_post_type(uri)` looks up post in registry → returns 'main', 'ssw', 'icon', etc.
+2. `ReplyContext(uri, reply_text, parent_text).build()` creates context
+3. Features trigger by KEYWORDS, work for ANY post type:
+   - SSW keywords → includes SSW context + trend stats
+   - Stats keywords → includes R², t-stat, significance
+   - Model comparison keywords → includes cross-model data
+   - Temporal keywords → includes run-to-run shift
+
+**To add a new feature for ALL replies:**
+1. Add detection method to `ReplyContext` class
+2. Add to `_add_query_triggered_contexts()`
+3. Done - works everywhere automatically
+
+See `docs/UNIFIED_REPLY_REFACTOR.md` for full architecture.
+
 ## Key Files
 
 ```

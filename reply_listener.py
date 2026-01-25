@@ -44,10 +44,19 @@ except ImportError:
 
 # Import post registry for tracker lookup
 try:
-    from lib.bluesky import lookup_post
+    from lib.bluesky import lookup_post, get_post_type
     HAS_LOOKUP = True
 except ImportError:
     HAS_LOOKUP = False
+    get_post_type = None
+
+# Import unified context builder
+try:
+    from lib.context_builder import build_reply_context
+    HAS_CONTEXT_BUILDER = True
+except ImportError:
+    HAS_CONTEXT_BUILDER = False
+    build_reply_context = None
 
 # Import cross-tracker analysis for model comparison queries
 try:
@@ -819,6 +828,14 @@ def identify_tracker_from_text(context: str) -> str:
 
     ctx_lower = context.lower()
 
+    # SSW patterns - Sudden Stratospheric Warming monitor
+    if 'gefs ssw' in ctx_lower or 'ssw:' in ctx_lower:
+        return 'SSW'
+    if 'stratospheric warming' in ctx_lower or 'vortex reversal' in ctx_lower:
+        return 'SSW'
+    if 'polar vortex' in ctx_lower and ('member' in ctx_lower or 'gefs' in ctx_lower):
+        return 'SSW'
+
     # MOGREPS patterns - Met Office ensemble
     if 'mogreps' in ctx_lower or 'met office ensemble' in ctx_lower:
         return 'MOGREPS'
@@ -1359,11 +1376,42 @@ def get_ssw_context() -> str:
         # Count WATCH events
         watch_count = sum(1 for r in recent_runs if r.get('level') in ['WATCH', 'ALERT', 'STRONG'])
 
+        # Calculate linear regression for trend significance
+        n = len(probs)
+        if n >= 3:
+            import statistics
+            x = list(range(n))
+            x_mean = statistics.mean(x)
+            y_mean = statistics.mean(probs)
+            num = sum((x[i] - x_mean) * (probs[i] - y_mean) for i in range(n))
+            denom = sum((x[i] - x_mean) ** 2 for i in range(n))
+            slope = num / denom if denom else 0
+            ss_tot = sum((p - y_mean) ** 2 for p in probs)
+            ss_res = sum((probs[i] - (slope * x[i] + (y_mean - slope * x_mean))) ** 2 for i in range(n))
+            r_squared = 1 - (ss_res / ss_tot) if ss_tot else 0
+            if n > 2 and denom > 0:
+                mse = ss_res / (n - 2)
+                se_slope = (mse / denom) ** 0.5 if mse >= 0 else 0
+                t_stat = abs(slope / se_slope) if se_slope else 0
+            else:
+                t_stat = 0
+            trend_sig = "YES (p<0.05)" if t_stat > 2 else "NO"
+            trend_dir = "upward" if slope > 0 else "downward" if slope < 0 else "flat"
+        else:
+            slope, r_squared, t_stat = 0, 0, 0
+            trend_sig, trend_dir = "insufficient data", "unknown"
+
         context = f"""SSW (SUDDEN STRATOSPHERIC WARMING) STATUS:
 Current probability: {current_prob:.0f}% ({current_level})
 Current polar vortex: {current_u10:.0f} m/s ({"strong" if current_u10 > 30 else "moderate" if current_u10 > 15 else "weak"})
 Last 7 days range: {min_prob:.0f}%-{max_prob:.0f}%
 WATCH events (≥10%): {watch_count} in last 7 days
+
+TREND ANALYSIS (linear regression on {n} runs):
+- Direction: {trend_dir} ({slope:+.2f}% per run)
+- R² = {r_squared:.2f} ({r_squared*100:.0f}% variance explained)
+- t-statistic = {t_stat:.1f} (significant if |t|>2)
+- Statistically significant trend: {trend_sig}
 
 WXD probability thresholds: WATCH ≥10%, ALERT ≥25%, STRONG ≥50%
 
@@ -1377,6 +1425,112 @@ CRITICAL - SSW DEFINITION (DO NOT GET THIS WRONG):
 
     except Exception as e:
         print(f"    Error loading SSW context: {e}")
+        return ""
+
+
+def calculate_trend_stats(values: list) -> dict:
+    """Calculate linear regression statistics for any numeric series.
+
+    Returns dict with slope, r_squared, t_stat, is_significant, direction.
+    Use for run-over-run trend analysis on any data.
+    """
+    import statistics
+
+    n = len(values)
+    if n < 3:
+        return {'slope': 0, 'r_squared': 0, 't_stat': 0, 'is_significant': False, 'direction': 'insufficient data', 'n': n}
+
+    x = list(range(n))
+    x_mean = statistics.mean(x)
+    y_mean = statistics.mean(values)
+
+    num = sum((x[i] - x_mean) * (values[i] - y_mean) for i in range(n))
+    denom = sum((x[i] - x_mean) ** 2 for i in range(n))
+    slope = num / denom if denom else 0
+    intercept = y_mean - slope * x_mean
+
+    ss_tot = sum((v - y_mean) ** 2 for v in values)
+    ss_res = sum((values[i] - (slope * x[i] + intercept)) ** 2 for i in range(n))
+    r_squared = 1 - (ss_res / ss_tot) if ss_tot else 0
+
+    if n > 2 and denom > 0 and ss_res >= 0:
+        mse = ss_res / (n - 2)
+        se_slope = (mse / denom) ** 0.5
+        t_stat = abs(slope / se_slope) if se_slope else 0
+    else:
+        t_stat = 0
+
+    is_significant = t_stat > 2  # p < 0.05 approximately
+    direction = 'upward' if slope > 0.01 else 'downward' if slope < -0.01 else 'flat'
+
+    return {
+        'slope': slope,
+        'r_squared': r_squared,
+        't_stat': t_stat,
+        'is_significant': is_significant,
+        'direction': direction,
+        'n': n
+    }
+
+
+def get_forecast_trend_analysis(target_date: str = None) -> str:
+    """Get run-over-run trend analysis for forecast temperatures.
+
+    Analyzes how the forecast for a specific date has changed across model runs.
+    Returns formatted string with trend statistics.
+    """
+    import json
+    from pathlib import Path
+    from datetime import datetime, timezone, timedelta
+
+    try:
+        history_path = Path('/home/ubuntu/wxd/data/history_compact.json')
+        if not history_path.exists():
+            return ""
+
+        with open(history_path) as f:
+            data = json.load(f)
+
+        runs = data.get('runs', [])
+        if len(runs) < 3:
+            return ""
+
+        # If no target date specified, use 3 days from now
+        if not target_date:
+            target = datetime.now(timezone.utc) + timedelta(days=3)
+            target_date = target.strftime('%Y-%m-%d')
+
+        # Extract multi-model mean for target date across runs
+        target_temps = []
+        run_times = []
+
+        for run in runs[-10:]:  # Last 10 runs
+            timestamps = run.get('timestamps', [])
+            mmm = run.get('multi_model_mean', [])
+
+            for i, ts in enumerate(timestamps):
+                if target_date in ts and i < len(mmm):
+                    target_temps.append(mmm[i])
+                    run_times.append(run.get('fetched_at', ''))
+                    break
+
+        if len(target_temps) < 3:
+            return ""
+
+        stats = calculate_trend_stats(target_temps)
+
+        trend_text = f"""FORECAST TREND ANALYSIS (for {target_date}):
+Run-over-run change in multi-model mean across last {stats['n']} runs:
+- Direction: {stats['direction']} ({stats['slope']:+.2f}°C per run)
+- R² = {stats['r_squared']:.2f} ({stats['r_squared']*100:.0f}% variance explained)
+- t-statistic = {stats['t_stat']:.1f} (significant if |t|>2)
+- Statistically significant trend: {'YES (p<0.05)' if stats['is_significant'] else 'NO'}
+- Latest value: {target_temps[-1]:.1f}°C, earliest: {target_temps[0]:.1f}°C"""
+
+        return trend_text
+
+    except Exception as e:
+        print(f"    Error calculating forecast trend: {e}")
         return ""
 
 
@@ -1932,6 +2086,7 @@ CHART_PATHS = {
     'icon': Path('/home/ubuntu/wxd/trackers/icon/data/chart_latest.png'),
     'ukmo': Path('/home/ubuntu/wxd/trackers/ukmo/data/chart_latest.png'),
     'mogreps': Path('/home/ubuntu/wxd/trackers/mogreps/data/chart_latest.png'),
+    'ssw': Path('/home/ubuntu/wxd/ssw/ssw_history_chart.png'),
 }
 
 CHART_ALT_TEXT = {
@@ -1939,22 +2094,70 @@ CHART_ALT_TEXT = {
     'icon': '850hPa temperature forecast chart from ICON-EU 40-member ensemble',
     'ukmo': '850hPa temperature forecast chart from UK Met Office global model',
     'mogreps': '850hPa temperature forecast chart from MOGREPS-G 18-member ensemble',
+    'ssw': 'GEFS SSW probability history chart showing reversal signal % over time',
 }
 
 
-def select_chart_for_query(text: str) -> tuple:
+def select_chart_for_query(text: str, parent_text: str = "") -> tuple:
     """Select appropriate chart based on query content.
 
     Returns (chart_path, alt_text) or (None, None) if no chart relevant.
+
+    PRIORITY ORDER:
+    1. User EXPLICITLY asks for a specific model → that model's chart
+    2. User asks SSW-specific question → SSW chart
+    3. User asks temp question on SSW post → main chart (850hPa)
+    4. Fall back to parent post's tracker chart
+    5. Default to main chart
     """
     text_lower = text.lower()
+    parent_lower = parent_text.lower() if parent_text else ""
 
-    # Specific model mentions -> specific chart (check these first)
+    # Detect parent post type
+    is_ssw_parent = any(kw in parent_lower for kw in ['gefs ssw', 'ssw:', 'stratospher', 'polar vortex'])
+    is_icon_parent = 'icon' in parent_lower and 'icon-' not in parent_lower
+    is_ukmo_parent = 'ukmo' in parent_lower
+    is_mogreps_parent = 'mogreps' in parent_lower
+
+    # ==========================================================
+    # PRIORITY 1: User EXPLICITLY asks for a specific model
+    # This OVERRIDES parent context - user knows what they want
+    # ==========================================================
     if 'icon' in text_lower and 'icon-' not in text_lower:
         return CHART_PATHS['icon'], CHART_ALT_TEXT['icon']
-    if 'ukmo' in text_lower or 'met office' in text_lower or 'uk met' in text_lower:
+    if 'ukmo' in text_lower:
         return CHART_PATHS['ukmo'], CHART_ALT_TEXT['ukmo']
     if 'mogreps' in text_lower:
+        return CHART_PATHS['mogreps'], CHART_ALT_TEXT['mogreps']
+    if any(kw in text_lower for kw in ['gfs', 'ecmwf', 'aifs', 'gem', 'all models', 'compare']):
+        return CHART_PATHS['main'], CHART_ALT_TEXT['main']
+
+    # ==========================================================
+    # PRIORITY 2: SSW-specific keywords in user question
+    # ==========================================================
+    asking_ssw = any(kw in text_lower for kw in ['ssw', 'probability', 'vortex', 'stratospher', 'reversal', '10hpa'])
+    if asking_ssw:
+        return CHART_PATHS['ssw'], CHART_ALT_TEXT['ssw']
+
+    # ==========================================================
+    # PRIORITY 3: User asks about temps/cold on SSW post → main chart
+    # SSW is stratospheric, temps are 850hPa - different data
+    # ==========================================================
+    asking_temps = any(kw in text_lower for kw in ['cold', 'warm', 'temperature', 'temp', 'frost', 'snow', 'freeze'])
+    if is_ssw_parent and asking_temps:
+        return CHART_PATHS['main'], CHART_ALT_TEXT['main']
+
+    # ==========================================================
+    # PRIORITY 4: Fall back to parent post's tracker
+    # General question on a tracker post → that tracker's chart
+    # ==========================================================
+    if is_ssw_parent:
+        return CHART_PATHS['ssw'], CHART_ALT_TEXT['ssw']
+    if is_icon_parent:
+        return CHART_PATHS['icon'], CHART_ALT_TEXT['icon']
+    if is_ukmo_parent:
+        return CHART_PATHS['ukmo'], CHART_ALT_TEXT['ukmo']
+    if is_mogreps_parent:
         return CHART_PATHS['mogreps'], CHART_ALT_TEXT['mogreps']
 
     # Keywords that suggest a chart would be helpful
@@ -2050,7 +2253,7 @@ def split_into_posts(text: str, max_chars: int = 295) -> list:
     return posts
 
 
-def generate_chat_response(reply_text: str, parent_text: str, session: dict = None, forecast_context: str = "", is_super_user: bool = False, research_context: str = "", image_context: str = "") -> dict:
+def generate_chat_response(reply_text: str, parent_text: str, session: dict = None, forecast_context: str = "", is_super_user: bool = False, research_context: str = "", image_context: str = "", parent_uri: str = "") -> dict:
     """Use Claude CLI to generate a conversational response.
 
     Returns dict with:
@@ -2064,13 +2267,22 @@ def generate_chat_response(reply_text: str, parent_text: str, session: dict = No
 
     Args:
         image_context: Optional analysis of images the user shared (temp processed, not stored)
+        parent_uri: The URI of the parent post (used for unified context building)
     """
     # Build conversation context if we have session history
     context = ""
     if session and session.get('message_count', 0) > 0:
         context = f"\nThis is message #{session['message_count'] + 1} in an ongoing chat session."
 
-    # Check if user is asking about a specific location
+    # === UNIFIED CONTEXT BUILDING ===
+    # Use the unified context builder for SSW, trends, model comparison, temporal
+    unified_context = ""
+    if HAS_CONTEXT_BUILDER and build_reply_context:
+        unified_context = build_reply_context(parent_uri, reply_text, parent_text)
+        if unified_context:
+            print(f"    Built unified context ({len(unified_context)} chars)")
+
+    # Additional specialized contexts not yet in unified builder
     location = extract_location(reply_text)
     location_forecast = ""
     if location:
@@ -2079,7 +2291,6 @@ def generate_chat_response(reply_text: str, parent_text: str, session: dict = No
         if location_forecast:
             print(f"    Got location forecast ({len(location_forecast)} chars)")
 
-    # Check if user is asking about spread/comparison between runs
     spread_comparison = ""
     is_spread_q, target_date = detect_spread_question(reply_text)
     if is_spread_q:
@@ -2088,48 +2299,18 @@ def generate_chat_response(reply_text: str, parent_text: str, session: dict = No
         if spread_comparison:
             print(f"    Got spread comparison data ({len(spread_comparison)} chars)")
 
-    # Check if user is asking about model comparison (GFS vs ICON, all models, etc.)
-    cross_tracker_context = ""
-    if HAS_CROSS_TRACKER and is_model_comparison_query and is_model_comparison_query(reply_text):
-        print(f"    Detected model comparison question")
-        cross_tracker_context = build_model_query_response_context(reply_text) or ""
-        if cross_tracker_context:
-            print(f"    Got cross-tracker context ({len(cross_tracker_context)} chars)")
-
-    # Check if user is asking about temporal comparison (24h ago, yesterday, etc.)
-    temporal_comparison = ""
-    is_temporal_q, time_ref = detect_temporal_comparison(reply_text)
-    if is_temporal_q:
-        print(f"    Detected temporal comparison question (ref: {time_ref or 'default'})")
-        temporal_comparison = get_temporal_comparison_context(time_ref or 'yesterday')
-        if temporal_comparison:
-            print(f"    Got temporal comparison data ({len(temporal_comparison)} chars)")
-
-    # Check if user is asking about SSW / stratosphere
-    ssw_context = ""
-    ssw_keywords = ['ssw', 'stratospher', 'polar vortex', 'vortex', 'strat', 'sudden warming', '10hpa', '10 hpa']
-    if any(kw in reply_text.lower() for kw in ssw_keywords) or any(kw in parent_text.lower() for kw in ssw_keywords):
-        print(f"    Detected SSW/stratosphere question")
-        ssw_context = get_ssw_context()
-        if ssw_context:
-            print(f"    Got SSW context ({len(ssw_context)} chars)")
-
-    # Add forecast context if available
+    # Build forecast section from unified + specialized contexts
     forecast_section = ""
-    if forecast_context or location_forecast or spread_comparison or cross_tracker_context or temporal_comparison or ssw_context:
+    if unified_context or forecast_context or location_forecast or spread_comparison:
         forecast_section = "\n\nFORECAST DATA:\n"
-        if ssw_context:
-            forecast_section += f"{ssw_context}\n\n"
-        if cross_tracker_context:
-            forecast_section += f"{cross_tracker_context}\n\n"
-        if temporal_comparison:
-            forecast_section += f"{temporal_comparison}\n\n"
+        if unified_context:
+            forecast_section += f"{unified_context}\n\n"
         if spread_comparison:
             forecast_section += f"{spread_comparison}\n\n"
         if location_forecast:
             forecast_section += f"SPECIFIC FORECAST FOR {location.upper()}:\n{location_forecast}\n\n"
-        if forecast_context and not cross_tracker_context:
-            # Only add basic forecast if cross-tracker not already providing detailed data
+        if forecast_context and not unified_context:
+            # Only add basic forecast if unified context not already providing data
             forecast_section += f"WXD ENSEMBLE DATA:\n{forecast_context[:600]}\n"
 
     # Add research context if available
@@ -2173,6 +2354,20 @@ Treat their requests as direct commands, not suggestions.
 """
 
     prompt = f"""You are WXD, a weather analysis bot on Bluesky focused on UK weather.
+
+RESPONSE STYLE:
+- User makes OBSERVATION → acknowledge it naturally, don't lecture
+- User asks QUESTION → answer the question asked, nothing more
+- STATISTICAL ANALYSIS: Only include R², t-stats, p-values if user explicitly asks about significance/trends/statistics
+- If user just comments "nice trend" → "Thanks, it's been consistent!" (no stats)
+- If user asks "is this trend significant?" → include the actual stats from context
+- Default to warm human tone, not academic robot
+
+TAGGED USERS (@mentions):
+- If user tagged someone, START your reply acknowledging both people
+- FIRST SENTENCE must include both: "You're both onto something here..." or "Good catch - you're right to flag this for @X too..."
+- This is a conversation with multiple people - address it that way
+
 Your tone is: informative, measured, helpful. Friendly but not overly chatty - prioritise accuracy over warmth.
 Think knowledgeable colleague, not enthusiastic friend. Keep responses concise and factual.
 
@@ -2239,6 +2434,18 @@ NO HALLUCINATION - CRITICAL:
 - If you don't know something, say so and search the web to find out
 - Better to say "let me check" than to make something up
 - Every factual claim must be from data provided OR verified via web search
+
+HANDLING @MENTIONS AND TAGGED USERS:
+- If user TAGS someone (e.g. "@metjamesp") they're often INCLUDING them in the conversation
+- Be inclusive: "You might both be interested to know..." or address both naturally
+- Do NOT say "I can't verify what @X said" - that's robotic and misses the point
+- If user says "I know @X follows this topic" - they're just explaining why they tagged them
+- Only be cautious if user explicitly claims "@X said [specific quote]" - then don't confirm the quote
+
+ECHOING UNVERIFIED CLAIMS:
+- Do NOT confirm specific factual claims the user attributes to others without verification
+- But DO engage naturally when users tag others to include them in discussion
+- Answer the user's actual question warmly and include tagged people where natural
 
 MANDATORY CITATION RULE:
 - For DETAILED EXPLANATIONS: INVOKE WebSearch first, then cite the source in your answer
@@ -3213,8 +3420,9 @@ Output ONLY the reply text, nothing else."""
             response_posts = add_ai_signature(response_posts)
 
         if response_posts:
-            # Select chart if relevant to the query
-            chart_path, chart_alt = select_chart_for_query(reply['text'])
+            # Select chart if relevant to the query - pass parent context for SSW detection
+            parent_ctx = context_text if 'context_text' in dir() and context_text else ""
+            chart_path, chart_alt = select_chart_for_query(reply['text'], parent_ctx)
             if chart_path:
                 print(f"    Chart selected: {chart_path.name}")
 
@@ -3222,6 +3430,8 @@ Output ONLY the reply text, nothing else."""
 
             if dry_run:
                 print(f"    [DRY RUN - would post {len(response_posts)} reply(ies)]")
+                for i, p in enumerate(response_posts):
+                    print(f"      [{i+1}/{len(response_posts)}] {p}")
                 if chart_path:
                     print(f"    [DRY RUN - would attach chart: {chart_path.name}]")
             else:
@@ -3577,8 +3787,9 @@ Output ONLY the reply text, nothing else."""
                 response_posts = add_ai_signature(response_posts)
 
             if response_posts:
-                # Select chart if relevant to the query
-                chart_path, chart_alt = select_chart_for_query(reply['text'])
+                # Select chart if relevant to the query - pass WXD post context for tracker detection
+                wxd_post_ctx = post.get('text', '') if 'post' in dir() and post else ""
+                chart_path, chart_alt = select_chart_for_query(reply['text'], wxd_post_ctx)
                 if chart_path:
                     print(f"      Chart selected: {chart_path.name}")
 

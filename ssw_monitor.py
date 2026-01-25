@@ -834,7 +834,7 @@ def post_to_bluesky(text: str, commentary: str = None, image_path: Path = None, 
 
         # Register in post registry
         try:
-            from data.post_registry import register_post
+            from lib.bluesky import register_post
             register_post(uri=response.uri, tracker='ssw', model=None, text_preview=text[:100])
         except Exception as e:
             logger.warning(f"Failed to register post: {e}")
