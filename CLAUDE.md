@@ -33,7 +33,7 @@ ssh -i "KEY_PATH" ubuntu@144.21.62.133 "cd ~/wxd && ..."
 ---
 ## 🚨 URGENT: Mention Reply System BROKEN - 2026-01-25 🚨
 
-**Status:** COUNCIL SOLUTION APPROVED - AWAITING IMPLEMENTATION
+**Status:** COUNCIL SOLUTION PROPOSED - AWAITING OWNER REVIEW
 **Case File:** [`docs/CASE_2026-01-25_MENTION_REPLY_BROKEN.md`](docs/CASE_2026-01-25_MENTION_REPLY_BROKEN.md)
 
 **Problem:** @mention replies broken - multi-post responses, ignored citation rules, unsourced claims.
@@ -153,7 +153,7 @@ lib/
 
 See `docs/UNIFIED_REPLY_REFACTOR.md` for full architecture.
 
-### AI Reply Prompt Pattern (Council-Approved 2026-01-25)
+### AI Reply Prompt Pattern (Council-Proposed 2026-01-25)
 
 **MANDATORY for all Claude CLI reply prompts.** Long prompts (>20 lines) cause Claude to ignore rules. This pattern ensures compliance.
 

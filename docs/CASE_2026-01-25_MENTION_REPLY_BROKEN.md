@@ -181,11 +181,11 @@ Bot said things like:
 - Git commit 656a356 - Last known working mention prompt
 - UNIFIED_REPLY_REFACTOR.md - Documents today's (broken) refactor
 
-## Council Solution (2026-01-25)
+## Council Solution (2026-01-25) - PROPOSED, NOT YET APPROVED
 
-Council (Claude + Codex) reviewed this problem and reached consensus on the fix. Core insight: **long prompts fail because Claude loses rules buried in context - fix requires structural enforcement, not more rules.**
+Council (Claude + Codex) reviewed this problem and proposed a fix. **Awaiting owner review and approval.** Core insight: **long prompts fail because Claude loses rules buried in context - fix requires structural enforcement, not more rules.**
 
-### Approved Architecture
+### Proposed Architecture
 
 1. **Compress prompt to ≤20 lines** - One clear instruction per line. Critical constraints at the VERY TOP:
    - Single post
