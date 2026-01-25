@@ -900,3 +900,34 @@ Open-Meteo Ensemble API supports more models (but 850hPa availability varies):
 - 3 past days for run-to-run comparison
 - 850hPa temperature variable
 - London coordinates (51.5074, -0.1278)
+
+## 2026-01-25
+
+### Reply System
+- **Unified Reply Context Architecture**: Created `lib/context_builder.py` with `ReplyContext` class - any feature added now works for ALL post types automatically
+- Added `get_post_type()` to `lib/bluesky.py` for authoritative post type detection from registry
+- Integrated unified builder into `reply_listener.py` - replaced ~60 lines of scattered context assembly
+
+### SSW Monitor
+- Fixed ntfy_listener path: `ssw/ssw_monitor.py` → `ssw_monitor.py` (was broken)
+- Added data age and model run to SSW ntfy status output
+- Fixed commentary leak: Claude haiku was outputting reasoning ("Following the CLAUDE.md instructions...") instead of comment
+  - Switched to sonnet model for reliable instruction following
+  - Added `validate_commentary()` with smart pattern detection
+  - Added retry logic (2 attempts)
+  - Added example output in prompt
+
+### Thread Posting
+- Fixed double thread numbering `[X/Y] [X/Y]` bug
+  - `lib/bluesky.py`: `post_thread()` now detects existing numbering pattern and skips auto-numbering
+  - `post_bluesky.py`: Weekly recap passes `auto_number=False` explicitly
+- Deleted spurious SSW reply that leaked Claude reasoning
+
+### GitHub Pages Charts
+- Audited chart sync - documented in `docs/CHART_SYNC_AUDIT.md`
+- Added SSW history chart to sync (seasonal Oct-Apr only via JS)
+- Fixed GitHub link in footer: `ogrisel/WXD` → `odgriff79/WXD`
+
+### Documentation
+- Added "dev feedback = owner's notes" clarification to CLAUDE.md
+- Created `docs/UNIFIED_REPLY_REFACTOR.md` with full architecture plan
