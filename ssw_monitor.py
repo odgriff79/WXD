@@ -779,6 +779,18 @@ Rules:
         )
         if result.returncode == 0 and result.stdout.strip():
             commentary = result.stdout.strip()[:280]  # Ensure within limit
+
+            # Reject outputs that look like meta-commentary or reasoning
+            reject_patterns = [
+                'following the', 'i need to', 'i should', 'let me',
+                'claude', 'instructions', 'here is', "here's",
+                'based on', 'according to', 'the prompt'
+            ]
+            lower = commentary.lower()
+            if any(pattern in lower for pattern in reject_patterns):
+                logger.warning(f"Rejected meta-commentary: {commentary[:50]}...")
+                return None
+
             return commentary
     except Exception as e:
         logger.warning(f"Claude commentary failed: {e}")
