@@ -31,6 +31,23 @@ ssh -i "KEY_PATH" ubuntu@144.21.62.133 "cd ~/wxd && ..."
 **If you are unsure which VM to use, STOP and ASK.**
 
 ---
+## 🚨 URGENT: Mention Reply System BROKEN - 2026-01-25 🚨
+
+**Status:** NEEDS IMMEDIATE FIX
+**Case File:** [`docs/CASE_2026-01-25_MENTION_REPLY_BROKEN.md`](docs/CASE_2026-01-25_MENTION_REPLY_BROKEN.md)
+
+**Problem:** @mention replies are broken - producing multi-post responses, ignoring citation rules, making unsourced causal claims.
+
+**Root Cause:** Mention handling was switched from simple prompt to complex `generate_chat_response()` (154-line prompt that Claude ignores).
+
+**DO NOT:**
+- Use the current mention system for live posts until fixed
+- Add more rules to `generate_chat_response()` - the prompt is already too long
+- "Fix" by adding more instructions - that's what broke it
+
+**TO FIX:** See case file for full details. Requires reverting mention handling to simple prompt while keeping parent context/image fixes.
+
+---
 ## ⚠️ KNOWN ISSUE: Open-Meteo 504 Timeouts ⚠️
 
 **Problem**: UKMO tracker fails with `504 Gateway Time-out` from Open-Meteo API.

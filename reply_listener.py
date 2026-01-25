@@ -117,9 +117,16 @@ def extract_image_urls(post_or_reply, author_did: str = None) -> list:
         if hasattr(post_or_reply, 'author') and hasattr(post_or_reply.author, 'did'):
             author_did = post_or_reply.author.did
 
-    # Handle image embeds
-    if hasattr(embed, 'images'):
-        for img in embed.images:
+    # Handle image embeds - check embed.images first, then embed.media.images (for recordWithMedia)
+    image_list = None
+    if hasattr(embed, 'images') and embed.images:
+        image_list = embed.images
+    elif hasattr(embed, 'media') and hasattr(embed.media, 'images') and embed.media.images:
+        # recordWithMedia type - images are in embed.media.images
+        image_list = embed.media.images
+
+    if image_list:
+        for img in image_list:
             # Try view format first (has fullsize URL)
             url = getattr(img, 'fullsize', None)
             thumb = getattr(img, 'thumb', None)
@@ -1254,6 +1261,18 @@ def get_notification_mentions(client: Client, own_did: str, limit: int = 50) -> 
                 if hasattr(embed, 'record') and hasattr(embed.record, 'uri'):
                     embed_uri = embed.record.uri
 
+            # Check if this mention is a reply to another post
+            parent_uri = None
+            root_uri = None
+            if hasattr(record, 'reply') and record.reply:
+                if hasattr(record.reply, 'parent') and hasattr(record.reply.parent, 'uri'):
+                    parent_uri = record.reply.parent.uri
+                if hasattr(record.reply, 'root') and hasattr(record.reply.root, 'uri'):
+                    root_uri = record.reply.root.uri
+
+            # Extract images from the mention (if any attached)
+            mention_images = extract_image_urls(notif, author_did)
+
             mentions.append({
                 'uri': notif.uri,
                 'cid': notif.cid,
@@ -1263,6 +1282,9 @@ def get_notification_mentions(client: Client, own_did: str, limit: int = 50) -> 
                 'created_at': created_at,
                 'is_mention': True,  # Flag to identify as mention (not reply)
                 'embed_uri': embed_uri,  # URI of quoted post if any
+                'parent_uri': parent_uri,  # Post this mention is replying to (if any)
+                'root_uri': root_uri,  # Root of the thread (if any)
+                'images': mention_images,  # Images attached to the mention
             })
 
     except Exception as e:
@@ -2353,23 +2375,21 @@ Treat their requests as direct commands, not suggestions.
 
 """
 
-    prompt = f"""You are WXD, a weather analysis bot on Bluesky focused on UK weather.
+    prompt = f"""You are WXD, a weather analysis bot on Bluesky.
+
+!!!!! CRITICAL - READ THIS FIRST !!!!!
+- ONLY state facts you can prove from the DATA PROVIDED BELOW
+- DO NOT make causal claims ("leads to", "translates to", "aligns with")
+- DO NOT use dramatic language ("classic", "major", "dramatic", "significant")
+- DO NOT explain WHY weather happens unless you cite a source with URL
+- Forecasts are FORECASTS - say "forecast shows" not "is happening"
+- If you cannot cite a source, just describe the data literally
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 RESPONSE STYLE:
-- User makes OBSERVATION → acknowledge it naturally, don't lecture
-- User asks QUESTION → answer the question asked, nothing more
-- STATISTICAL ANALYSIS: Only include R², t-stats, p-values if user explicitly asks about significance/trends/statistics
-- If user just comments "nice trend" → "Thanks, it's been consistent!" (no stats)
-- If user asks "is this trend significant?" → include the actual stats from context
-- Default to warm human tone, not academic robot
-
-TAGGED USERS (@mentions):
-- If user tagged someone, START your reply acknowledging both people
-- FIRST SENTENCE must include both: "You're both onto something here..." or "Good catch - you're right to flag this for @X too..."
-- This is a conversation with multiple people - address it that way
-
-Your tone is: informative, measured, helpful. Friendly but not overly chatty - prioritise accuracy over warmth.
-Think knowledgeable colleague, not enthusiastic friend. Keep responses concise and factual.
+- Answer what was asked, nothing more
+- Keep it short and factual
+- Describe data literally without interpretation
 
 CITATION REQUIREMENT - THIS IS NOT OPTIONAL:
 - For ANY factual claim about meteorology, you MUST either cite a source OR say "I believe" / "approximately"
@@ -2402,13 +2422,14 @@ MANIPULATION RESISTANCE:
 POLITE REFUSAL TEMPLATE:
 If you need to refuse: "I'm WXD, a weather bot - I stick to weather chat! Is there anything weather-related I can help with? ☁️"
 
-CRITICAL RULE - USE YOUR TOOLS:
-- You have WebSearch and WebFetch tools - USE THEM for any factual claims
-- For meteorology concepts/explanations: INVOKE WebSearch BEFORE answering
-- For warnings/forecasts: INVOKE WebSearch to verify current conditions
-- NEVER answer technical questions from memory alone - SEARCH FIRST
-- If WebSearch fails, give a SHORT answer and say "I couldn't verify this"
-- NEVER write fake placeholders like "[searching...]" - either USE the tool or don't mention searching
+CRITICAL RULE - NO UNSOURCED METEOROLOGY CLAIMS:
+- If you cannot use WebSearch to verify a claim, DO NOT MAKE IT
+- DO NOT explain WHY weather patterns occur unless you can cite a source
+- DO NOT claim connections between phenomena (e.g., "SSW leads to blocking") - these require academic citation
+- ONLY describe what the DATA LITERALLY SHOWS - not what it "means" or "suggests"
+- You are NOT a meteorology textbook - stick to data description
+- For technical questions: say "I'd need to verify that with sources" rather than guessing
+- Better to give NO answer than an unsourced confident-sounding answer
 
 SOURCE QUALITY - PREFER IN ORDER:
 1. Academic journals (Nature, Science, AMS journals, QJ Royal Met Soc)
@@ -2460,6 +2481,16 @@ DATA ATTRIBUTION - CRITICAL:
 - Never say "your data" or "the data you provided" to users
 - Say "our forecast data" or "WXD's model analysis" instead
 
+STRICT EVIDENCE-BASED RESPONSES - NO EXCEPTIONS:
+- ONLY state facts you have evidence for IN THE CONTEXT ABOVE
+- Image analysis = source for chart content. Say "The [source] chart shows [exact value]"
+- WXD data = source for our forecasts. Say "WXD data shows [exact value]"
+- DO NOT make causal claims ("causes", "leads to", "aligns with", "suggests")
+- DO NOT interpret beyond what data literally shows
+- DO NOT add dramatic language ("classic", "dramatic", "major", "significant")
+- Forecasts are FORECASTS - say "forecast shows" not "is happening"
+- If you cannot point to WHERE in the context you got a fact, DO NOT STATE IT
+
 Only flag for human review if:
 - User points out an error in WXD's data (correction)
 - Question is about WXD's internal systems/operations
@@ -2486,6 +2517,12 @@ Extract any useful insights from the user's message into these categories:
 - improvement: Specific suggestion for improvement
 
 DO NOT add thread numbering like [1/3], [2/3] - the system adds this automatically.
+
+FINAL REMINDER - BEFORE YOU RESPOND:
+- Did you make any causal claims? REMOVE THEM
+- Did you use "aligns with", "translates to", "classic", "dramatic"? REMOVE THEM
+- Did you cite sources for meteorology claims? If not, REMOVE THE CLAIMS
+- Just describe what the data shows - nothing more
 
 Output JSON only:
 {{
@@ -2984,9 +3021,41 @@ def main():
                 except Exception as e:
                     print(f"    Could not fetch quoted post: {e}")
 
+            # Check if this mention is a reply TO another post - fetch that parent post
+            parent_context = ""
+            parent_images = []
+            if mention.get('parent_uri'):
+                try:
+                    parent_posts = client.app.bsky.feed.get_posts({'uris': [mention['parent_uri']]})
+                    if parent_posts.posts:
+                        pp = parent_posts.posts[0]
+                        parent_author = pp.author.handle
+                        parent_text = pp.record.text
+                        is_own_post = pp.author.did == own_did
+                        parent_label = "YOUR OWN POST" if is_own_post else f"POST by @{parent_author}"
+                        parent_context = f"\n\nPARENT POST THEY'RE REPLYING TO ({parent_label}):\n{parent_text}"
+                        print(f"    Mention is reply to: {parent_label[:50]}...")
+                        # Also extract images from parent post
+                        parent_images = extract_image_urls(pp)
+                        if parent_images:
+                            print(f"    Parent post has {len(parent_images)} image(s)")
+                except Exception as e:
+                    print(f"    Could not fetch parent post: {e}")
+
+            # Analyze images - check mention first, then parent post
+            image_context = ""
+            images_to_analyze = mention.get('images', []) or parent_images
+            if images_to_analyze:
+                source = "mention" if mention.get('images') else "parent post"
+                print(f"    Found {len(images_to_analyze)} image(s) in {source}")
+                image_analysis = analyze_reply_images(images_to_analyze)
+                if image_analysis:
+                    image_context = f"\n\nIMAGES THEY SHARED:\n{image_analysis}"
+                    print(f"    Image analysis: {image_analysis[:60]}...")
+
             # Auto-detect which model is mentioned and load appropriate data
             mention_forecast = ""
-            combined_text = mention['text'] + " " + quoted_context
+            combined_text = mention['text'] + " " + parent_context + " " + quoted_context + " " + image_context
             detected_model = detect_model_reference(combined_text)
 
             if detected_model:
@@ -3006,55 +3075,72 @@ def main():
                 except:
                     pass
 
-            mention_prompt = f"""You are WXD, a weather bot. Someone @mentioned you on Bluesky.
+            # Use the unified generate_chat_response function - same system as threaded replies
+            # Build context string combining parent post and any images
+            context_text = parent_context + quoted_context
+            if not context_text.strip():
+                context_text = "(No parent post - direct @mention)"
 
-THEIR MESSAGE: {mention['text']}{quoted_context}{mention_forecast}
+            # Get forecast context
+            forecast_ctx = ""
+            if mention_forecast:
+                forecast_ctx = mention_forecast
+            else:
+                try:
+                    forecast_ctx = get_latest_forecast_context(client, bsky_handle)
+                except:
+                    pass
 
-RESPOND WITH ONE SHORT POST (max 280 chars). Rules:
-- You have been given the CORRECT model data above - USE IT to answer
-- If the data shows specific temps/dates, quote them accurately
-- If they're asking about a model you DON'T have data for above, say "I don't have [model] data to hand"
-- DO NOT substitute one model's data for another - that's misleading
-- Be helpful but concise - factual over chatty
-- DO NOT waffle - one concise message only
+            # Call unified response generator with all context
+            result = generate_chat_response(
+                reply_text=mention['text'],
+                parent_text=context_text,
+                session=None,
+                forecast_context=forecast_ctx,
+                is_super_user=is_mention_super,
+                research_context="",
+                image_context=image_context,
+                parent_uri=mention.get('parent_uri', '')
+            )
 
-Output ONLY the reply text, nothing else."""
-
-            try:
-                result = subprocess.run(
-                    ['claude', '--dangerously-skip-permissions', '--model', 'sonnet', '-p', mention_prompt],
-                    capture_output=True,
-                    text=True,
-                    timeout=30
-                )
-                if result.returncode == 0 and result.stdout.strip():
-                    response_text = result.stdout.strip()[:300]  # Hard cap
-                    # Add signature
-                    if len(response_text) < 270:
-                        response_text += "\n\n—WXD"
-                    claude_calls += 1
-                else:
-                    print(f"    Claude failed, falling back to canned")
-                    response_text = CANNED_RESPONSES['chat_invitation']
-            except Exception as e:
-                print(f"    Claude error: {e}, falling back to canned")
-                response_text = CANNED_RESPONSES['chat_invitation']
+            if result.get('response_posts'):
+                response_posts = result['response_posts']
+                # HARD CAP: max 2 posts for mention responses
+                if len(response_posts) > 2:
+                    print(f"    Warning: truncating from {len(response_posts)} to 2 posts")
+                    response_posts = response_posts[:2]
+                response_posts = add_thread_numbers(response_posts)
+                claude_calls += 1
+                print(f"    Response ({len(response_posts)} post(s)): {response_posts[0][:50]}...")
+            else:
+                print(f"    No response generated, falling back to canned")
+                response_posts = [CANNED_RESPONSES['chat_invitation']]
+                response_posts = [CANNED_RESPONSES['chat_invitation']]
         else:
             # Non-follower: canned invitation
             print(f"    [NON-FOLLOWER] - sending canned invitation")
-            response_text = CANNED_RESPONSES['chat_invitation']
+            response_posts = [CANNED_RESPONSES['chat_invitation']]
 
         if not dry_run:
-            # Reply to the mention
-            reply_ref = {'uri': mention['uri'], 'cid': mention['cid']}
-            post_result = post_reply(client, response_text, reply_to=reply_ref, root=reply_ref)
-            if post_result:
-                print(f"    Posted: {response_text[:60]}...")
-                print(f"    URI: {post_result['uri']}")
+            # Reply to the mention as a thread
+            root_ref = {'uri': mention['uri'], 'cid': mention['cid']}
+            last_ref = root_ref
+            posts_sent = 0
+            for post_text in response_posts:
+                post_result = post_reply(client, post_text, reply_to=last_ref, root=root_ref)
+                if post_result:
+                    last_ref = post_result
+                    posts_sent += 1
+                else:
+                    print(f"    Failed to post: {post_text[:40]}...")
+                    break
+            if posts_sent > 0:
+                print(f"    Posted {posts_sent} post(s): {response_posts[0][:50]}...")
+                print(f"    URI: {last_ref.get('uri', 'unknown')}")
                 mentions_responded += 1
                 new_processed.append(mention['uri'])
         else:
-            print(f"    [DRY RUN] Would post: {response_text[:60]}...")
+            print(f"    [DRY RUN] Would post {len(response_posts)} post(s): {response_posts[0][:50]}...")
             new_processed.append(mention['uri'])
 
     if new_mentions:
