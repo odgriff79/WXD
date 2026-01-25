@@ -181,11 +181,122 @@ Bot said things like:
 - Git commit 656a356 - Last known working mention prompt
 - UNIFIED_REPLY_REFACTOR.md - Documents today's (broken) refactor
 
+## Council Solution (2026-01-25)
+
+Council (Claude + Codex) reviewed this problem and reached consensus on the fix. Core insight: **long prompts fail because Claude loses rules buried in context - fix requires structural enforcement, not more rules.**
+
+### Approved Architecture
+
+1. **Compress prompt to ≤20 lines** - One clear instruction per line. Critical constraints at the VERY TOP:
+   - Single post
+   - Max 280 chars
+   - Citations required for meteorology claims
+
+2. **Require structured JSON output**:
+```json
+{
+  "post": "The actual reply text",
+  "citations": ["source1", "source2"],
+  "meteorology_claim": true
+}
+```
+This makes validation mechanical rather than heuristic.
+
+3. **Single Claude CLI call with `--tools WebSearch,WebFetch`**:
+```python
+result = subprocess.run([
+    'claude', '--dangerously-skip-permissions', '--model', 'sonnet',
+    '--tools', 'WebSearch,WebFetch',
+    '-p', mention_prompt
+], capture_output=True, text=True, timeout=60)
+```
+Prompt must include: "If making any meteorology claim, you MUST call WebSearch first and cite the source."
+
+4. **Post-generation validation in caller**:
+```python
+# Validate response
+import json
+try:
+    response = json.loads(result.stdout.strip())
+    post = response.get('post', '')
+    citations = response.get('citations', [])
+    has_met_claim = response.get('meteorology_claim', False)
+
+    # Rejection conditions
+    if len(post) > 280:
+        # Retry: "Post too long, max 280 chars"
+    if has_met_claim and not citations:
+        # Retry: "Meteorology claim requires citation"
+    if '\n[' in post or '[1/' in post:
+        # Retry: "Single post only, no thread markers"
+except json.JSONDecodeError:
+    # Retry: "Output must be valid JSON"
+```
+Max 2 retries. On exhaustion, fall back to canned response.
+
+5. **WebSearch failure handling** (in prompt):
+   - If no results: must refuse claim OR qualify with "Reports suggest..." without specific citation
+   - Never fake a citation
+
+6. **Context placement**:
+   - System prompt: minimal (the ≤20 lines)
+   - User message: parent post, image analysis, recordWithMedia images, forecast data
+
+### Council Consensus Points
+
+| Point | Agreement |
+|-------|-----------|
+| Long prompts cause rule-following failures | Both models |
+| Post-generation validation necessary | Both models |
+| Structured JSON output enables mechanical validation | Both models |
+| Retry with feedback > post-hoc citation injection | Both models |
+| WebSearch/WebFetch must be tool-gated, not optional | Both models |
+
+### Open Issues to Resolve
+
+| Issue | Decision Needed |
+|-------|-----------------|
+| Citation format in 280 chars | Parenthetical "(NWS)", embed card, or reply thread? |
+| Meteorology claim detection | Use model self-report in JSON; spot-check for false negatives |
+| Draft the actual ≤20-line prompt | Test on 10 real queries before production |
+
+### Risks & Mitigations
+
+| Risk | Mitigation |
+|------|------------|
+| Tool non-compliance (skips WebSearch) | Validator rejects if `meteorology_claim: true` but `citations: []` |
+| Retry exhaustion (3 failures) | Fall back to canned "I can't answer that with sources right now" |
+| Latency from WebSearch | Acceptable for quality; monitor p95 |
+| False positive rejections | Log rejections, tune rules based on real data |
+
+### Proposed ≤20-Line Prompt Template
+
+```python
+mention_prompt = f"""RULES (MUST FOLLOW - violations rejected):
+1. Output valid JSON only: {{"post": "...", "citations": [], "meteorology_claim": false}}
+2. post: max 280 chars, single message, no thread markers
+3. If making ANY meteorology claim, set meteorology_claim: true
+4. If meteorology_claim: true, you MUST call WebSearch first and include source in citations[]
+5. No citations available? Say "I'd need to verify that" - never fake sources
+
+CONTEXT:
+User @mentioned you: {mention['text']}
+{parent_context}
+{image_context}
+{mention_forecast}
+
+Respond with JSON only."""
+```
+
 ## Action Items
 
-- [ ] Revert mention handling to simple prompt (lines 3078-3144)
-- [ ] Keep parent/image context additions
-- [ ] Keep recordWithMedia fix
-- [ ] Test with dry-run before live
-- [ ] Verify single-post responses
-- [ ] Verify citations work via --tools flag
+- [ ] Draft final ≤20-line prompt template
+- [ ] Implement JSON validation in mention handler
+- [ ] Add retry logic (max 2 retries with feedback)
+- [ ] Add canned fallback response
+- [ ] Keep parent/image context additions (already done)
+- [ ] Keep recordWithMedia fix (already done)
+- [ ] Test on 10 real queries with --tools flag
+- [ ] Measure: single-post rate, citation presence, 280-char compliance
+- [ ] Decide citation format for Bluesky posts
+- [ ] Deploy after validation passes

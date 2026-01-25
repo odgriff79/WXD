@@ -33,19 +33,26 @@ ssh -i "KEY_PATH" ubuntu@144.21.62.133 "cd ~/wxd && ..."
 ---
 ## 🚨 URGENT: Mention Reply System BROKEN - 2026-01-25 🚨
 
-**Status:** NEEDS IMMEDIATE FIX
+**Status:** COUNCIL SOLUTION APPROVED - AWAITING IMPLEMENTATION
 **Case File:** [`docs/CASE_2026-01-25_MENTION_REPLY_BROKEN.md`](docs/CASE_2026-01-25_MENTION_REPLY_BROKEN.md)
 
-**Problem:** @mention replies are broken - producing multi-post responses, ignoring citation rules, making unsourced causal claims.
+**Problem:** @mention replies broken - multi-post responses, ignored citation rules, unsourced claims.
 
-**Root Cause:** Mention handling was switched from simple prompt to complex `generate_chat_response()` (154-line prompt that Claude ignores).
+**Root Cause:** 154-line prompt - Claude ignores rules buried in long context.
+
+**Council Solution (Claude + Codex consensus):**
+1. **≤20-line prompt** - critical rules at TOP, not buried
+2. **Structured JSON output** - `{"post": "...", "citations": [], "meteorology_claim": bool}`
+3. **Single Claude CLI call with `--tools WebSearch,WebFetch`**
+4. **Post-generation validation** - reject if >280 chars, missing citations, multi-post
+5. **Max 2 retries** with feedback, then canned fallback
 
 **DO NOT:**
-- Use the current mention system for live posts until fixed
-- Add more rules to `generate_chat_response()` - the prompt is already too long
-- "Fix" by adding more instructions - that's what broke it
+- Add more rules to `generate_chat_response()` - that's what broke it
+- Use long prompts - Claude loses context
+- Skip structured output validation
 
-**TO FIX:** See case file for full details. Requires reverting mention handling to simple prompt while keeping parent context/image fixes.
+**TO IMPLEMENT:** See case file for full architecture, proposed prompt template, and validation code.
 
 ---
 ## ⚠️ KNOWN ISSUE: Open-Meteo 504 Timeouts ⚠️
@@ -145,6 +152,59 @@ lib/
 3. Done - works everywhere automatically
 
 See `docs/UNIFIED_REPLY_REFACTOR.md` for full architecture.
+
+### AI Reply Prompt Pattern (Council-Approved 2026-01-25)
+
+**MANDATORY for all Claude CLI reply prompts.** Long prompts (>20 lines) cause Claude to ignore rules. This pattern ensures compliance.
+
+**The Pattern:**
+```python
+# 1. Short prompt (≤20 lines), critical rules at TOP
+prompt = f"""RULES (violations rejected):
+1. Output JSON only: {{"post": "...", "citations": [], "meteorology_claim": false}}
+2. post: max 280 chars, single message
+3. meteorology_claim: true if making weather science claims
+4. If meteorology_claim true: MUST call WebSearch, include source in citations[]
+5. No source? Say "I'd need to verify that"
+
+CONTEXT:
+{user_message}
+{parent_context}
+{image_context}
+{forecast_data}
+
+Respond with JSON only."""
+
+# 2. Call with --tools for citation enforcement
+result = subprocess.run([
+    'claude', '--dangerously-skip-permissions', '--model', 'sonnet',
+    '--tools', 'WebSearch,WebFetch',
+    '-p', prompt
+], capture_output=True, text=True, timeout=60)
+
+# 3. Validate structured output
+import json
+response = json.loads(result.stdout.strip())
+if len(response['post']) > 280:
+    # Retry with: "Too long, max 280 chars"
+if response['meteorology_claim'] and not response['citations']:
+    # Retry with: "Claim requires citation"
+# Max 2 retries, then canned fallback
+```
+
+**Why this works:**
+- Short prompt = Claude reads all rules
+- JSON output = mechanical validation (no heuristics)
+- --tools flag = citation enforcement via WebSearch
+- Post-validation = catch failures, retry with feedback
+
+**DO NOT:**
+- Write prompts >20 lines
+- Bury critical rules in middle of prompt
+- Skip structured output validation
+- Add "CRITICAL" or "IMPORTANT" markers (doesn't help)
+
+See [`docs/CASE_2026-01-25_MENTION_REPLY_BROKEN.md`](docs/CASE_2026-01-25_MENTION_REPLY_BROKEN.md) for full case study.
 
 ## Key Files
 
