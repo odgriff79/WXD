@@ -752,49 +752,59 @@ def generate_claude_commentary(result: dict, history: dict, state: dict) -> str:
 
     prompt = f"""Write a brief follow-up comment for a Bluesky post about this SSW signal.
 
-Current: {prob:.0f}% probability, {level} level
-OVERALL TREND: {overall_trend} (week ago avg: {week_ago_avg:.0f}%, 2 days ago avg: {older_avg:.0f}%, last 24h avg: {recent_avg:.0f}%)
-Signal emerged {days_elevated} days ago from near zero
-Last 24h range: {min_24h:.0f}%-{peak_24h:.0f}%
-Last 7 runs: {' → '.join(prob_history)}
-Vortex: {result.get('alert', {}).get('vortex_state', 'unknown')} ({result.get('current_u10_60n_ms', 0):.0f} m/s)
+DATA:
+- Current: {prob:.0f}% probability, {level} level
+- OVERALL TREND: {overall_trend} (week ago: {week_ago_avg:.0f}%, 2 days ago: {older_avg:.0f}%, last 24h: {recent_avg:.0f}%)
+- Signal emerged {days_elevated} days ago
+- Last 24h range: {min_24h:.0f}%-{peak_24h:.0f}%
+- Vortex: {result.get('alert', {}).get('vortex_state', 'unknown')} ({result.get('current_u10_60n_ms', 0):.0f} m/s)
 
-Rules:
-- Output ONLY the comment text, nothing else
-- Max 200 characters
-- No markdown, no asterisks, no formatting
-- No emoji
-- No meta-commentary about character counts
-- IMPORTANT: Focus on the OVERALL TREND ({overall_trend}), not run-to-run noise
-- If RISING: emphasize signal is building/strengthening
-- Do NOT make weather predictions - only describe the SSW signal itself
-- One or two sentences max"""
+EXAMPLE OUTPUT (for RISING trend):
+Signal has been building over the past week. Worth monitoring but still below critical threshold.
 
-    try:
-        result = subprocess.run(
-            ['claude', '--dangerously-skip-permissions', '--model', 'haiku', '-p', prompt],
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            commentary = result.stdout.strip()[:280]  # Ensure within limit
+RULES:
+- Output ONLY the comment, no preamble, no explanation
+- Max 180 chars
+- Plain text only (no markdown, no emoji)
+- Focus on {overall_trend} trend, not single-run noise
+- Describe the signal, NOT weather predictions
+- Start directly with the comment text"""
 
-            # Reject outputs that look like meta-commentary or reasoning
-            reject_patterns = [
-                'following the', 'i need to', 'i should', 'let me',
-                'claude', 'instructions', 'here is', "here's",
-                'based on', 'according to', 'the prompt'
-            ]
-            lower = commentary.lower()
-            if any(pattern in lower for pattern in reject_patterns):
-                logger.warning(f"Rejected meta-commentary: {commentary[:50]}...")
-                return None
+    def validate_commentary(text: str) -> bool:
+        """Check if output looks like valid commentary, not meta-text."""
+        if not text or len(text) < 20:
+            return False
+        lower = text.lower()
+        # Reject if starts with reasoning patterns
+        bad_starts = ['following', 'i ', 'let me', 'here', 'based on', 'the ', 'this ', 'okay', 'sure']
+        if any(lower.startswith(p) for p in bad_starts):
+            return False
+        # Reject if contains instruction echoing
+        bad_contains = ['claude', 'instruction', 'prompt', 'character', 'output only', 'preamble']
+        if any(p in lower for p in bad_contains):
+            return False
+        return True
 
-            return commentary
-    except Exception as e:
-        logger.warning(f"Claude commentary failed: {e}")
+    # Try up to 2 times with sonnet for reliability
+    for attempt in range(2):
+        try:
+            cli_result = subprocess.run(
+                ['claude', '--dangerously-skip-permissions', '-p', prompt],
+                capture_output=True,
+                text=True,
+                timeout=45
+            )
+            if cli_result.returncode == 0 and cli_result.stdout.strip():
+                commentary = cli_result.stdout.strip()[:280]
 
+                if validate_commentary(commentary):
+                    return commentary
+                else:
+                    logger.warning(f"Attempt {attempt+1}: Rejected invalid output: {commentary[:60]}...")
+        except Exception as e:
+            logger.warning(f"Attempt {attempt+1}: Claude commentary failed: {e}")
+
+    logger.warning("All commentary attempts failed validation")
     return None
 
 
