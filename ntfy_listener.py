@@ -262,7 +262,7 @@ def handle_ssw():
     from datetime import datetime, timezone
 
     # Run monitor and return status
-    output = run_command(['/home/ubuntu/wxd/venv/bin/python', 'ssw/ssw_monitor.py', '--json'])
+    output = run_command(['/home/ubuntu/wxd/venv/bin/python', 'ssw_monitor.py', '--json'])
 
     # Read the status file
     try:
