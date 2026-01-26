@@ -298,9 +298,21 @@ def handle_ssw():
         level = status.get('alert', {}).get('level', 'Unknown')
         u10 = status.get('current_u10_60n_ms', 'N/A')
         model_run = status.get('model_run', 'Unknown')
-        # Extract cycle from model_run (e.g., "20260125/12z" -> "12z")
-        cycle = model_run.split('/')[-1] if '/' in model_run else model_run
-        return f"SSW STATUS ({cycle} cycle)\n{'='*30}\nProbability: {prob}%\nAlert: {level}\nCurrent U10 @60N: {u10} m/s\nRun: {model_run}"
+        # Calculate time since fetch (not time since model run)
+        fetch_age_str = ""
+        fetch_ts = status.get('timestamp', '')
+        if fetch_ts:
+            try:
+                fetch_dt = datetime.fromisoformat(fetch_ts.replace('Z', '+00:00'))
+                fetch_age_hrs = (datetime.now(timezone.utc) - fetch_dt).total_seconds() / 3600
+                if fetch_age_hrs < 1:
+                    fetch_age_str = f"{int(fetch_age_hrs * 60)}min old"
+                else:
+                    fetch_age_str = f"{fetch_age_hrs:.1f}h old"
+            except:
+                pass
+        header = f"SSW STATUS ({fetch_age_str})" if fetch_age_str else "SSW STATUS"
+        return f"{header}\n{'='*30}\nProbability: {prob}%\nAlert: {level}\nCurrent U10 @60N: {u10} m/s\nRun: {model_run}"
     except Exception as e:
         return output or f"SSW check error: {e}"
 
