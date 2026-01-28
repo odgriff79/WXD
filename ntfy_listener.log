@@ -176,3 +176,56 @@ Commands:
   Status: "status" (quick system overview)
   Clear: "clear-feedback" (clear dashboard feedback queue)
 Send to: https://ntfy.sh/wxd-cmd
+Loaded credentials from ~/.wxd_env
+WXD ntfy listener started
+Commands:
+  Tracker A: "preview" (quick) or "fresh" (fetch new)
+  Tracker B: "icon" (quick) or "icon-fresh" (fetch new)
+  Tracker C: "mogreps" (quick) or "mogreps-fresh" (fetch new)
+  Tracker D: "ukmo" (quick) or "ukmo-fresh" (fetch new)
+  Daily: "summary" (Met Office summary preview)
+  Engagement: "engagement" (preview)
+  Cross: "cross" (cross-tracker preview) or "cross-post" (live post)
+  Replies: "check" (dry-run) or "respond" (live)
+  Status: "status" (quick system overview)
+  Clear: "clear-feedback" (clear dashboard feedback queue)
+Send to: https://ntfy.sh/wxd-cmd
+SSW status requested at 11:57:27
+Response sent to wxd-alerts
+Loaded credentials from ~/.wxd_env
+WXD ntfy listener started
+Commands:
+  Tracker A: "preview" (quick) or "fresh" (fetch new)
+  Tracker B: "icon" (quick) or "icon-fresh" (fetch new)
+  Tracker C: "mogreps" (quick) or "mogreps-fresh" (fetch new)
+  Tracker D: "ukmo" (quick) or "ukmo-fresh" (fetch new)
+  Daily: "summary" (Met Office summary preview)
+  Engagement: "engagement" (preview)
+  Cross: "cross" (cross-tracker preview) or "cross-post" (live post)
+  Replies: "check" (dry-run) or "respond" (live)
+  Status: "status" (quick system overview)
+  Clear: "clear-feedback" (clear dashboard feedback queue)
+Send to: https://ntfy.sh/wxd-cmd
+SSW status requested at 11:59:34
+Response sent to wxd-alerts
+SSW status requested at 19:03:41
+Response sent to wxd-alerts
+Reply respond requested at 20:05:07
+Response sent to wxd-alerts
+Reply respond requested at 20:22:33
+Response sent to wxd-alerts
+Loaded credentials from ~/.wxd_env
+WXD ntfy listener started
+Commands:
+  Tracker A: "preview" (quick) or "fresh" (fetch new)
+  Tracker B: "icon" (quick) or "icon-fresh" (fetch new)
+  Tracker C: "mogreps" (quick) or "mogreps-fresh" (fetch new)
+  Tracker D: "ukmo" (quick) or "ukmo-fresh" (fetch new)
+  Daily: "summary" (Met Office summary preview)
+  Engagement: "engagement" (preview)
+  Cross: "cross" (cross-tracker preview) or "cross-post" (live post)
+  Replies: "check" (dry-run) or "respond" (live)
+  Status: "status" (quick system overview)
+  Clear: "clear-feedback" (clear dashboard feedback queue)
+Send to: https://ntfy.sh/wxd-cmd
+Error: HTTPSConnectionPool(host='ntfy.sh', port=443): Max retries exceeded with url: /wxd-cmd/json (Caused by NameResolutionError("HTTPSConnection(host='ntfy.sh', port=443): Failed to resolve 'ntfy.sh' ([Errno -3] Temporary failure in name resolution)"))

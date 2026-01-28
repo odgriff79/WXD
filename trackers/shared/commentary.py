@@ -363,84 +363,177 @@ FORMAT: Plain text, no emojis, use C for temps. Start immediately with the story
         if result.returncode == 0 and result.stdout.strip():
             # Clean up any accidental prefix Claude might add
             text = result.stdout.strip()
-
-            # Strip Claude's reasoning preamble if present
-            # These patterns indicate Claude is "thinking out loud" before the actual post
-            # Handle both multi-line preambles and inline "Preamble: actual content"
             import re
 
-            preamble_patterns = [
-                "The data is all provided",
-                "Let me draft",
-                "Based on the analysis",
-                "Here's the post",
-                "Here is the post",
-                "I'll write",
-                "Looking at the data",
-                "Key points from the data",
-                "Here's my analysis",
-                "Analyzing the data",
+            # === STEP 1: Try to extract actual post from structured responses ===
+            # Claude sometimes writes "Post draft:\n---\nActual content\n---" or similar
+            # Look for actual content after separators
+
+            # Pattern: "Post draft:" or "**Post draft:**" followed by content
+            post_draft_match = re.search(
+                r'(?:\*\*)?Post draft:?\*?\*?[:\s]*\n*[-—]{2,}\s*\n(.+?)(?:\n[-—]{2,}|$)',
+                text,
+                re.IGNORECASE | re.DOTALL
+            )
+            if post_draft_match:
+                text = post_draft_match.group(1).strip()
+
+            # Pattern: Triple dash separator with content after
+            separator_match = re.search(r'\n---+\s*\n\n?([A-Z][^*\n-].{50,})', text)
+            if separator_match:
+                text = separator_match.group(1).strip()
+
+            # === STEP 2: Detect meta-commentary patterns (Claude reviewing itself) ===
+            # These indicate Claude output analysis notes instead of actual post
+
+            meta_patterns = [
+                r'^Draft \d+ at \d+ chars',  # "Draft 1 at 197 chars is good"
+                r'^\*?\*?Key facts from',     # "**Key facts from the analysis:**"
+                r'^\*?\*?Key points:',         # "**Key points:**"
+                r'^Let me (?:draft|check|analyze|verify)',
+                r'^(?:Here\'?s|This is) (?:the|my) (?:draft|post|analysis)',
+                r'^I\'ll (?:write|draft|compose)',
+                r'^(?:Checking|Analyzing|Reviewing)',
+                r'^\*?\*?RULES? (?:check|verification|compliance)',
+                r'^Final check',
+                r'^- PEAK TIMING:',            # Analysis bullet format
+                r'^- COLD RANKING:',           # Analysis bullet format
+                r'^- RUN SHIFT:',              # Analysis bullet format
+                r'✓|✗',                        # Checkmarks indicate review mode
+                r'^Wait\s*[—–-]',              # "Wait — let me check"
+                r'character count',            # Meta about character limits
+                r'refine against the constraints',  # Meta about constraints
+                r'^(?:OK|Okay),?\s*(?:let|so)',  # "OK, let me..." "Okay, so..."
+                r'^(?:First|Now),?\s*(?:let me|I)',  # "First, let me..."
+                r'max \d+ chars',              # References to character limits
             ]
 
-            # First, try to strip inline preambles (pattern followed by colon on same line)
-            for pattern in preamble_patterns:
-                # Match pattern (case-insensitive) followed by optional text and colon
-                # e.g., "Looking at the data:" or "Based on the analysis, here's the post:"
-                inline_match = re.match(
-                    rf'^{re.escape(pattern)}[^:\n]*:\s*',
-                    text,
-                    re.IGNORECASE
-                )
-                if inline_match:
-                    text = text[inline_match.end():].strip()
-                    break
+            is_meta_commentary = any(re.match(p, text, re.IGNORECASE | re.MULTILINE) for p in meta_patterns)
 
-            # Then check for multi-line preamble (reasoning spread across lines)
-            for pattern in preamble_patterns:
-                if pattern.lower() in text.lower()[:200]:  # Check first 200 chars
-                    lines = text.split('\n')
-                    content_start = 0
-                    for i, line in enumerate(lines):
-                        line_lower = line.lower().strip()
-                        # Skip lines that are clearly preamble
-                        if any(p.lower() in line_lower for p in preamble_patterns):
-                            content_start = i + 1
-                            continue
-                        # Skip markdown-style bullet points (part of Claude's reasoning)
-                        if line.strip().startswith('- **') or line.strip().startswith('* **'):
-                            content_start = i + 1
-                            continue
-                        # If we hit a line that looks like actual content, stop
-                        if line.strip() and not line.strip().startswith('-') and not line.strip().startswith('*'):
-                            if not any(p.lower() in line_lower for p in ['key points', 'analysis:', 'draft:', 'post:']):
+            # Also check if response is mostly bullet points (analysis format)
+            lines = text.split('\n')
+            bullet_lines = sum(1 for l in lines if l.strip().startswith(('-', '*', '•')))
+            if len(lines) > 2 and bullet_lines / len(lines) > 0.5:
+                is_meta_commentary = True
+
+            # If meta-commentary detected, try to extract the actual content or fallback
+            if is_meta_commentary:
+                # Look for actual post content that might be embedded
+                # Pattern: continuous prose after meta-commentary (paragraph without bullets)
+                prose_match = re.search(
+                    r'\n\n([A-Z][^*\n-].{100,}?)(?:\n\n|$)',
+                    text,
+                    re.DOTALL
+                )
+                if prose_match:
+                    candidate = prose_match.group(1).strip()
+                    # Verify it's actual prose, not more analysis
+                    if not re.search(r'(?:Draft|Key facts|PEAK TIMING|✓|✗)', candidate):
+                        text = candidate
+                    else:
+                        # Can't extract usable content - return None to trigger fallback
+                        print(f"  [preamble-filter] Meta-commentary detected, no extractable content")
+                        text = None
+                else:
+                    print(f"  [preamble-filter] Meta-commentary detected, no extractable content")
+                    text = None
+
+            # If we couldn't extract valid content, fallback
+            if not text:
+                pass  # Will fall through to fallback section below
+
+            else:
+                # === STEP 3: Standard preamble stripping (for milder cases) ===
+                preamble_patterns = [
+                    "The data is all provided",
+                    "Let me draft",
+                    "Based on the analysis",
+                    "Here's the post",
+                    "Here is the post",
+                    "I'll write",
+                    "Looking at the data",
+                    "Key points from the data",
+                    "Key facts from the analysis",
+                    "Here's my analysis",
+                    "Analyzing the data",
+                    "Draft:",
+                    "Let me analyze",
+                    "I need to",
+                    "First, let me",
+                ]
+
+                # Strip leading markdown formatting that might hide patterns
+                text_clean = re.sub(r'^\*\*', '', text)
+
+                # Try to strip inline preambles (pattern followed by colon)
+                for pattern in preamble_patterns:
+                    inline_match = re.match(
+                        rf'^{re.escape(pattern)}[^:\n]*:\s*',
+                        text_clean,
+                        re.IGNORECASE
+                    )
+                    if inline_match:
+                        text = text_clean[inline_match.end():].strip()
+                        break
+
+                # Strip multi-line preambles
+                for pattern in preamble_patterns:
+                    if pattern.lower() in text.lower()[:300]:
+                        lines = text.split('\n')
+                        content_start = 0
+                        for i, line in enumerate(lines):
+                            line_lower = line.lower().strip()
+                            line_clean = re.sub(r'^\*+', '', line.strip())
+                            # Skip lines that are clearly preamble
+                            if any(p.lower() in line_clean.lower() for p in preamble_patterns):
+                                content_start = i + 1
+                                continue
+                            # Skip markdown bullet points
+                            if line.strip().startswith(('-', '*', '•')) and '**' in line:
+                                content_start = i + 1
+                                continue
+                            # Skip markdown headers
+                            if line.strip().startswith('**') and ':' in line:
+                                content_start = i + 1
+                                continue
+                            # Found actual content
+                            if line.strip() and not line.strip().startswith(('-', '*', '•')):
                                 break
                             content_start = i + 1
 
-                    if content_start > 0 and content_start < len(lines):
-                        text = '\n'.join(lines[content_start:]).strip()
-                    break
+                        if content_start > 0 and content_start < len(lines):
+                            text = '\n'.join(lines[content_start:]).strip()
+                        break
 
-            # Also strip known tracker prefixes
-            prefixes_to_remove = [f"{model_name}:", f"{model_name.lower()}:", "London 850hPa:"]
-            for prefix in prefixes_to_remove:
-                if text.startswith(prefix):
-                    text = text[len(prefix):].strip()
+                # === STEP 4: Clean up formatting ===
+                # Strip known tracker prefixes
+                prefixes_to_remove = [f"{model_name}:", f"{model_name.lower()}:", "London 850hPa:"]
+                for prefix in prefixes_to_remove:
+                    if text.startswith(prefix):
+                        text = text[len(prefix):].strip()
 
-            # Truncate at sentence boundary if too long (don't cut mid-sentence)
-            if len(text) > max_chars:
-                # Find last sentence end within limit
-                truncated = text[:max_chars]
-                last_period = truncated.rfind('. ')
-                if last_period > max_chars // 2:
-                    text = truncated[:last_period + 1].strip()
-                else:
-                    # No good sentence break - find last space
-                    last_space = truncated.rfind(' ')
-                    if last_space > max_chars // 2:
-                        text = truncated[:last_space].strip()
-                    # else just use the hard cut
+                # Strip any remaining markdown formatting
+                text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # Remove **bold**
+                text = re.sub(r'\*([^*]+)\*', r'\1', text)      # Remove *italic*
 
-            return text, False
+                # Final validation: reject if still looks like meta-commentary
+                if re.match(r'^(Draft|Key facts|Checking|PEAK TIMING)', text, re.IGNORECASE):
+                    print(f"  [preamble-filter] Post-cleanup still meta-commentary, using fallback")
+                    text = None
+
+                if text:
+                    # Truncate at sentence boundary if too long
+                    if len(text) > max_chars:
+                        truncated = text[:max_chars]
+                        last_period = truncated.rfind('. ')
+                        if last_period > max_chars // 2:
+                            text = truncated[:last_period + 1].strip()
+                        else:
+                            last_space = truncated.rfind(' ')
+                            if last_space > max_chars // 2:
+                                text = truncated[:last_space].strip()
+
+                    return text, False
 
     except Exception as e:
         print(f"  Claude CLI error: {e}")

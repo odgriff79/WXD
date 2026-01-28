@@ -1,5 +1,5 @@
 {
-  "last_post": "2026-01-23T12:00:23.386234+00:00",
+  "last_post": "2026-01-27T12:00:20.503457+00:00",
   "topic_history": [
     {
       "category": "cold_relevant",
@@ -50,6 +50,11 @@
       "category": "cold_relevant",
       "topic": "When all 4 models agree on cold - what rare full convergence means for confidence",
       "time": "2026-01-23T12:00:23.386247+00:00"
+    },
+    {
+      "category": "cold_relevant",
+      "topic": "The jet stream and UK cold snaps - how blocking patterns push Arctic air south",
+      "time": "2026-01-27T12:00:20.503473+00:00"
     }
   ],
   "collected_questions": [
@@ -66,6 +71,6 @@
       "uri": "at://did:plc:zgllhv7tg4n2crgnibxrnz3t/app.bsky.feed.post/3mcpurwnabk2g"
     }
   ],
-  "posts_count": 10,
-  "last_community_request": "2026-01-18T12:00:06.169704+00:00"
+  "posts_count": 11,
+  "last_community_request": "2026-01-25T12:00:06.384865+00:00"
 }

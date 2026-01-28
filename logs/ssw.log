@@ -414,3 +414,301 @@ Vortex currently ...
 2026-01-25 07:30:33,328 - WARNING - Failed to register post: No module named 'data.post_registry'
 2026-01-25 07:30:33,507 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
 2026-01-25 07:30:33,507 - INFO - Commentary posted as reply
+2026-01-25 13:30:01,783 - INFO - SSW monitor starting at 2026-01-25T13:30:01.783826+00:00
+2026-01-25 13:30:01,784 - INFO - LATENCY: Targeting 20260125/06z (data age: 7.5h)
+2026-01-25 13:30:01,784 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260125/gefs_pgrb2ap5_all_06z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-25 13:30:03,305 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-25 13:30:24,926 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-25 13:30:24,938 - INFO - LATENCY: Fetch succeeded at 7.5h after cycle init
+2026-01-25 13:30:24,938 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-25 13:30:24,938 - WARNING - ⚠️  SSW ALERT: 48% probability | Current U10: 23.0 m/s | Vortex: moderate
+2026-01-25 13:30:24,939 - INFO - Post decision: True (elevated_daily_update)
+2026-01-25 13:30:24,939 - INFO - Post text (151 chars): 🌀 GEFS SSW: ALERT ↑ (48%)
+
+15/31 members show reversal signal in 5-16 day window.
+
+Vortex currently ...
+2026-01-25 13:30:25,393 - INFO - SSW chart saved: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-25 13:30:25,393 - INFO - Chart generated: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-25 13:30:34,113 - INFO - HTTP Request: POST https://bsky.social/xrpc/com.atproto.server.createSession "HTTP/1.1 200 OK"
+2026-01-25 13:30:34,839 - INFO - HTTP Request: GET https://calocybe.us-west.host.bsky.network/xrpc/app.bsky.actor.getProfile?actor=wxd-london.bsky.social "HTTP/1.1 200 OK"
+2026-01-25 13:30:35,555 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.uploadBlob "HTTP/1.1 200 OK"
+2026-01-25 13:30:35,555 - INFO - Image uploaded: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-25 13:30:35,998 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-25 13:30:35,999 - INFO - Posted: https://bsky.app/profile/wxd-london.bsky.social/post/3mdatmnoab22v
+2026-01-25 13:30:36,167 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-25 13:30:36,167 - INFO - Commentary posted as reply
+2026-01-25 19:30:02,218 - INFO - SSW monitor starting at 2026-01-25T19:30:02.218005+00:00
+2026-01-25 19:30:02,218 - INFO - LATENCY: Targeting 20260125/12z (data age: 7.5h)
+2026-01-25 19:30:02,218 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260125/gefs_pgrb2ap5_all_12z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-25 19:30:04,002 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-25 19:30:24,185 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-25 19:30:24,196 - INFO - LATENCY: Fetch succeeded at 7.5h after cycle init
+2026-01-25 19:30:24,197 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-25 19:30:24,197 - WARNING - ⚠️  SSW STRONG: 52% probability | Current U10: 24.9 m/s | Vortex: moderate
+2026-01-25 19:30:24,198 - INFO - Post decision: True (elevated_daily_update)
+2026-01-25 19:30:24,198 - INFO - Post text (152 chars): 🌀 GEFS SSW: STRONG (52%)
+
+16/31 members show reversal signal in 5-16 day window.
+
+Vortex currently m...
+2026-01-25 19:30:24,686 - INFO - SSW chart saved: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-25 19:30:24,686 - INFO - Chart generated: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-25 19:30:34,784 - INFO - HTTP Request: POST https://bsky.social/xrpc/com.atproto.server.createSession "HTTP/1.1 200 OK"
+2026-01-25 19:30:35,240 - INFO - HTTP Request: GET https://calocybe.us-west.host.bsky.network/xrpc/app.bsky.actor.getProfile?actor=wxd-london.bsky.social "HTTP/1.1 200 OK"
+2026-01-25 19:30:35,943 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.uploadBlob "HTTP/1.1 200 OK"
+2026-01-25 19:30:35,944 - INFO - Image uploaded: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-25 19:30:36,400 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-25 19:30:36,400 - INFO - Posted: https://bsky.app/profile/wxd-london.bsky.social/post/3mdbhqfftcz2p
+2026-01-25 19:30:36,571 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-25 19:30:36,571 - INFO - Commentary posted as reply
+2026-01-26 01:30:02,537 - INFO - SSW monitor starting at 2026-01-26T01:30:02.537248+00:00
+2026-01-26 01:30:02,537 - INFO - LATENCY: Targeting 20260125/18z (data age: 7.5h)
+2026-01-26 01:30:02,537 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260125/gefs_pgrb2ap5_all_18z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-26 01:30:04,052 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-26 01:30:26,000 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-26 01:30:26,012 - INFO - LATENCY: Fetch succeeded at 7.5h after cycle init
+2026-01-26 01:30:26,013 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-26 01:30:26,013 - WARNING - ⚠️  SSW ALERT: 45% probability | Current U10: 25.8 m/s | Vortex: moderate
+2026-01-26 01:30:26,014 - INFO - Post decision: True (level_change_STRONG_to_ALERT)
+2026-01-26 01:30:26,014 - INFO - Post text (153 chars): 🌀 GEFS SSW: ALERT ↓ (45%)
+
+14/31 members show reversal signal in 5-16 day window.
+
+Vortex currently ...
+2026-01-26 01:30:26,511 - INFO - SSW chart saved: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-26 01:30:26,511 - INFO - Chart generated: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-26 01:30:35,433 - INFO - HTTP Request: POST https://bsky.social/xrpc/com.atproto.server.createSession "HTTP/1.1 200 OK"
+2026-01-26 01:30:35,883 - INFO - HTTP Request: GET https://calocybe.us-west.host.bsky.network/xrpc/app.bsky.actor.getProfile?actor=wxd-london.bsky.social "HTTP/1.1 200 OK"
+2026-01-26 01:30:36,632 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.uploadBlob "HTTP/1.1 200 OK"
+2026-01-26 01:30:36,633 - INFO - Image uploaded: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-26 01:30:37,094 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-26 01:30:37,094 - INFO - Posted: https://bsky.app/profile/wxd-london.bsky.social/post/3mdc3u5gjhn2p
+2026-01-26 01:30:37,448 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-26 01:30:37,448 - INFO - Commentary posted as reply
+2026-01-26 07:30:02,068 - INFO - SSW monitor starting at 2026-01-26T07:30:02.068623+00:00
+2026-01-26 07:30:02,068 - INFO - LATENCY: Targeting 20260126/00z (data age: 7.5h)
+2026-01-26 07:30:02,068 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260126/gefs_pgrb2ap5_all_00z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-26 07:30:03,529 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-26 07:30:27,219 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-26 07:30:27,231 - INFO - LATENCY: Fetch succeeded at 7.5h after cycle init
+2026-01-26 07:30:27,231 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-26 07:30:27,231 - WARNING - ⚠️  SSW ALERT: 29% probability | Current U10: 26.6 m/s | Vortex: moderate
+2026-01-26 07:30:27,233 - INFO - Post decision: True (elevated_daily_update)
+2026-01-26 07:30:27,233 - INFO - Post text (152 chars): 🌀 GEFS SSW: ALERT ↓ (29%)
+
+9/31 members show reversal signal in 5-16 day window.
+
+Vortex currently m...
+2026-01-26 07:30:27,737 - INFO - SSW chart saved: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-26 07:30:27,738 - INFO - Chart generated: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-26 07:30:36,921 - INFO - HTTP Request: POST https://bsky.social/xrpc/com.atproto.server.createSession "HTTP/1.1 200 OK"
+2026-01-26 07:30:37,366 - INFO - HTTP Request: GET https://calocybe.us-west.host.bsky.network/xrpc/app.bsky.actor.getProfile?actor=wxd-london.bsky.social "HTTP/1.1 200 OK"
+2026-01-26 07:30:38,110 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.uploadBlob "HTTP/1.1 200 OK"
+2026-01-26 07:30:38,111 - INFO - Image uploaded: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-26 07:30:38,620 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-26 07:30:38,620 - INFO - Posted: https://bsky.app/profile/wxd-london.bsky.social/post/3mdcpxw7c4l2v
+2026-01-26 07:30:38,790 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-26 07:30:38,791 - INFO - Commentary posted as reply
+2026-01-26 13:30:01,939 - INFO - SSW monitor starting at 2026-01-26T13:30:01.939306+00:00
+2026-01-26 13:30:01,939 - INFO - LATENCY: Targeting 20260126/06z (data age: 7.5h)
+2026-01-26 13:30:01,939 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260126/gefs_pgrb2ap5_all_06z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-26 13:30:03,548 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-26 13:30:28,250 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-26 13:30:28,262 - INFO - LATENCY: Fetch succeeded at 7.5h after cycle init
+2026-01-26 13:30:28,263 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-26 13:30:28,263 - INFO - SSW status: WATCH | 23% prob | U10: 27.3 m/s
+2026-01-26 13:30:28,264 - INFO - Post decision: True (level_change_ALERT_to_WATCH)
+2026-01-26 13:30:28,264 - INFO - Post text (150 chars): 🌀 GEFS SSW: WATCH ↓ (23%)
+
+7/31 members show reversal signal in 5-16 day window.
+
+Vortex currently m...
+2026-01-26 13:30:28,772 - INFO - SSW chart saved: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-26 13:30:28,772 - INFO - Chart generated: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-26 13:30:32,655 - INFO - HTTP Request: POST https://bsky.social/xrpc/com.atproto.server.createSession "HTTP/1.1 200 OK"
+2026-01-26 13:30:33,116 - INFO - HTTP Request: GET https://calocybe.us-west.host.bsky.network/xrpc/app.bsky.actor.getProfile?actor=wxd-london.bsky.social "HTTP/1.1 200 OK"
+2026-01-26 13:30:33,996 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.uploadBlob "HTTP/1.1 200 OK"
+2026-01-26 13:30:33,996 - INFO - Image uploaded: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-26 13:30:34,432 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-26 13:30:34,432 - INFO - Posted: https://bsky.app/profile/wxd-london.bsky.social/post/3mdde3jneoc2s
+2026-01-26 19:30:02,403 - INFO - SSW monitor starting at 2026-01-26T19:30:02.402964+00:00
+2026-01-26 19:30:02,403 - INFO - LATENCY: Targeting 20260126/12z (data age: 7.5h)
+2026-01-26 19:30:02,403 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260126/gefs_pgrb2ap5_all_12z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-26 19:30:06,512 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-26 19:30:31,852 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-26 19:30:31,862 - INFO - LATENCY: Fetch succeeded at 7.5h after cycle init
+2026-01-26 19:30:31,863 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-26 19:30:31,863 - WARNING - ⚠️  SSW ALERT: 26% probability | Current U10: 28.2 m/s | Vortex: moderate
+2026-01-26 19:30:31,864 - INFO - Post decision: True (elevated_daily_update)
+2026-01-26 19:30:31,864 - INFO - Post text (148 chars): 🌀 GEFS SSW: ALERT (26%)
+
+8/31 members show reversal signal in 5-16 day window.
+
+Vortex currently mod...
+2026-01-26 19:30:32,396 - INFO - SSW chart saved: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-26 19:30:32,397 - INFO - Chart generated: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-26 19:30:40,994 - INFO - HTTP Request: POST https://bsky.social/xrpc/com.atproto.server.createSession "HTTP/1.1 200 OK"
+2026-01-26 19:30:41,523 - INFO - HTTP Request: GET https://calocybe.us-west.host.bsky.network/xrpc/app.bsky.actor.getProfile?actor=wxd-london.bsky.social "HTTP/1.1 200 OK"
+2026-01-26 19:30:42,234 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.uploadBlob "HTTP/1.1 200 OK"
+2026-01-26 19:30:42,234 - INFO - Image uploaded: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-26 19:30:42,805 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-26 19:30:42,805 - INFO - Posted: https://bsky.app/profile/wxd-london.bsky.social/post/3mddy7iujns2v
+2026-01-26 19:30:42,961 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-26 19:30:42,961 - INFO - Commentary posted as reply
+2026-01-27 01:30:02,150 - INFO - SSW monitor starting at 2026-01-27T01:30:02.150801+00:00
+2026-01-27 01:30:02,151 - INFO - LATENCY: Targeting 20260126/18z (data age: 7.5h)
+2026-01-27 01:30:02,151 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260126/gefs_pgrb2ap5_all_18z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-27 01:30:06,152 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-27 01:30:27,627 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-27 01:30:27,639 - INFO - LATENCY: Fetch succeeded at 7.5h after cycle init
+2026-01-27 01:30:27,642 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-27 01:30:27,642 - INFO - SSW status: WATCH | 13% prob | U10: 29.7 m/s
+2026-01-27 01:30:27,644 - INFO - Post decision: True (level_change_ALERT_to_WATCH)
+2026-01-27 01:30:27,644 - INFO - Post text (150 chars): 🌀 GEFS SSW: WATCH ↓ (13%)
+
+4/31 members show reversal signal in 5-16 day window.
+
+Vortex currently m...
+2026-01-27 01:30:28,187 - INFO - SSW chart saved: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-27 01:30:28,187 - INFO - Chart generated: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-27 01:30:31,884 - INFO - HTTP Request: POST https://bsky.social/xrpc/com.atproto.server.createSession "HTTP/1.1 200 OK"
+2026-01-27 01:30:32,329 - INFO - HTTP Request: GET https://calocybe.us-west.host.bsky.network/xrpc/app.bsky.actor.getProfile?actor=wxd-london.bsky.social "HTTP/1.1 200 OK"
+2026-01-27 01:30:33,058 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.uploadBlob "HTTP/1.1 200 OK"
+2026-01-27 01:30:33,058 - INFO - Image uploaded: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-27 01:30:33,624 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-27 01:30:33,624 - INFO - Posted: https://bsky.app/profile/wxd-london.bsky.social/post/3mdemcxia3i22
+2026-01-27 07:30:02,236 - INFO - SSW monitor starting at 2026-01-27T07:30:02.236299+00:00
+2026-01-27 07:30:02,236 - INFO - LATENCY: Targeting 20260127/00z (data age: 7.5h)
+2026-01-27 07:30:02,236 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260127/gefs_pgrb2ap5_all_00z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-27 07:30:04,135 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-27 07:30:26,785 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-27 07:30:26,796 - INFO - LATENCY: Fetch succeeded at 7.5h after cycle init
+2026-01-27 07:30:26,797 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-27 07:30:26,797 - INFO - SSW status: WATCH | 23% prob | U10: 30.1 m/s
+2026-01-27 07:30:26,798 - INFO - Post decision: True (elevated_daily_update)
+2026-01-27 07:30:26,798 - INFO - Post text (148 chars): 🌀 GEFS SSW: WATCH ↑ (23%)
+
+7/31 members show reversal signal in 5-16 day window.
+
+Vortex currently s...
+2026-01-27 07:30:27,348 - INFO - SSW chart saved: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-27 07:30:27,349 - INFO - Chart generated: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-27 07:30:30,611 - INFO - HTTP Request: POST https://bsky.social/xrpc/com.atproto.server.createSession "HTTP/1.1 200 OK"
+2026-01-27 07:30:31,060 - INFO - HTTP Request: GET https://calocybe.us-west.host.bsky.network/xrpc/app.bsky.actor.getProfile?actor=wxd-london.bsky.social "HTTP/1.1 200 OK"
+2026-01-27 07:30:31,766 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.uploadBlob "HTTP/1.1 200 OK"
+2026-01-27 07:30:31,767 - INFO - Image uploaded: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-27 07:30:32,174 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-27 07:30:32,175 - INFO - Posted: https://bsky.app/profile/wxd-london.bsky.social/post/3mdfagnmjq52p
+2026-01-27 13:30:02,643 - INFO - SSW monitor starting at 2026-01-27T13:30:02.643713+00:00
+2026-01-27 13:30:02,643 - INFO - LATENCY: Targeting 20260127/06z (data age: 7.5h)
+2026-01-27 13:30:02,644 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260127/gefs_pgrb2ap5_all_06z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-27 13:30:06,613 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-27 13:30:28,086 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-27 13:30:28,098 - INFO - LATENCY: Fetch succeeded at 7.5h after cycle init
+2026-01-27 13:30:28,098 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-27 13:30:28,098 - INFO - SSW status: WATCH | 23% prob | U10: 31.8 m/s
+2026-01-27 13:30:28,099 - INFO - Post decision: True (elevated_daily_update)
+2026-01-27 13:30:28,099 - INFO - Post text (146 chars): 🌀 GEFS SSW: WATCH (23%)
+
+7/31 members show reversal signal in 5-16 day window.
+
+Vortex currently str...
+2026-01-27 13:30:28,660 - INFO - SSW chart saved: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-27 13:30:28,661 - INFO - Chart generated: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-27 13:30:32,982 - INFO - HTTP Request: POST https://bsky.social/xrpc/com.atproto.server.createSession "HTTP/1.1 200 OK"
+2026-01-27 13:30:33,431 - INFO - HTTP Request: GET https://calocybe.us-west.host.bsky.network/xrpc/app.bsky.actor.getProfile?actor=wxd-london.bsky.social "HTTP/1.1 200 OK"
+2026-01-27 13:30:34,151 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.uploadBlob "HTTP/1.1 200 OK"
+2026-01-27 13:30:34,151 - INFO - Image uploaded: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-27 13:30:34,561 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-27 13:30:34,561 - INFO - Posted: https://bsky.app/profile/wxd-london.bsky.social/post/3mdfukhaxfj2m
+2026-01-27 19:30:01,985 - INFO - SSW monitor starting at 2026-01-27T19:30:01.985406+00:00
+2026-01-27 19:30:01,985 - INFO - LATENCY: Targeting 20260127/12z (data age: 7.5h)
+2026-01-27 19:30:01,985 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260127/gefs_pgrb2ap5_all_12z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-27 19:30:06,034 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-27 19:30:32,246 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-27 19:30:32,258 - INFO - LATENCY: Fetch succeeded at 7.5h after cycle init
+2026-01-27 19:30:32,258 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-27 19:30:32,259 - INFO - SSW status: WATCH | 19% prob | U10: 32.9 m/s
+2026-01-27 19:30:32,260 - INFO - Post decision: True (elevated_daily_update)
+2026-01-27 19:30:32,260 - INFO - Post text (148 chars): 🌀 GEFS SSW: WATCH ↓ (19%)
+
+6/31 members show reversal signal in 5-16 day window.
+
+Vortex currently s...
+2026-01-27 19:30:32,826 - INFO - SSW chart saved: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-27 19:30:32,826 - INFO - Chart generated: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-27 19:30:36,310 - INFO - HTTP Request: POST https://bsky.social/xrpc/com.atproto.server.createSession "HTTP/1.1 200 OK"
+2026-01-27 19:30:36,774 - INFO - HTTP Request: GET https://calocybe.us-west.host.bsky.network/xrpc/app.bsky.actor.getProfile?actor=wxd-london.bsky.social "HTTP/1.1 200 OK"
+2026-01-27 19:30:37,462 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.uploadBlob "HTTP/1.1 200 OK"
+2026-01-27 19:30:37,462 - INFO - Image uploaded: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-27 19:30:37,946 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-27 19:30:37,946 - INFO - Posted: https://bsky.app/profile/wxd-london.bsky.social/post/3mdgiobrn4a2v
+2026-01-28 01:30:02,133 - INFO - SSW monitor starting at 2026-01-28T01:30:02.133021+00:00
+2026-01-28 01:30:02,133 - INFO - LATENCY: Targeting 20260127/18z (data age: 7.5h)
+2026-01-28 01:30:02,133 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260127/gefs_pgrb2ap5_all_18z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-28 01:30:03,786 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-28 01:30:23,908 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-28 01:30:23,919 - INFO - LATENCY: Fetch succeeded at 7.5h after cycle init
+2026-01-28 01:30:23,920 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-28 01:30:23,920 - INFO - SSW status: WATCH | 16% prob | U10: 34.0 m/s
+2026-01-28 01:30:23,921 - INFO - Post decision: True (elevated_daily_update)
+2026-01-28 01:30:23,921 - INFO - Post text (148 chars): 🌀 GEFS SSW: WATCH ↓ (16%)
+
+5/31 members show reversal signal in 5-16 day window.
+
+Vortex currently s...
+2026-01-28 01:30:24,491 - INFO - SSW chart saved: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-28 01:30:24,491 - INFO - Chart generated: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-28 01:30:28,986 - INFO - HTTP Request: POST https://bsky.social/xrpc/com.atproto.server.createSession "HTTP/1.1 200 OK"
+2026-01-28 01:30:29,437 - INFO - HTTP Request: GET https://calocybe.us-west.host.bsky.network/xrpc/app.bsky.actor.getProfile?actor=wxd-london.bsky.social "HTTP/1.1 200 OK"
+2026-01-28 01:30:30,126 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.uploadBlob "HTTP/1.1 200 OK"
+2026-01-28 01:30:30,126 - INFO - Image uploaded: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-28 01:30:30,586 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-28 01:30:30,586 - INFO - Posted: https://bsky.app/profile/wxd-london.bsky.social/post/3mdh4rs5ik32d
+2026-01-28 07:30:01,964 - INFO - SSW monitor starting at 2026-01-28T07:30:01.964609+00:00
+2026-01-28 07:30:01,964 - INFO - LATENCY: Targeting 20260128/00z (data age: 7.5h)
+2026-01-28 07:30:01,964 - INFO - Fetching GEFS from: https://nomads.ncep.noaa.gov/dods/gefs/gefs20260128/gefs_pgrb2ap5_all_00z
+/home/ubuntu/wxd/venv/lib/python3.12/site-packages/xarray/coding/times.py:215: SerializationWarning: Ambiguous reference date string: 1-1-1 00:00:0.0. The first value is assumed to be the year hence will be padded with zeros to remove the ambiguity (the padded reference date string is: 0001-1-1 00:00:0.0). To remove this message, remove the ambiguity by padding your reference date strings with zeros.
+  ref_date = _ensure_padded_year(ref_date)
+2026-01-28 07:30:03,542 - INFO - Detected: lev=lev, lat=lat, lon=lon, var=ugrdprs
+2026-01-28 07:30:25,834 - INFO - Zonal mean dims: ('ens', 'time'), ens=ens, time=time
+2026-01-28 07:30:25,845 - INFO - LATENCY: Fetch succeeded at 7.5h after cycle init
+2026-01-28 07:30:25,845 - INFO - Saved: /home/ubuntu/wxd/ssw/ssw_status.json
+2026-01-28 07:30:25,845 - INFO - SSW status: WATCH | 19% prob | U10: 35.2 m/s
+2026-01-28 07:30:25,847 - INFO - Post decision: True (elevated_daily_update)
+2026-01-28 07:30:25,847 - INFO - Post text (148 chars): 🌀 GEFS SSW: WATCH ↑ (19%)
+
+6/31 members show reversal signal in 5-16 day window.
+
+Vortex currently s...
+2026-01-28 07:30:26,426 - INFO - SSW chart saved: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-28 07:30:26,426 - INFO - Chart generated: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-28 07:30:30,404 - INFO - HTTP Request: POST https://bsky.social/xrpc/com.atproto.server.createSession "HTTP/1.1 200 OK"
+2026-01-28 07:30:30,847 - INFO - HTTP Request: GET https://calocybe.us-west.host.bsky.network/xrpc/app.bsky.actor.getProfile?actor=wxd-london.bsky.social "HTTP/1.1 200 OK"
+2026-01-28 07:30:31,522 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.uploadBlob "HTTP/1.1 200 OK"
+2026-01-28 07:30:31,523 - INFO - Image uploaded: /home/ubuntu/wxd/ssw/ssw_history_chart.png
+2026-01-28 07:30:31,969 - INFO - HTTP Request: POST https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.repo.createRecord "HTTP/1.1 200 OK"
+2026-01-28 07:30:31,969 - INFO - Posted: https://bsky.app/profile/wxd-london.bsky.social/post/3mdhqvkts232d

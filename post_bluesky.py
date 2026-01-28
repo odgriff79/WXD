@@ -1195,6 +1195,171 @@ def format_analysis_context(run_diff_text: str, confidence: str,
     return "\n".join(context_parts)
 
 
+def strip_claude_preamble(text: str) -> str:
+    """Strip Claude's reasoning preamble from output.
+
+    Claude sometimes outputs its thinking process before the actual post content.
+    This function strips common preamble patterns to extract just the final post.
+
+    Returns None if the entire response appears to be meta-commentary with no
+    extractable post content (caller should use fallback).
+    """
+    import re
+
+    if not text:
+        return None
+
+    # === STEP 1: Try to extract actual post from structured responses ===
+    # Claude sometimes writes "Post draft:\n---\nActual content\n---"
+
+    # Pattern: "Post draft:" followed by separator and content
+    post_draft_match = re.search(
+        r'(?:\*\*)?Post draft:?\*?\*?[:\s]*\n*[-—]{2,}\s*\n(.+?)(?:\n[-—]{2,}|$)',
+        text,
+        re.IGNORECASE | re.DOTALL
+    )
+    if post_draft_match:
+        text = post_draft_match.group(1).strip()
+
+    # Pattern: Triple dash separator with prose content after
+    separator_match = re.search(r'\n---+\s*\n\n?([A-Z][^*\n-].{50,})', text)
+    if separator_match:
+        text = separator_match.group(1).strip()
+
+    # === STEP 2: Detect meta-commentary patterns ===
+    # These indicate Claude output analysis notes instead of actual post
+
+    meta_patterns = [
+        r'^Draft \d+ at \d+ chars',           # "Draft 1 at 197 chars is good"
+        r'^\*?\*?Key facts from',              # "**Key facts from the analysis:**"
+        r'^\*?\*?Key points:',                  # "**Key points:**"
+        r'^Let me (?:draft|check|analyze|verify)',
+        r'^(?:Here\'?s|This is) (?:the|my) (?:draft|post|analysis)',
+        r'^I\'ll (?:write|draft|compose)',
+        r'^(?:Checking|Analyzing|Reviewing)',
+        r'^\*?\*?RULES? (?:check|verification|compliance)',
+        r'^Final check',
+        r'^- PEAK TIMING:',                     # Analysis bullet format
+        r'^- COLD RANKING:',                    # Analysis bullet format
+        r'^- RUN SHIFT:',                       # Analysis bullet format
+        r'✓|✗',                                 # Checkmarks indicate review mode
+        r'^Wait\s*[—–-]',                       # "Wait — let me check"
+        r'character count',                     # Meta about character limits
+        r'refine against the constraints',      # Meta about constraints
+        r'^(?:OK|Okay),?\s*(?:let|so)',        # "OK, let me..." "Okay, so..."
+        r'^(?:First|Now),?\s*(?:let me|I)',    # "First, let me..." "Now, I need..."
+        r'max \d+ chars',                       # References to character limits
+    ]
+
+    is_meta_commentary = any(re.match(p, text, re.IGNORECASE | re.MULTILINE) for p in meta_patterns)
+
+    # Also check if response is mostly bullet points (analysis format)
+    lines = text.split('\n')
+    bullet_lines = sum(1 for l in lines if l.strip().startswith(('-', '*', '•')))
+    if len(lines) > 2 and bullet_lines / len(lines) > 0.5:
+        is_meta_commentary = True
+
+    # If meta-commentary detected, try to extract actual content or return None
+    if is_meta_commentary:
+        # Look for actual post content that might be embedded (prose paragraph)
+        prose_match = re.search(
+            r'\n\n([A-Z][^*\n-].{100,}?)(?:\n\n|$)',
+            text,
+            re.DOTALL
+        )
+        if prose_match:
+            candidate = prose_match.group(1).strip()
+            # Verify it's actual prose, not more analysis
+            if not re.search(r'(?:Draft|Key facts|PEAK TIMING|✓|✗|COLD RANKING|RUN SHIFT)', candidate):
+                text = candidate
+            else:
+                print(f"  [preamble-filter] Meta-commentary detected, no extractable content")
+                return None
+        else:
+            print(f"  [preamble-filter] Meta-commentary detected, no extractable content")
+            return None
+
+    # === STEP 3: Standard preamble stripping ===
+    preamble_patterns = [
+        "The data is all provided",
+        "Let me draft",
+        "Based on the analysis",
+        "Here's the post",
+        "Here is the post",
+        "I'll write",
+        "Looking at the data",
+        "Key points from the data",
+        "Key facts from the analysis",
+        "Here's my analysis",
+        "Analyzing the data",
+        "Draft:",
+        "Let me analyze",
+        "I need to",
+        "First, let me",
+    ]
+
+    # Strip leading markdown that might hide patterns
+    text_clean = re.sub(r'^\*\*', '', text)
+
+    # Try to strip inline preambles
+    for pattern in preamble_patterns:
+        inline_match = re.match(
+            rf'^{re.escape(pattern)}[^:\n]*:\s*',
+            text_clean,
+            re.IGNORECASE
+        )
+        if inline_match:
+            text = text_clean[inline_match.end():].strip()
+            break
+
+    # Check for multi-line preamble
+    for pattern in preamble_patterns:
+        if pattern.lower() in text.lower()[:300]:
+            lines = text.split('\n')
+            content_start = 0
+            for i, line in enumerate(lines):
+                line_lower = line.lower().strip()
+                line_clean = re.sub(r'^\*+', '', line.strip())
+                # Skip preamble lines
+                if any(p.lower() in line_clean.lower() for p in preamble_patterns):
+                    content_start = i + 1
+                    continue
+                # Skip markdown bullet points
+                if line.strip().startswith(('-', '*', '•')) and '**' in line:
+                    content_start = i + 1
+                    continue
+                # Skip markdown headers
+                if line.strip().startswith('**') and ':' in line:
+                    content_start = i + 1
+                    continue
+                # Found actual content
+                if line.strip() and not line.strip().startswith(('-', '*', '•')):
+                    break
+                content_start = i + 1
+
+            if content_start > 0 and content_start < len(lines):
+                text = '\n'.join(lines[content_start:]).strip()
+            break
+
+    # === STEP 4: Clean up formatting ===
+    # Strip known prefixes
+    prefixes_to_remove = ["London 850hPa:", "WXD:", "4-model ensemble:"]
+    for prefix in prefixes_to_remove:
+        if text.startswith(prefix):
+            text = text[len(prefix):].strip()
+
+    # Strip markdown formatting
+    text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
+    text = re.sub(r'\*([^*]+)\*', r'\1', text)
+
+    # Final validation: reject if still looks like meta-commentary
+    if re.match(r'^(Draft|Key facts|Checking|PEAK TIMING|COLD RANKING|- )', text, re.IGNORECASE):
+        print(f"  [preamble-filter] Post-cleanup still meta-commentary, returning None")
+        return None
+
+    return text if text else None
+
+
 def get_claude_commentary(data_path: Path, run_diff_text: str, confidence: str,
                           percentile_info: dict = None, bimodal_info: dict = None,
                           persistence_info: dict = None, timing_info: dict = None,
@@ -1412,6 +1577,17 @@ Data shows ensemble means from GFS, ECM, AIFS, and GEM models."""
 
         if result.returncode == 0:
             text = result.stdout.strip()
+
+            # Strip Claude's reasoning preamble if present
+            # Returns None if response is all meta-commentary
+            text = strip_claude_preamble(text)
+
+            # If preamble stripping returned None, use fallback
+            if text is None:
+                print("  Claude output was meta-commentary, using fallback")
+                fallback = generate_fallback_post(data_json)
+                return fallback, True
+
             # Allow longer text - split_for_posting() will handle multi-post threading
             # Max ~900 chars = 3 posts of ~290 chars each
             max_len = 900 if is_significant else 600
@@ -1442,6 +1618,16 @@ Data shows ensemble means from GFS, ECM, AIFS, and GEM models."""
 
             if result.returncode == 0:
                 text = result.stdout.strip()
+
+                # Strip Claude's reasoning preamble if present
+                text = strip_claude_preamble(text)
+
+                # If preamble stripping returned None, use fallback
+                if text is None:
+                    print("  Claude output was meta-commentary after retry, using fallback")
+                    fallback = generate_fallback_post(data_json)
+                    return fallback, True
+
                 # Allow longer text - split_for_posting() will handle multi-post threading
                 max_len = 900 if is_significant else 600
                 if len(text) > max_len:
