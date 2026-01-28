@@ -43,3 +43,9 @@ logs/*.log
 ntfy_listener.log
 .claude/
 cron_replies.log
+
+# Incoming files (screenshots, uploads)
+incoming/
+
+# Engagement state
+engagement/data/*.json
