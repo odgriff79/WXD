@@ -363,6 +363,64 @@ FORMAT: Plain text, no emojis, use C for temps. Start immediately with the story
         if result.returncode == 0 and result.stdout.strip():
             # Clean up any accidental prefix Claude might add
             text = result.stdout.strip()
+
+            # Strip Claude's reasoning preamble if present
+            # These patterns indicate Claude is "thinking out loud" before the actual post
+            # Handle both multi-line preambles and inline "Preamble: actual content"
+            import re
+
+            preamble_patterns = [
+                "The data is all provided",
+                "Let me draft",
+                "Based on the analysis",
+                "Here's the post",
+                "Here is the post",
+                "I'll write",
+                "Looking at the data",
+                "Key points from the data",
+                "Here's my analysis",
+                "Analyzing the data",
+            ]
+
+            # First, try to strip inline preambles (pattern followed by colon on same line)
+            for pattern in preamble_patterns:
+                # Match pattern (case-insensitive) followed by optional text and colon
+                # e.g., "Looking at the data:" or "Based on the analysis, here's the post:"
+                inline_match = re.match(
+                    rf'^{re.escape(pattern)}[^:\n]*:\s*',
+                    text,
+                    re.IGNORECASE
+                )
+                if inline_match:
+                    text = text[inline_match.end():].strip()
+                    break
+
+            # Then check for multi-line preamble (reasoning spread across lines)
+            for pattern in preamble_patterns:
+                if pattern.lower() in text.lower()[:200]:  # Check first 200 chars
+                    lines = text.split('\n')
+                    content_start = 0
+                    for i, line in enumerate(lines):
+                        line_lower = line.lower().strip()
+                        # Skip lines that are clearly preamble
+                        if any(p.lower() in line_lower for p in preamble_patterns):
+                            content_start = i + 1
+                            continue
+                        # Skip markdown-style bullet points (part of Claude's reasoning)
+                        if line.strip().startswith('- **') or line.strip().startswith('* **'):
+                            content_start = i + 1
+                            continue
+                        # If we hit a line that looks like actual content, stop
+                        if line.strip() and not line.strip().startswith('-') and not line.strip().startswith('*'):
+                            if not any(p.lower() in line_lower for p in ['key points', 'analysis:', 'draft:', 'post:']):
+                                break
+                            content_start = i + 1
+
+                    if content_start > 0 and content_start < len(lines):
+                        text = '\n'.join(lines[content_start:]).strip()
+                    break
+
+            # Also strip known tracker prefixes
             prefixes_to_remove = [f"{model_name}:", f"{model_name.lower()}:", "London 850hPa:"]
             for prefix in prefixes_to_remove:
                 if text.startswith(prefix):
