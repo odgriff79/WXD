@@ -298,21 +298,63 @@ def handle_ssw():
         level = status.get('alert', {}).get('level', 'Unknown')
         u10 = status.get('current_u10_60n_ms', 'N/A')
         model_run = status.get('model_run', 'Unknown')
-        # Calculate time since fetch (not time since model run)
-        fetch_age_str = ""
-        fetch_ts = status.get('timestamp', '')
-        if fetch_ts:
-            try:
-                fetch_dt = datetime.fromisoformat(fetch_ts.replace('Z', '+00:00'))
-                fetch_age_hrs = (datetime.now(timezone.utc) - fetch_dt).total_seconds() / 3600
-                if fetch_age_hrs < 1:
-                    fetch_age_str = f"{int(fetch_age_hrs * 60)}min old"
+
+        # Calculate timing info
+        # GEFS runs: 00z, 06z, 12z, 18z with ~7h processing latency
+        from datetime import timedelta
+        timing_str = ""
+        next_avail_str = ""
+        try:
+            if '/' in model_run:
+                date_part, cycle = model_run.split('/')
+                cycle_hour = int(cycle.replace('z', ''))
+                run_dt = datetime.strptime(f'{date_part}{cycle_hour:02d}', '%Y%m%d%H').replace(tzinfo=timezone.utc)
+                now = datetime.now(timezone.utc)
+
+                # When this data became available (~7h after init)
+                data_avail = run_dt + timedelta(hours=7)
+                avail_ago = (now - data_avail).total_seconds() / 60  # minutes
+                if avail_ago >= 0:
+                    if avail_ago < 60:
+                        timing_str = f"fresh {int(avail_ago)}min ago"
+                    else:
+                        timing_str = f"avail {avail_ago/60:.1f}h ago"
                 else:
-                    fetch_age_str = f"{fetch_age_hrs:.1f}h old"
-            except:
-                pass
-        header = f"SSW STATUS ({fetch_age_str})" if fetch_age_str else "SSW STATUS"
-        return f"{header}\n{'='*30}\nProbability: {prob}%\nAlert: {level}\nCurrent U10 @60N: {u10} m/s\nRun: {model_run}"
+                    timing_str = "still processing"
+
+                # Find next cycle after current one
+                cycles = [0, 6, 12, 18]
+                current_idx = cycles.index(cycle_hour)
+                next_cycle = cycles[(current_idx + 1) % 4]
+
+                # Next run datetime
+                if next_cycle > cycle_hour:
+                    next_run = run_dt.replace(hour=next_cycle)
+                else:
+                    next_run = run_dt.replace(hour=next_cycle) + timedelta(days=1)
+
+                # Available ~7h after run init
+                next_avail = next_run + timedelta(hours=7)
+                hrs_until = (next_avail - now).total_seconds() / 3600
+
+                if hrs_until > 0:
+                    next_avail_str = f"Next: {next_cycle:02d}z @ ~{next_avail.strftime('%H:%M')} UTC ({hrs_until:.1f}h)"
+                else:
+                    next_avail_str = f"Next: {next_cycle:02d}z ready NOW"
+        except:
+            pass
+
+        lines = [
+            "SSW STATUS",
+            "=" * 30,
+            f"Probability: {prob}%",
+            f"Alert: {level}",
+            f"Current U10 @60N: {u10} m/s",
+            f"Run: {model_run} ({timing_str})" if timing_str else f"Run: {model_run}",
+        ]
+        if next_avail_str:
+            lines.append(next_avail_str)
+        return "\n".join(lines)
     except Exception as e:
         return output or f"SSW check error: {e}"
 
