@@ -394,7 +394,24 @@ def save_history(history: dict):
 
 
 def add_to_history(history: dict, run_data: dict, is_elevated: bool) -> dict:
-    """Add a run to history and prune old entries."""
+    """Add a run to history and prune old entries.
+
+    Deduplication: Only one entry per GEFS cycle (date+cycle) within a 4-hour window.
+    This prevents duplicate entries from multiple script invocations (dry-run, testing).
+    """
+    # Deduplication: check if same cycle already exists within 4 hours
+    new_cycle = run_data.get("cycle")
+    new_ts = datetime.fromisoformat(run_data["timestamp"].replace("Z", "+00:00"))
+    dedup_window = timedelta(hours=4)
+
+    for existing in history.get("runs", []):
+        if existing.get("cycle") == new_cycle:
+            existing_ts = datetime.fromisoformat(existing["timestamp"].replace("Z", "+00:00"))
+            if abs(new_ts - existing_ts) < dedup_window:
+                # Same cycle within window - skip adding duplicate
+                logger.debug(f"Skipping duplicate: {new_cycle}z already in history at {existing_ts}")
+                return history
+
     history["runs"].append(run_data)
 
     # Determine retention period
