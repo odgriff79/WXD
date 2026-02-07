@@ -55,11 +55,15 @@ ssh -i "KEY_PATH" ubuntu@144.21.62.133 "cd ~/wxd && ..."
 **TO IMPLEMENT:** See case file for full architecture, proposed prompt template, and validation code.
 
 ---
-## ⚠️ KNOWN ISSUE: Open-Meteo 504 Timeouts ⚠️
+## ⚠️ KNOWN ISSUE: Open-Meteo Connection Failures ⚠️
 
-**Problem**: UKMO tracker fails with `504 Gateway Time-out` from Open-Meteo API.
-**Frequency**: Intermittent, seen 14-15 Jan 2026.
-**Solution**: Retry logic in `trackers/ukmo/fetch.py` - 7 retries over 2 hours (1m, 2m, 5m, 10m, 15m, 30m, 60m) with 3min request timeout.
+**Problem**: UKMO tracker fails connecting to Open-Meteo API.
+**Error types seen**:
+- `504 Gateway Time-out` (seen 14-15 Jan 2026)
+- `ConnectionResetError(104, 'Connection reset by peer')` during SSL handshake (seen 7 Feb 2026 — transient, API recovered within 4 min)
+
+**Frequency**: Intermittent.
+**Solution**: Retry logic in `trackers/ukmo/fetch.py` - 7 retries over 2 hours (1m, 2m, 5m, 10m, 15m, 30m, 60m) with 3min request timeout. Note: retry logic catches 504 but does NOT currently catch ConnectionResetError — the fetch exits immediately on connection errors.
 
 **If user reports UKMO 504 error:**
 1. Check if it's already recovered (API may be back): `curl -s "https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278&hourly=temperature_850hPa&models=ukmo_global_deterministic_10km&forecast_days=7&timezone=UTC" | head -1`
