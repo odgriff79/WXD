@@ -885,7 +885,7 @@ class EngagementTracker:
 # POST REGISTRY - Track which tracker/model created each post
 # =============================================================================
 
-_POST_REGISTRY_PATH = Path(__file__).parent.parent / 'data' / 'post_registry.json'
+_POST_REGISTRY_PATH = Path(os.environ.get('POST_REGISTRY_PATH', Path(__file__).parent.parent / 'data' / 'post_registry.json'))
 
 
 def register_post(uri: str, tracker: str, model: str = None, text_preview: str = None) -> None:
