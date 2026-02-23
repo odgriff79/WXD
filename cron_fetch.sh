@@ -66,27 +66,9 @@ else
     echo "No data changes to commit" >> cron.log
 fi
 
-# Post to Bluesky
-if [ -n "$BSKY_HANDLE" ] && [ -n "$BSKY_PASSWORD" ]; then
-    echo "Posting to Bluesky..." >> cron.log
-    if ! python post_bluesky.py >> cron.log 2>&1; then
-        alert_failure "post_bluesky.py failed"
-        # Continue anyway - data was pushed
-    fi
-
-    # Push chart
-    if [ -f "data/chart_latest.png" ]; then
-        git add data/chart_latest.png
-        if [ -n "$(git status --porcelain data/chart_latest.png)" ]; then
-            git pull --rebase origin main >> cron.log 2>&1 || true
-            git commit -m "Update chart $(date -u +%Y-%m-%d_%H%MZ)" >> cron.log 2>&1 || true
-            git push >> cron.log 2>&1 || echo "Chart push failed (non-fatal)" >> cron.log
-            echo "Pushed chart_latest.png" >> cron.log
-        fi
-    fi
-else
-    alert_failure "Bluesky credentials not set"
-fi
+# Post to Bluesky — DISABLED at cutover 2026-02-22 (wxd-direct takes over)
+# Posting block removed entirely. Data fetch + git push above still runs.
+echo "Posting disabled (cutover 2026-02-22)" >> cron.log
 
 # Record success in tracker state
 python tracker_state.py success tracker_a 2>/dev/null || true
