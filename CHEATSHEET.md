@@ -24,25 +24,28 @@ powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_C
 
 ### Available Triggers
 
+All commands run from **wxd-direct** (X stream) since cutover 2026-02-22.
+
 | Trigger | Description |
 |---------|-------------|
-| `preview` | Tracker A - quick preview (existing data) |
-| `fresh` | Tracker A - fetch new data + preview |
-| `icon` | ICON - quick preview |
+| `preview` | Main 4-model ensemble preview (X stream, existing data) |
+| `fresh` | Main ensemble - fetch new data + preview |
+| `icon` | ICON-EU-EPS preview (X stream) |
 | `icon-fresh` | ICON - fetch new data + preview |
-| `ukmo` | UKMO - quick preview |
+| `ukmo` | UKMO Global preview (X stream) |
 | `ukmo-fresh` | UKMO - fetch new data + preview |
-| `mogreps` | MOGREPS - quick preview |
+| `mogreps` | MOGREPS-G preview (X stream) |
 | `mogreps-fresh` | MOGREPS - fetch new data + preview |
 | `summary` | Daily Met Office summary preview |
 | `engagement` | Engagement post preview |
-| `cross` | Cross-tracker comparison (all 7 models) preview |
-| `cross-post` | Cross-tracker comparison - LIVE post |
+| `cross` | Cross-tracker comparison - not yet ported |
+| `cross-post` | Cross-tracker comparison - not yet ported |
 | `ssw` | SSW Monitor - current probability % and status |
-| `check` | Reply listener dry-run |
-| `respond` | Reply listener live |
+| `check` | Reply listener dry-run (check for new replies) |
+| `respond` | Reply listener live (check + respond, gated behind LIVE_MODE) |
 | `status` | Quick system status |
-| `clear-feedback` | Clear dashboard feedback queue |
+| `clear-feedback` | Clear feedback queue |
+| `compare` | Run comparison capture |
 
 ```powershell
 # Tracker A
@@ -87,33 +90,32 @@ Edit cron:
 crontab -e
 ```
 
-### Current Schedule (all times UTC)
+### Current Schedule (all times UTC) — X stream (post-cutover 2026-02-22)
 
 #### Forecast Trackers
 
 | Time (UTC) | Task | Description |
 |------------|------|-------------|
-| 08:30, 20:30 | Tracker A | 4-model ensemble (GFS/ECM/AIFS/GEM) |
-| 04:00, 10:00, 16:00, 22:00 | ICON | German ensemble (40 members) |
-| 03:00, 09:00, 15:00, 21:00 | MOGREPS | UK Met Office ensemble (18 members) |
-| 07:00, 19:00 | UKMO | UK Met Office deterministic |
-| 09:30 | Daily Summary | Met Office 5-day narrative + WXD comparison |
+| 08:45, 20:45 | Main (X stream) | 4-model ensemble (GEFS/IFS-ENS/AIFS-ENS/GEPS) |
+| 05:25, 10:15, 17:25, 22:15 | ICON (X stream) | DWD ICON-EU-EPS (40 members) |
+| 03:15, 09:15, 15:15, 21:40 | MOGREPS (X stream) | Met Office ensemble (18 members) |
+| 07:15, 19:40 | UKMO (X stream) | Met Office deterministic |
+| 09:35 | Daily Summary | Met Office 5-day narrative + WXD comparison |
 
 #### Weekly/Automated Posts
 
 | Time (UTC) | Task | Description |
 |------------|------|-------------|
-| Sun 01:00 | Weekly Changelog | Auto-generated from git commits |
-| Sun 12:00 | Community Request | Ask followers for topic suggestions |
-| Mon 20:00 | Collect Questions | Harvest replies from Sunday post |
-| Tue 12:00 | Educational Post | Weather topic based on collected questions |
-| Fri 12:00 | Educational Post | Weather topic (context-aware selection) |
+| Sun 14:05 | Weekly Recap | Auto-generated weekly summary |
+| Sun 12:05 | Community Request | Ask followers for topic suggestions |
+| Tue 12:05 | Educational Post | Weather topic based on collected questions |
+| Fri 12:05 | Educational Post | Weather topic (context-aware selection) |
 
 #### Stratospheric Monitoring
 
 | Time (UTC) | Task | Description |
 |------------|------|-------------|
-| 05:30, 11:30, 17:30, 23:30 | SSW Monitor | GEFS 31-member ensemble polar vortex check |
+| 01:45, 07:45, 13:45, 19:45 | SSW Monitor (X stream) | GEFS polar vortex check |
 
 #### Maintenance
 
@@ -146,18 +148,22 @@ crontab -e
 
 ## Reply System
 
+All reply commands run from **wxd-direct** since cutover 2026-02-22.
+
 ```bash
+cd ~/wxd-direct && source venv/bin/activate && source ~/.wxd_env
+
 # Reply listener (dry-run - default)
-python reply_listener.py
+python reply_listener.py --force
 
 # Reply listener (live posting)
-python reply_listener.py --post
+python reply_listener.py --force --post
 
-# Force run (bypass adaptive polling)
-python reply_listener.py --post --force
-
-# Clear feedback queue (dashboard cleanup)
+# Clear feedback queue
 python reply_listener.py --clear-feedback
+
+# Show feedback summary
+python reply_listener.py --feedback
 ```
 
 ### ntfy Reply Commands
@@ -165,7 +171,8 @@ python reply_listener.py --clear-feedback
 | Trigger | Description |
 |---------|-------------|
 | `check` | Check replies NOW (dry-run) |
-| `respond` | Check AND respond NOW (live) |
+| `respond` | Check AND respond NOW (live, gated behind LIVE_MODE) |
+| `clear-feedback` | Clear the feedback queue |
 
 ```powershell
 # Check replies (dry-run)
@@ -173,37 +180,36 @@ powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_C
 
 # Respond to replies (live)
 powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'respond'"
+
+# Clear feedback
+powershell -Command "Invoke-RestMethod -Method Post -Uri 'https://ntfy.sh/YOUR_CHANNEL' -Body 'clear-feedback'"
 ```
 
 ## Common VM Commands
 
+Since cutover (2026-02-22), all posting runs from **wxd-direct** via X stream.
+
 ```bash
-# Navigate to WXD
-cd ~/wxd
+# Navigate to wxd-direct
+cd ~/wxd-direct && source venv/bin/activate && source ~/.wxd_env
 
-# Activate environment
-source venv/bin/activate
-source ~/.wxd_env
+# X stream dry-run previews
+python src/xstream/runner.py --tracker main --dry-run
+python src/xstream/runner.py --tracker icon --dry-run
+python src/xstream/runner.py --tracker ukmo --dry-run
+python src/xstream/runner.py --tracker mogreps --dry-run
+python src/xstream/runner.py --tracker ssw --dry-run
 
-# Pull latest code
-git pull
-
-# Manual runs (dry run)
-python trackers/icon/post.py --dry-run
-python trackers/ukmo/post.py --dry-run
-python trackers/mogreps/post.py --dry-run
-python post_bluesky.py --dry-run
+# Other dry-runs
+python daily_summary.py --dry-run
 python engagement/engagement_post.py --dry-run
-python cross_tracker_synthesis.py          # Cross-tracker comparison
 
-# Manual runs (live)
-python trackers/icon/fetch.py && python trackers/icon/post.py
-python trackers/ukmo/fetch.py && python trackers/ukmo/post.py
-python trackers/mogreps/fetch.py && python trackers/mogreps/post.py
+# Fetch fresh data
+python src/scheduler.py --force
 
 # Check logs
-tail -f /var/log/syslog | grep CRON
-journalctl -u cron -f
+tail -50 logs/xstream/cron.log
+tail -50 logs/shadow/cron.log
 
 # Check swap
 free -h
@@ -211,15 +217,20 @@ free -h
 
 ## File Locations
 
+Since cutover (2026-02-22), production runs from **wxd-direct**.
+
 | Path | Description |
 |------|-------------|
-| `~/wxd/` | Main project directory |
+| `~/wxd-direct/` | Production project directory |
+| `~/wxd/` | Legacy (archived, read-only) |
 | `~/.wxd_env` | Environment variables (BSKY credentials) |
-| `~/wxd/trackers/icon/data/` | ICON data and charts |
-| `~/wxd/trackers/ukmo/data/` | UKMO data and charts |
-| `~/wxd/trackers/mogreps/data/` | MOGREPS data and charts |
-| `~/wxd/engagement/data/` | Engagement state and Q&A |
-| `~/wxd/ssw/` | SSW monitor scripts and status |
+| `~/wxd-direct/shadow_data/main/` | Main tracker data and charts |
+| `~/wxd-direct/shadow_data/icon/` | ICON data and charts |
+| `~/wxd-direct/shadow_data/ukmo/` | UKMO data and charts |
+| `~/wxd-direct/shadow_data/mogreps/` | MOGREPS data and charts |
+| `~/wxd-direct/shadow_data/ssw/` | SSW monitor status and charts |
+| `~/wxd-direct/src/xstream_configs/` | X stream YAML configs per tracker |
+| `~/wxd-direct/data/post_registry.json` | Post registry for feedback tracing |
 
 ## SSW Monitor (Sudden Stratospheric Warming)
 
@@ -254,11 +265,11 @@ Current U10 @60N: 23.0 m/s
 
 ### Manual Commands
 ```bash
-# Check SSW status
-python ssw/ssw_monitor.py --json
+# Check SSW status (wxd-direct)
+cd ~/wxd-direct && cat shadow_data/ssw/ssw_status.json
 
-# View current status file
-cat ssw/ssw_status.json
+# SSW X stream dry-run
+cd ~/wxd-direct && source venv/bin/activate && source ~/.wxd_env && python src/xstream/runner.py --tracker ssw --dry-run
 ```
 
 ## Troubleshooting
@@ -274,18 +285,21 @@ cat ssw/ssw_status.json
 
 ### Data not fetching
 - Check internet: `curl -I https://google.com`
-- Verify AWS access for MOGREPS
-- Check Open-Meteo API status
+- Verify AWS access for MOGREPS/UKMO
+- Check scheduler logs: `tail -50 ~/wxd-direct/logs/scheduler.log`
 
 ## Quick Status Check
 
 ```bash
-# Check recent posts
-ls -la ~/wxd/trackers/*/data/chart_latest.png
+# Check recent charts (wxd-direct)
+ls -la ~/wxd-direct/shadow_data/*/data/chart_latest.png
 
-# Check history files
-head -20 ~/wxd/trackers/icon/data/history.json
+# Check recent X stream outputs
+ls -lt ~/wxd-direct/shadow_data/*/outputs/run_x_*.txt | head -10
 
-# Check engagement state
-cat ~/wxd/engagement/data/engagement_state.json
+# Check xstream cron log
+tail -30 ~/wxd-direct/logs/xstream/cron.log
+
+# Check post registry
+jq '.posts[-5:]' ~/wxd-direct/data/post_registry.json
 ```
