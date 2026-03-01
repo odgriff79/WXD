@@ -143,6 +143,16 @@
                      onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
                 <div class="chart-img-placeholder" style="display:none;">Chart not yet available</div>
             </div>
+
+            <div class="chart-card" id="ssw-u10-card" style="display:none;">
+                <div class="chart-header">
+                    <div class="chart-title">SSW Mean Wind Speed</div>
+                    <div class="chart-meta">GEFS 10hPa 60°N zonal mean wind forecast (Oct-Apr only)</div>
+                </div>
+                <img src="charts/ssw_u10.png" alt="SSW mean wind speed forecast" class="chart-img"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                <div class="chart-img-placeholder" style="display:none;">Chart not yet available</div>
+            </div>
         </div>
 
         <script>
@@ -152,6 +162,7 @@
                 // Oct=9, Nov=10, Dec=11, Jan=0, Feb=1, Mar=2, Apr=3
                 if (month >= 9 || month <= 3) {
                     document.getElementById('ssw-card').style.display = 'block';
+                    document.getElementById('ssw-u10-card').style.display = 'block';
                 }
             })();
         </script>
