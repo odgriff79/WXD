@@ -153,6 +153,66 @@
                      onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
                 <div class="chart-img-placeholder" style="display:none;">Chart not yet available</div>
             </div>
+
+            <div class="chart-card ssw-season" style="display:none;">
+                <div class="chart-header">
+                    <div class="chart-title">GEPS SSW Probability History</div>
+                    <div class="chart-meta">Canada ECCC GEPS, 21 members, Day 5-16 (Oct-Apr only)</div>
+                </div>
+                <img src="charts/ssw_geps.png" alt="GEPS SSW probability history" class="chart-img"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                <div class="chart-img-placeholder" style="display:none;">Chart not yet available</div>
+            </div>
+
+            <div class="chart-card ssw-season" style="display:none;">
+                <div class="chart-header">
+                    <div class="chart-title">GEPS SSW Mean Wind Speed</div>
+                    <div class="chart-meta">Canada ECCC GEPS, 21 members, Day 5-16 (Oct-Apr only)</div>
+                </div>
+                <img src="charts/ssw_geps_u10.png" alt="GEPS SSW mean wind speed forecast" class="chart-img"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                <div class="chart-img-placeholder" style="display:none;">Chart not yet available</div>
+            </div>
+
+            <div class="chart-card ssw-season" style="display:none;">
+                <div class="chart-header">
+                    <div class="chart-title">ECMWF IFS SSW Probability History</div>
+                    <div class="chart-meta">ECMWF IFS ENS, 50 members, Day 5-15 (Oct-Apr only)</div>
+                </div>
+                <img src="charts/ssw_ifs.png" alt="ECMWF IFS SSW probability history" class="chart-img"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                <div class="chart-img-placeholder" style="display:none;">Chart not yet available</div>
+            </div>
+
+            <div class="chart-card ssw-season" style="display:none;">
+                <div class="chart-header">
+                    <div class="chart-title">ECMWF IFS SSW Mean Wind Speed</div>
+                    <div class="chart-meta">ECMWF IFS ENS, 50 members, Day 5-15 (Oct-Apr only)</div>
+                </div>
+                <img src="charts/ssw_ifs_u10.png" alt="ECMWF IFS SSW mean wind speed forecast" class="chart-img"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                <div class="chart-img-placeholder" style="display:none;">Chart not yet available</div>
+            </div>
+
+            <div class="chart-card ssw-season" style="display:none;">
+                <div class="chart-header">
+                    <div class="chart-title">ECMWF AIFS SSW Probability History</div>
+                    <div class="chart-meta">ECMWF AIFS ENS (AI model), 50 members, Day 5-15 (Oct-Apr only)</div>
+                </div>
+                <img src="charts/ssw_aifs.png" alt="ECMWF AIFS SSW probability history" class="chart-img"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                <div class="chart-img-placeholder" style="display:none;">Chart not yet available</div>
+            </div>
+
+            <div class="chart-card ssw-season" style="display:none;">
+                <div class="chart-header">
+                    <div class="chart-title">ECMWF AIFS SSW Mean Wind Speed</div>
+                    <div class="chart-meta">ECMWF AIFS ENS (AI model), 50 members, Day 5-15 (Oct-Apr only)</div>
+                </div>
+                <img src="charts/ssw_aifs_u10.png" alt="ECMWF AIFS SSW mean wind speed forecast" class="chart-img"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                <div class="chart-img-placeholder" style="display:none;">Chart not yet available</div>
+            </div>
         </div>
 
         <script>
@@ -163,6 +223,7 @@
                 if (month >= 9 || month <= 3) {
                     document.getElementById('ssw-card').style.display = 'block';
                     document.getElementById('ssw-u10-card').style.display = 'block';
+                    document.querySelectorAll('.ssw-season').forEach(function(el) { el.style.display = 'block'; });
                 }
             })();
         </script>
